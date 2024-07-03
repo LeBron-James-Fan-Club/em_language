@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "scan.h": "c",
+        "data.h": "c",
+        "decl.h": "c",
+        "gen.h": "c",
+        "globs.h": "c"
+    }
+}

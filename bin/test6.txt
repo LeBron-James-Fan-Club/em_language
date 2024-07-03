@@ -1,0 +1,13 @@
+{
+    int one;
+    int two;
+    int choice;
+    input choice;
+    input one;
+    input two;
+    if (choice == 1) {
+        print one + two;
+    } else {
+        print one - two;
+    }
+}

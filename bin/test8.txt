@@ -1,0 +1,39 @@
+{
+    int howmany;
+    input howmany;
+    
+    int a;
+    int b;
+    int c;
+    
+    if (howmany <= 0) {
+        b = 0;
+        goto finish;
+    }
+    if (howmany == 1) {
+        b = 1;
+        goto finish;
+    }
+
+    int i;
+
+    i = 0;
+
+    a = 0;
+    b = 1;
+    c = 0;
+
+    label while;
+    if (i > howmany) {
+        goto finish;
+    }
+    c = a + b;
+    a = b;
+    b = c;
+    i = i + 1;
+    
+    goto while;
+
+    label finish;
+    print b;
+}
