@@ -1,6 +1,8 @@
+{
 int sigma;
 int balls;
 sigma= 4;
 balls= 1 + 2 +
   9 - 5/2 + 3*5;
 print sigma + balls;
+}

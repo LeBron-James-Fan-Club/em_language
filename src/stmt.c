@@ -22,6 +22,7 @@ static ASTnode if_statement(Scanner s, SymTable st, Token tok);
 
 static ASTnode label_statement(Scanner s, SymTable st, Token tok);
 static ASTnode goto_statement(Scanner s, SymTable st, Token tok);
+static ASTnode while_statement(Scanner s, SymTable st, Token tok); 
 
 ASTnode Compound_Statement(Scanner s, SymTable st, Token tok) {
     // Might combine assignment and declare
@@ -56,6 +57,9 @@ ASTnode Compound_Statement(Scanner s, SymTable st, Token tok) {
                 break;
             case T_GOTO:
                 tree = goto_statement(s, st, tok);
+                break;
+            case T_WHILE:
+                tree = while_statement(s, st, tok);
                 break;
             case T_RBRACE:
                 rbrace(s, tok);
@@ -173,6 +177,23 @@ static ASTnode if_statement(Scanner s, SymTable st, Token tok) {
     }
 
     return ASTnode_New(A_IF, condAST, trueAST, falseAST, 0);
+}
+
+static ASTnode while_statement(Scanner s, SymTable st, Token tok) {
+    ASTnode condAST, bodyAST;
+    match(s, tok, T_WHILE, "while");
+    lparen(s, tok);
+
+    condAST = ASTnode_Order(s, st, tok);   
+    if (condAST->op < A_EQ || condAST->op > A_GE) {
+        fprintf(stderr, "Error: Bad comparison operator\n");
+        exit(-1);
+    }
+
+    rparen(s, tok);
+    bodyAST = Compound_Statement(s, st, tok);
+
+    return ASTnode_New(A_WHILE, condAST, NULL, bodyAST, 0);
 }
 
 static ASTnode label_statement(Scanner s, SymTable st, Token tok) {

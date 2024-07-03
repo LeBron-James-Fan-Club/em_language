@@ -171,7 +171,6 @@ static int keyword(char *s) {
         case 'e':
             if (!strcmp(s, "else")) return T_ELSE;
         case 'g':
-            printf("WOW a G!\n");
             if (!strcmp(s, "goto")) return T_GOTO;
         case 'i':
             if (!strcmp(s, "input")) return T_INPUT;
@@ -181,7 +180,8 @@ static int keyword(char *s) {
             if (!strcmp(s, "label")) return T_LABEL;
         case 'p':
             if (!strcmp(s, "print")) return T_PRINT;
-            break;
+        case 'w':
+            if (!strcmp(s, "while")) return T_WHILE;
         }
     return 0;
 }

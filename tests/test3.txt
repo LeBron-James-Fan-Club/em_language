@@ -1,3 +1,5 @@
+{
 int lol;
 input lol;
 print lol;
+}

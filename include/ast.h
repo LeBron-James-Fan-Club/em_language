@@ -29,6 +29,7 @@ enum ASTOP {
     A_IF,
     A_LABEL,
     A_GOTO,
+    A_WHILE
     
 };
 

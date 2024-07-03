@@ -17,6 +17,7 @@ static int label(Compiler this);
 static int genAST(Compiler this, int reg, SymTable st, ASTnode n,
                   int parentASTop);
 static int genIFAST(Compiler this, SymTable st, ASTnode n);
+static int genWHILEAST(Compiler this, SymTable st, ASTnode n);
 
 Compiler Compiler_New(char *outfile) {
     Compiler c = calloc(1, sizeof(struct compiler));
@@ -66,6 +67,8 @@ static int genAST(Compiler this, int reg, SymTable st, ASTnode n,
     switch (n->op) {
         case A_IF:
             return genIFAST(this, st, n);
+        case A_WHILE:
+            return genWHILEAST(this, st, n);
         case A_GLUE:
             genAST(this, NO_REG, st, n->left, n->op);
             Compiler_FreeAllReg(this);
@@ -99,32 +102,32 @@ static int genAST(Compiler this, int reg, SymTable st, ASTnode n,
         case A_MODULO:
             return MIPS_Mod(this, leftReg, rightReg);
         case A_EQ:
-            if (parentASTop == A_IF)
+            if (parentASTop == A_IF || parentASTop == A_WHILE)
                 return MIPS_EqualJump(this, leftReg, rightReg, reg);
             else
                 return MIPS_EqualSet(this, leftReg, rightReg);
         case A_NE:
-            if (parentASTop == A_IF)
+            if (parentASTop == A_IF || parentASTop == A_WHILE)
                 return MIPS_NotEqualJump(this, leftReg, rightReg, reg);
             else
                 return MIPS_NotEqualSet(this, leftReg, rightReg);
         case A_LT:
-            if (parentASTop == A_IF)
+            if (parentASTop == A_IF || parentASTop == A_WHILE)
                 return MIPS_LessThanJump(this, leftReg, rightReg, reg);
             else
                 return MIPS_LessThanSet(this, leftReg, rightReg);
         case A_GT:
-            if (parentASTop == A_IF)
+            if (parentASTop == A_IF || parentASTop == A_WHILE)
                 return MIPS_GreaterThanEqualJump(this, leftReg, rightReg, reg);
             else
                 return MIPS_GreaterThanSet(this, leftReg, rightReg);
         case A_LE:
-            if (parentASTop == A_IF)
+            if (parentASTop == A_IF || parentASTop == A_WHILE)
                 return MIPS_LessThanEqualJump(this, leftReg, rightReg, reg);
             else
                 return MIPS_LessThanEqualSet(this, leftReg, rightReg);
         case A_GE:
-            if (parentASTop == A_IF)
+            if (parentASTop == A_IF || parentASTop == A_WHILE)
                 return MIPS_LessThanEqualJump(this, leftReg, rightReg, reg);
             else
                 return MIPS_GreaterThanEqualSet(this, leftReg, rightReg);
@@ -147,7 +150,7 @@ static int genAST(Compiler this, int reg, SymTable st, ASTnode n,
             return NO_REG;
         case A_GOTO:
             MIPS_GotoJump(this, st, n->v.id);
-            return NO_REG;  
+            return NO_REG; 
         default:
             fprintf(stderr, "Error: Unknown AST operator %d\n", n->op);
             exit(-1);
@@ -177,6 +180,27 @@ static int genIFAST(Compiler this, SymTable st, ASTnode n) {
         Compiler_FreeAllReg(this);
         MIPS_Label(this, Lend);
     }
+
+    return NO_REG;
+}
+
+static int genWHILEAST(Compiler this, SymTable st, ASTnode n) {
+    int Lstart, Lend;
+
+    Lstart = label(this);
+    Lend = label(this);
+
+    MIPS_Label(this, Lstart);
+
+    // reg acts as parameter for label
+    genAST(this, Lend, st, n->left, n->op);
+    Compiler_FreeAllReg(this);
+
+    genAST(this, NO_REG, st, n->right, n->op);
+    Compiler_FreeAllReg(this);
+
+    MIPS_Jump(this, Lstart);
+    MIPS_Label(this, Lend);
 
     return NO_REG;
 }
