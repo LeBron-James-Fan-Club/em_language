@@ -42,8 +42,9 @@ enum OPCODES {
     T_ELSE,   // 24
     T_LABEL,  // 25
     T_GOTO,   // 26
-    T_WHILE,   // 27
-    T_FOR
+    T_WHILE,  // 27
+    T_FOR,    // 28
+    T_VOID
 
 };
 

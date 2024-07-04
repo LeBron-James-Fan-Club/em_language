@@ -8,7 +8,7 @@ SRCDIR = src
 OBJDIR = obj
 INCDIR = include
 
-OBJS = $(OBJDIR)/main.o $(OBJDIR)/scan.o $(OBJDIR)/ast.o $(OBJDIR)/gen.o $(OBJDIR)/stmt.o $(OBJDIR)/sym.o
+OBJS = $(OBJDIR)/main.o $(OBJDIR)/scan.o $(OBJDIR)/ast.o $(OBJDIR)/gen.o $(OBJDIR)/stmt.o $(OBJDIR)/sym.o $(OBJDIR)/decl.o
 
 # Default target
 all: $(TARGET)
@@ -47,6 +47,11 @@ $(OBJDIR)/stmt.o: $(SRCDIR)/stmt.c $(INCDIR)/tokens.h $(INCDIR)/ast.h
 $(OBJDIR)/sym.o: $(SRCDIR)/sym.c $(INCDIR)/tokens.h $(INCDIR)/ast.h
 	mkdir -p $(OBJDIR)
 	$(CC) $(CFLAGS) -c $(SRCDIR)/sym.c -o $@
+
+# Rule to compile decl.c
+$(OBJDIR)/decl.o: $(SRCDIR)/decl.c $(INCDIR)/tokens.h $(INCDIR)/ast.h
+	mkdir -p $(OBJDIR)
+	$(CC) $(CFLAGS) -c $(SRCDIR)/decl.c -o $@
 
 # Clean up generated files
 clean:

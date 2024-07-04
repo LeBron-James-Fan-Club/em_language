@@ -7,6 +7,7 @@
 #include "stmt.h"
 #include "tokens.h"
 #include "sym.h"
+#include "decl.h"
 
 int main(int argc, char *argv[]) {
     if (argc < 3) {
@@ -24,12 +25,18 @@ int main(int argc, char *argv[]) {
     SymTable st = SymTable_New();
     Token tok = calloc(1, sizeof(struct token));
 
-    MIPS_Pre(c);
+    //MIPS_Pre(c);
     Scanner_Scan(s, tok);
-    printf("Token: %d\n", tok->token);
-    ASTnode t = Compound_Statement(s, st, tok);
     
-    Compiler_Gen(c, st, t);
+    ASTnode t;
+    while (true) {
+        t = function_declare(s, st, tok); //Compound_Statement(s, st, tok);
+        printf("Tree rn: %p\n", t);
+        Compiler_Gen(c, st, t);
+        if (tok->token == T_EOF) break;
+    }
+    
+    //Compiler_Gen(c, st, t);
 
     MIPS_Post(c);
     
@@ -39,7 +46,7 @@ int main(int argc, char *argv[]) {
     Compiler_Free(c);
     SymTable_Free(st);
     free(tok);
-    printf("Success\n");
+    printf("Success!\n");
 
     exit(0);
 }

@@ -3,16 +3,18 @@
 #define SYM_H
 
 #include "scan.h"
+#include <stdbool.h>
 
 #define MAX_SYMBOLS 1024
 
 typedef struct symTableEntry {
     char *name;
+    bool isFunc;
 } SymTableEntry;
 
 struct symTable {
     SymTableEntry Gsym[MAX_SYMBOLS];
-     SymTableEntry Lsym[MAX_SYMBOLS];
+    SymTableEntry Lsym[MAX_SYMBOLS];
     int labels;
     int globs;
 };
@@ -23,6 +25,8 @@ SymTable SymTable_New(void);
 void SymTable_Free(SymTable);
 int SymTable_GlobFind(SymTable, Scanner s);
 int SymTable_GlobAdd(SymTable, Scanner s);
+
+void SymTable_GlobSetFunc(SymTable this, int id);
 
 int SymTable_LabelFind(SymTable, Scanner s);
 int SymTable_LabelAdd(SymTable, Scanner s);

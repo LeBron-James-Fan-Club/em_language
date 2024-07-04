@@ -34,6 +34,14 @@ int SymTable_GlobAdd(SymTable this, Scanner s) {
     return y;
 }
 
+void SymTable_GlobSetFunc(SymTable this, int id) {
+    if (this->Gsym[id].name == NULL) {
+        fprintf(stderr, "Error: Symbol not found\n");
+        exit(-1);
+    }
+    this->Gsym[id].isFunc = true;
+}
+
 int SymTable_LabelFind(SymTable this, Scanner s) {
     for (int i = 0; i < this->labels; i++) {
         if (*s->text == *this->Lsym[i].name && !strcmp(s->text, this->Lsym[i].name))

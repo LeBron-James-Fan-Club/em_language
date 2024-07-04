@@ -1,20 +1,16 @@
+#include "stmt.h"
+
 #include <stdbool.h>
 
-#include "ast.h"
-#include "sym.h"
-#include "tokens.h"
-
-static void match(Scanner s, Token t, enum OPCODES op, char *tok);
-
-static void semi(Scanner s, Token t);
-static void ident(Scanner s, Token t);
-static void lbrace(Scanner s, Token t);
-static void rbrace(Scanner s, Token t);
-static void lparen(Scanner s, Token t);
-static void rparen(Scanner s, Token t);
+void match(Scanner s, Token t, enum OPCODES op, char *tok);
+void semi(Scanner s, Token t);
+void ident(Scanner s, Token t);
+void lbrace(Scanner s, Token t);
+void rbrace(Scanner s, Token t);
+void lparen(Scanner s, Token t);
+void rparen(Scanner s, Token t);
 
 static ASTnode print_statement(Scanner s, SymTable st, Token tok);
-static void var_declare(Scanner s, SymTable st, Token tok);
 static ASTnode assignment_statement(Scanner s, SymTable st, Token tok);
 static ASTnode input_statement(Scanner s, SymTable st, Token tok);
 static ASTnode if_statement(Scanner s, SymTable st, Token tok);
@@ -96,17 +92,6 @@ static ASTnode print_statement(Scanner s, SymTable st, Token tok) {
     t = ASTnode_NewUnary(A_PRINT, t, 0);
 
     return t;
-}
-
-static void var_declare(Scanner s, SymTable st, Token tok) {
-    match(s, tok, T_INT, "int");
-
-    ident(s, tok);
-
-    SymTable_GlobAdd(st, s);
-    semi(s, tok);
-    // * .comm written is supposed to be here but it will be
-    // * deferred
 }
 
 static ASTnode assignment_statement(Scanner s, SymTable st, Token tok) {
@@ -249,7 +234,7 @@ static ASTnode goto_statement(Scanner s, SymTable st, Token tok) {
     return t;
 }
 
-static void match(Scanner s, Token t, enum OPCODES op, char *tok) {
+void match(Scanner s, Token t, enum OPCODES op, char *tok) {
     if (t->token == op) {
         Scanner_Scan(s, t);
     } else {
@@ -259,14 +244,14 @@ static void match(Scanner s, Token t, enum OPCODES op, char *tok) {
     }
 }
 
-static void semi(Scanner s, Token t) { match(s, t, T_SEMI, ";"); }
+void semi(Scanner s, Token t) { match(s, t, T_SEMI, ";"); }
 
-static void ident(Scanner s, Token t) { match(s, t, T_IDENT, "identifier"); }
+void ident(Scanner s, Token t) { match(s, t, T_IDENT, "identifier"); }
 
-static void lbrace(Scanner s, Token t) { match(s, t, T_LBRACE, "{"); }
+void lbrace(Scanner s, Token t) { match(s, t, T_LBRACE, "{"); }
 
-static void rbrace(Scanner s, Token t) { match(s, t, T_RBRACE, "}"); }
+void rbrace(Scanner s, Token t) { match(s, t, T_RBRACE, "}"); }
 
-static void lparen(Scanner s, Token t) { match(s, t, T_LPAREN, "("); }
+void lparen(Scanner s, Token t) { match(s, t, T_LPAREN, "("); }
 
-static void rparen(Scanner s, Token t) { match(s, t, T_RPAREN, ")"); }
+void rparen(Scanner s, Token t) { match(s, t, T_RPAREN, ")"); }

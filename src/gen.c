@@ -3,8 +3,8 @@
 #include <stdbool.h>
 
 #include "ast.h"
-#include "sym.h"
 #include "scan.h"
+#include "sym.h"
 
 static char *reglist[MAX_REG] = {
     "$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7", "$t8", "$t9",
@@ -18,6 +18,9 @@ static int genAST(Compiler this, int reg, SymTable st, ASTnode n,
                   int parentASTop);
 static int genIFAST(Compiler this, SymTable st, ASTnode n);
 static int genWHILEAST(Compiler this, SymTable st, ASTnode n);
+
+static void MIPS_PostFunc(Compiler this);
+static void MIPS_PreFunc(Compiler this, SymTable st, int id);
 
 Compiler Compiler_New(char *outfile) {
     Compiler c = calloc(1, sizeof(struct compiler));
@@ -43,6 +46,7 @@ void Compiler_Free(Compiler this) {
 void Compiler_GenData(Compiler this, SymTable st) {
     fputs("\n.data\n", this->outfile);
     for (int i = 0; i < st->globs; i++) {
+        if (st->Gsym[i].isFunc) continue;
         MIPS_GlobSym(this, st->Gsym[i].name);
     }
 }
@@ -74,6 +78,11 @@ static int genAST(Compiler this, int reg, SymTable st, ASTnode n,
             Compiler_FreeAllReg(this);
             genAST(this, NO_REG, st, n->right, n->op);
             Compiler_FreeAllReg(this);
+            return NO_REG;
+        case A_FUNCTION:
+            MIPS_PreFunc(this, st, n->v.id);
+            genAST(this, NO_REG, st, n->left, n->op);
+            MIPS_PostFunc(this);
             return NO_REG;
         default:
             // stfu compiler
@@ -150,7 +159,8 @@ static int genAST(Compiler this, int reg, SymTable st, ASTnode n,
             return NO_REG;
         case A_GOTO:
             MIPS_GotoJump(this, st, n->v.id);
-            return NO_REG; 
+            return NO_REG;
+
         default:
             fprintf(stderr, "Error: Unknown AST operator %d\n", n->op);
             exit(-1);
@@ -203,6 +213,27 @@ static int genWHILEAST(Compiler this, SymTable st, ASTnode n) {
     MIPS_Label(this, Lend);
 
     return NO_REG;
+}
+
+static void MIPS_PreFunc(Compiler this, SymTable st, int id) {
+    fprintf(this->outfile,
+            ".text\n"
+            "\t.globl %s\n"
+            "\n"
+            "%s:\n"
+
+            "\tpush\t$fp\n"
+            "\tpush\t$ra\n"
+            "\tmove\t$fp, $sp\n",
+            st->Gsym[id].name,st->Gsym[id].name);
+}
+
+static void MIPS_PostFunc(Compiler this) {
+    fputs(
+        "\tpop\t$ra\n"
+        "\tpop\t$fp\n"
+        "\tjr\t$ra\n",
+        this->outfile);
 }
 
 static int allocReg(Compiler this) {
@@ -317,8 +348,7 @@ int MIPS_StoreGlob(Compiler this, int r1, SymTable st, int id) {
         exit(-1);
     }
 
-    fprintf(this->outfile, "\tsw\t%s, %s\n", reglist[r1],
-            st->Gsym[id].name);
+    fprintf(this->outfile, "\tsw\t%s, %s\n", reglist[r1], st->Gsym[id].name);
 
     return r1;
 }

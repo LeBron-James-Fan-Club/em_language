@@ -29,7 +29,10 @@ enum ASTOP {
     A_IF,
     A_LABEL,
     A_GOTO,
-    A_WHILE
+    
+    // for is also A_WHILE
+    A_WHILE,
+    A_FUNCTION 
     
 };
 

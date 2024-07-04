@@ -182,8 +182,11 @@ static int keyword(char *s) {
             if (!strcmp(s, "label")) return T_LABEL;
         case 'p':
             if (!strcmp(s, "print")) return T_PRINT;
+        case 'v':
+            if (!strcmp(s, "void")) return T_VOID;
         case 'w':
             if (!strcmp(s, "while")) return T_WHILE;
+    
         }
     return 0;
 }
