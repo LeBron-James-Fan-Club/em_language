@@ -43,7 +43,7 @@ ASTnode Compound_Statement(Scanner s, SymTable st, Token tok) {
         // Might be weird here:
         if (tree != NULL && (tree->op == A_PRINT || tree->op == A_INPUT ||
                              tree->op == A_ASSIGN || tree->op == A_LABEL ||
-                             tree->op == A_GOTO)) {
+                             tree->op == A_GOTO )) {
             semi(s, tok);
         }
 
