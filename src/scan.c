@@ -168,6 +168,8 @@ bool Scanner_Scan(Scanner this, Token t) {
 
 static int keyword(char *s) {
     switch (*s) {
+        case 'f':
+            if (!strcmp(s, "for")) return T_FOR;
         case 'e':
             if (!strcmp(s, "else")) return T_ELSE;
         case 'g':

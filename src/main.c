@@ -39,6 +39,7 @@ int main(int argc, char *argv[]) {
     Compiler_Free(c);
     SymTable_Free(st);
     free(tok);
+    printf("Success\n");
 
     exit(0);
 }

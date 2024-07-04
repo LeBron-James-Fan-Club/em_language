@@ -1,8 +1,8 @@
 #include <stdbool.h>
 
 #include "ast.h"
-#include "tokens.h"
 #include "sym.h"
+#include "tokens.h"
 
 static void match(Scanner s, Token t, enum OPCODES op, char *tok);
 
@@ -15,14 +15,17 @@ static void rparen(Scanner s, Token t);
 
 static ASTnode print_statement(Scanner s, SymTable st, Token tok);
 static void var_declare(Scanner s, SymTable st, Token tok);
-static ASTnode assignment_statement(Scanner s, SymTable st,
-                                    Token tok);
+static ASTnode assignment_statement(Scanner s, SymTable st, Token tok);
 static ASTnode input_statement(Scanner s, SymTable st, Token tok);
 static ASTnode if_statement(Scanner s, SymTable st, Token tok);
 
 static ASTnode label_statement(Scanner s, SymTable st, Token tok);
 static ASTnode goto_statement(Scanner s, SymTable st, Token tok);
-static ASTnode while_statement(Scanner s, SymTable st, Token tok); 
+static ASTnode while_statement(Scanner s, SymTable st, Token tok);
+
+static ASTnode for_statement(Scanner s, SymTable st, Token tok);
+
+static ASTnode single_statement(Scanner s, SymTable st, Token tok);
 
 ASTnode Compound_Statement(Scanner s, SymTable st, Token tok) {
     // Might combine assignment and declare
@@ -35,53 +38,52 @@ ASTnode Compound_Statement(Scanner s, SymTable st, Token tok) {
     lbrace(s, tok);
 
     while (true) {
-        switch (tok->token) {
-            case T_PRINT:
-                tree = print_statement(s, st, tok);
-                break;
-            case T_INT:
-                var_declare(s, st, tok);
-                tree = NULL;
-                break;
-            case T_IDENT:
-                tree = assignment_statement(s, st, tok);
-                break;
-            case T_INPUT:
-                tree = input_statement(s, st, tok);
-                break;
-            case T_IF:
-                tree = if_statement(s, st, tok);
-                break;
-            case T_LABEL:
-                tree = label_statement(s, st, tok);
-                break;
-            case T_GOTO:
-                tree = goto_statement(s, st, tok);
-                break;
-            case T_WHILE:
-                tree = while_statement(s, st, tok);
-                break;
-            case T_RBRACE:
-                rbrace(s, tok);
-                return left;
-            default:
-                fprintf(stderr,
-                        "Error: Unknown statement on line %d token %d\n",
-                        s->line, tok->token);
-                exit(-1);
+        tree = single_statement(s, st, tok);
+
+        // Might be weird here:
+        if (tree != NULL && (tree->op == A_PRINT || tree->op == A_INPUT ||
+                             tree->op == A_ASSIGN || tree->op == A_LABEL ||
+                             tree->op == A_GOTO)) {
+            semi(s, tok);
         }
+
         if (tree) {
-            printf("tree %d\n", tree->op);
-            if (left == NULL) {
-                printf("Set left = true\n");
-                left = tree;
-            } else {
-                printf("Creating GLUE\n");
-                left = ASTnode_New(A_GLUE, left, NULL, tree, 0);
-            }
-            //left = (left == NULL) ? tree
-             //                     : ASTnode_New(A_GLUE, left, NULL, tree, 0);
+            left = (left == NULL) ? tree
+                                  : ASTnode_New(A_GLUE, left, NULL, tree, 0);
         }
+
+        if (tok->token == T_RBRACE) {
+            rbrace(s, tok);
+            return left;
+        }
+    }
+}
+
+static ASTnode single_statement(Scanner s, SymTable st, Token tok) {
+    switch (tok->token) {
+        case T_PRINT:
+            return print_statement(s, st, tok);
+        case T_INT:
+            var_declare(s, st, tok);
+            return NULL;
+        case T_IDENT:
+            return assignment_statement(s, st, tok);
+        case T_INPUT:
+            return input_statement(s, st, tok);
+        case T_IF:
+            return if_statement(s, st, tok);
+        case T_LABEL:
+            return label_statement(s, st, tok);
+        case T_GOTO:
+            return goto_statement(s, st, tok);
+        case T_WHILE:
+            return while_statement(s, st, tok);
+        case T_FOR:
+            // Basically a while loop wrapper
+            return for_statement(s, st, tok);
+        default:
+            fprintf(stderr, "Error: Unknown statement on line %d\n", s->line);
+            exit(-1);
     }
 }
 
@@ -93,7 +95,6 @@ static ASTnode print_statement(Scanner s, SymTable st, Token tok) {
     t = ASTnode_Order(s, st, tok);
     t = ASTnode_NewUnary(A_PRINT, t, 0);
 
-    semi(s, tok);
     return t;
 }
 
@@ -103,14 +104,12 @@ static void var_declare(Scanner s, SymTable st, Token tok) {
     ident(s, tok);
 
     SymTable_GlobAdd(st, s);
+    semi(s, tok);
     // * .comm written is supposed to be here but it will be
     // * deferred
-
-    semi(s, tok);
 }
 
-static ASTnode assignment_statement(Scanner s, SymTable st,
-                                    Token tok) {
+static ASTnode assignment_statement(Scanner s, SymTable st, Token tok) {
     ASTnode left, right, tree;
     int id;
 
@@ -129,7 +128,6 @@ static ASTnode assignment_statement(Scanner s, SymTable st,
 
     tree = ASTnode_New(A_ASSIGN, left, NULL, right, 0);
 
-    semi(s, tok);
     return tree;
 }
 
@@ -149,7 +147,6 @@ static ASTnode input_statement(Scanner s, SymTable st, Token tok) {
     ASTnode right = ASTnode_NewLeaf(A_LVIDENT, id);
     ASTnode tree = ASTnode_New(A_ASSIGN, left, NULL, right, 0);
 
-    semi(s, tok);
     return tree;
 }
 
@@ -184,7 +181,7 @@ static ASTnode while_statement(Scanner s, SymTable st, Token tok) {
     match(s, tok, T_WHILE, "while");
     lparen(s, tok);
 
-    condAST = ASTnode_Order(s, st, tok);   
+    condAST = ASTnode_Order(s, st, tok);
     if (condAST->op < A_EQ || condAST->op > A_GE) {
         fprintf(stderr, "Error: Bad comparison operator\n");
         exit(-1);
@@ -196,6 +193,33 @@ static ASTnode while_statement(Scanner s, SymTable st, Token tok) {
     return ASTnode_New(A_WHILE, condAST, NULL, bodyAST, 0);
 }
 
+static ASTnode for_statement(Scanner s, SymTable st, Token tok) {
+    ASTnode condAST, bodyAST;
+    ASTnode preopAST, postopAST;
+    ASTnode t;
+    match(s, tok, T_FOR, "for");
+    lparen(s, tok);
+
+    preopAST = single_statement(s, st, tok);
+    semi(s, tok);
+
+    condAST = ASTnode_Order(s, st, tok);
+    if (condAST->op < A_EQ || condAST->op > A_GE) {
+        fprintf(stderr, "Error: Bad comparison operator\n");
+        exit(-1);
+    }
+    semi(s, tok);
+
+    postopAST = single_statement(s, st, tok);
+    rparen(s, tok);
+
+    bodyAST = Compound_Statement(s, st, tok);
+
+    t = ASTnode_New(A_GLUE, bodyAST, NULL, postopAST, 0);
+    t = ASTnode_New(A_WHILE, condAST, NULL, t, 0);
+    return ASTnode_New(A_GLUE, preopAST, NULL, t, 0);
+}
+
 static ASTnode label_statement(Scanner s, SymTable st, Token tok) {
     printf("WHY IS THIS HAPPENING 4 TIMES\n");
     match(s, tok, T_LABEL, "label");
@@ -204,7 +228,6 @@ static ASTnode label_statement(Scanner s, SymTable st, Token tok) {
     int id = SymTable_LabelAdd(st, s);
 
     ASTnode t = ASTnode_NewLeaf(A_LABEL, id);
-    semi(s, tok);
 
     return t;
 }
@@ -222,7 +245,6 @@ static ASTnode goto_statement(Scanner s, SymTable st, Token tok) {
     }
 
     ASTnode t = ASTnode_NewLeaf(A_GOTO, id);
-    semi(s, tok);
 
     return t;
 }
