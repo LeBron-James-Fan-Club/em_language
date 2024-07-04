@@ -8,7 +8,7 @@ SRCDIR = src
 OBJDIR = obj
 INCDIR = include
 
-OBJS = $(OBJDIR)/main.o $(OBJDIR)/scan.o $(OBJDIR)/ast.o $(OBJDIR)/gen.o $(OBJDIR)/stmt.o $(OBJDIR)/sym.o $(OBJDIR)/decl.o
+OBJS = $(OBJDIR)/main.o $(OBJDIR)/scan.o $(OBJDIR)/ast.o $(OBJDIR)/gen.o $(OBJDIR)/stmt.o $(OBJDIR)/sym.o $(OBJDIR)/decl.o $(OBJDIR)/comp.o $(OBJDIR)/asm.o
 
 # Default target
 all: $(TARGET)
@@ -52,6 +52,16 @@ $(OBJDIR)/sym.o: $(SRCDIR)/sym.c $(INCDIR)/tokens.h $(INCDIR)/ast.h
 $(OBJDIR)/decl.o: $(SRCDIR)/decl.c $(INCDIR)/tokens.h $(INCDIR)/ast.h
 	mkdir -p $(OBJDIR)
 	$(CC) $(CFLAGS) -c $(SRCDIR)/decl.c -o $@
+
+# Rule to compile comp.c
+$(OBJDIR)/comp.o: $(SRCDIR)/comp.c $(INCDIR)/comp.h
+	mkdir -p $(OBJDIR)
+	$(CC) $(CFLAGS) -c $(SRCDIR)/comp.c -o $@
+
+# Rule to compile asm.c
+$(OBJDIR)/asm.o: $(SRCDIR)/asm.c $(INCDIR)/asm.h
+	mkdir -p $(OBJDIR)
+	$(CC) $(CFLAGS) -c $(SRCDIR)/asm.c -o $@
 
 # Clean up generated files
 clean:
