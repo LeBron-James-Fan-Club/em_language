@@ -20,8 +20,7 @@ static ASTnode goto_statement(Scanner s, SymTable st, Token tok);
 static ASTnode while_statement(Scanner s, SymTable st, Token tok, Context ctx);
 
 static ASTnode for_statement(Scanner s, SymTable st, Token tok, Context ctx);
-static ASTnode return_statement(Scanner s, SymTable st, Token tok,
-                                Context ctx);
+static ASTnode return_statement(Scanner s, SymTable st, Token tok, Context ctx);
 
 static ASTnode single_statement(Scanner s, SymTable st, Token tok, Context ctx);
 
@@ -31,19 +30,17 @@ ASTnode Compound_Statement(Scanner s, SymTable st, Token tok, Context ctx) {
 
     ASTnode left = NULL;
     ASTnode tree = NULL;
-    printf("Token %d\n", tok->token);
 
     lbrace(s, tok);
 
     while (true) {
+        // TODO:  Compiler directive will be checked here
         tree = single_statement(s, st, tok, ctx);
-        printf("End\n");
 
         // Might be weird here:
-        printf("Tree %p\n", tree);
-        if (tree != NULL && (tree->op == A_PRINT || tree->op == A_INPUT || tree->op == A_RETURN ||
-                             tree->op == A_ASSIGN || tree->op == A_LABEL ||
-                             tree->op == A_GOTO)) {
+        if (tree != NULL && (tree->op == A_PRINT || tree->op == A_INPUT ||
+                             tree->op == A_RETURN || tree->op == A_ASSIGN ||
+                             tree->op == A_LABEL || tree->op == A_GOTO)) {
             semi(s, tok);
         }
 
@@ -60,13 +57,13 @@ ASTnode Compound_Statement(Scanner s, SymTable st, Token tok, Context ctx) {
     }
 }
 
-static ASTnode single_statement(Scanner s, SymTable st, Token tok, Context ctx) {
+static ASTnode single_statement(Scanner s, SymTable st, Token tok,
+                                Context ctx) {
     switch (tok->token) {
         case T_PRINT:
             return print_statement(s, st, tok);
         case T_CHAR:
         case T_INT:
-            printf("Making var declare\n");
             var_declare(s, st, tok);
             return NULL;
         case T_IDENT:
@@ -96,7 +93,6 @@ static ASTnode single_statement(Scanner s, SymTable st, Token tok, Context ctx) 
 // TODO add comma support for print statement
 static ASTnode print_statement(Scanner s, SymTable st, Token tok) {
     ASTnode t;
-    printf("Making print statement\n");
 
     match(s, tok, T_PRINT, "print");
 
@@ -111,8 +107,8 @@ static ASTnode print_statement(Scanner s, SymTable st, Token tok) {
         t = ASTnode_Order(s, st, tok);
 
         int rightType = t->type;
+
         // P_NONE should never occur thereotically for now
-        printf("Right type %d\n", rightType);
         if (rightType == P_NONE || rightType == P_VOID) {
             fprintf(stderr, "Error: Type mismatch on line %d\n", s->line);
             exit(-1);
@@ -127,9 +123,7 @@ static ASTnode print_statement(Scanner s, SymTable st, Token tok) {
             parent = ASTnode_NewUnary(A_GLUE, P_NONE, parent, 0);
         }
 
-        printf("pushing p %d\n", tok->token);
     } while (tok->token == T_COMMA);
-    printf("Token %d\n", tok->token);
     semi(s, tok);
 
     return parent;
@@ -138,7 +132,6 @@ static ASTnode print_statement(Scanner s, SymTable st, Token tok) {
 static ASTnode assignment_statement(Scanner s, SymTable st, Token tok) {
     ASTnode left, right, tree;
     int id;
-    printf("Making assignment statement\n");
     // Looks unnecessary but it consumes token
     ident(s, tok);
 
@@ -160,8 +153,6 @@ static ASTnode assignment_statement(Scanner s, SymTable st, Token tok) {
     int leftType = left->type;
     int rightType = right->type;
     if (!type_compatible(&leftType, &rightType, true)) {
-        printf("Left type %d\n", leftType);
-        printf("Right type %d\n", rightType);
         fprintf(stderr, "Error: Type mismatch on line %d\n", s->line);
         exit(-1);
     }
@@ -177,7 +168,6 @@ static ASTnode assignment_statement(Scanner s, SymTable st, Token tok) {
 
 static ASTnode input_statement(Scanner s, SymTable st, Token tok) {
     int id;
-    printf("Making input statement\n");
     match(s, tok, T_INPUT, "input");
 
     ident(s, tok);
@@ -203,14 +193,14 @@ static ASTnode input_statement(Scanner s, SymTable st, Token tok) {
     return tree;
 }
 
-static ASTnode if_statement(Scanner s, SymTable st, Token tok,  Context ctx) {
+static ASTnode if_statement(Scanner s, SymTable st, Token tok, Context ctx) {
     ASTnode condAST, trueAST, falseAST = NULL;
-    printf("Making condition AST - if\n");
+
     match(s, tok, T_IF, "if");
     lparen(s, tok);
 
     condAST = ASTnode_Order(s, st, tok);
-    printf("Finished making it\n");
+
     // Might remove this guard later
     if (condAST->op < A_EQ || condAST->op > A_GE) {
         fprintf(stderr, "Error: Bad comparison operator\n");
@@ -219,10 +209,8 @@ static ASTnode if_statement(Scanner s, SymTable st, Token tok,  Context ctx) {
 
     rparen(s, tok);
 
-    printf("Making trueAST\n");
     trueAST = Compound_Statement(s, st, tok, ctx);
-    printf("Finished making trueAST\n");
-    printf("Token before T_ELSE IF %d\n", tok->token);
+
     if (tok->token == T_ELSE) {
         Scanner_Scan(s, tok);
         falseAST = Compound_Statement(s, st, tok, ctx);
@@ -233,7 +221,7 @@ static ASTnode if_statement(Scanner s, SymTable st, Token tok,  Context ctx) {
 
 static ASTnode while_statement(Scanner s, SymTable st, Token tok, Context ctx) {
     ASTnode condAST, bodyAST;
-    printf("Making condition AST - while\n");
+
     match(s, tok, T_WHILE, "while");
     lparen(s, tok);
 
@@ -253,7 +241,7 @@ static ASTnode for_statement(Scanner s, SymTable st, Token tok, Context ctx) {
     ASTnode condAST, bodyAST;
     ASTnode preopAST, postopAST;
     ASTnode t;
-    printf("Making preop AST - for\n");
+
     match(s, tok, T_FOR, "for");
     lparen(s, tok);
 
@@ -278,7 +266,6 @@ static ASTnode for_statement(Scanner s, SymTable st, Token tok, Context ctx) {
 }
 
 static ASTnode label_statement(Scanner s, SymTable st, Token tok) {
-    printf("WHY IS THIS HAPPENING 4 TIMES\n");
     match(s, tok, T_LABEL, "label");
     ident(s, tok);
 
@@ -291,7 +278,6 @@ static ASTnode label_statement(Scanner s, SymTable st, Token tok) {
 
 static ASTnode goto_statement(Scanner s, SymTable st, Token tok) {
     int id;
-    printf("Skeet\n");
 
     match(s, tok, T_GOTO, "goto");
     // ! Might be buggy?
@@ -322,7 +308,7 @@ static ASTnode return_statement(Scanner s, SymTable st, Token tok,
         fprintf(stderr, "Error: Return in void function on line %d\n", s->line);
         exit(-1);
     }
-    printf("Making return statement\n");
+
     match(s, tok, T_RETURN, "return");
     lparen(s, tok);
 
@@ -332,8 +318,6 @@ static ASTnode return_statement(Scanner s, SymTable st, Token tok,
     funcType = st->Gsym[funcId].type;
 
     if (!type_compatible(&returnType, &funcType, true)) {
-        printf ("Return type %d\n", returnType);
-        printf ("Func type %d\n", funcType);
         fprintf(stderr, "Error: Type mismatch on line %d\n", s->line);
         exit(-1);
     }

@@ -59,10 +59,8 @@ int SymTable_GlobAdd(SymTable this, Scanner s, enum ASTPRIM type,
         exit(-1);
     }
 
-    printf("Adding %s %d\n", s->text, type);
     this->Gsym[y].name = strdup(s->text);
     this->Gsym[y].type = type;
-    printf("Added %s %d\n", s->text, type);
     this->Gsym[y].stype = stype;
 
     return y;

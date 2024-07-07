@@ -18,8 +18,7 @@ add:
 	add	$t1, $t0, $t1
 	sw	$t1, ans1
 	lw	$t0, ans1
-	mul	$t1, $t0, $t1
-	move	$v0, $t1
+	move	$v0, $t0
 	pop	$ra
 	pop	$fp
 	jr	$ra
@@ -43,8 +42,7 @@ sub:
 	sub	$t1, $t0, $t1
 	sw	$t1, ans2
 	lw	$t0, ans2
-	mul	$t1, $t0, $t1
-	move	$v0, $t1
+	move	$v0, $t0
 	pop	$ra
 	pop	$fp
 	jr	$ra

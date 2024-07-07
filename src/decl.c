@@ -2,10 +2,8 @@
 
 void var_declare(Scanner s, SymTable st, Token tok) {
     enum ASTPRIM type = parse_type(s, tok);
-    printf("declared type %d\n", type);
-    // match(s, tok, T_INT, "int");
+
     Scanner_Scan(s, tok);
-    printf("check ident\n");
     ident(s, tok);
 
     SymTable_GlobAdd(st, s, type, S_VAR);
@@ -16,7 +14,6 @@ void var_declare(Scanner s, SymTable st, Token tok) {
 
 ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
                          Context ctx) {
-    // match(s, tok, T_VOID, "void");
 
     int type = parse_type(s, tok);
     Scanner_Scan(s, tok);

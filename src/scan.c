@@ -135,7 +135,6 @@ bool Scanner_Scan(Scanner this, Token t) {
             }
             break;
         case '{':
-            printf("Found brace\n");
             t->token = T_LBRACE;
             break;
         case '}':
@@ -161,7 +160,6 @@ bool Scanner_Scan(Scanner this, Token t) {
                 scanIdent(this, c);
 
                 if ((tokenType = keyword(this->text))) {
-                    if (tokenType == T_GOTO) printf("Found goto\n");
                     t->token = tokenType;
                     break;
                 }

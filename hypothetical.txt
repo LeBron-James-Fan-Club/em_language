@@ -1,0 +1,7 @@
+i32 cool(void) {
+    MOVE 0 72;
+    PRINT 0;
+}
+i32 main(void) {
+    u32
+}

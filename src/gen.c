@@ -58,7 +58,6 @@ static int genAST(Compiler this, int reg, SymTable st, Context ctx, ASTnode n,
     if (n->right) {
         rightReg = genAST(this, leftReg, st, ctx, n->right, -1);
     }
-    printf("%d\n", n->op);
 
     switch (n->op) {
         case A_ADD:

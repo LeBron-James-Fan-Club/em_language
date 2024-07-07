@@ -34,7 +34,6 @@ int main(int argc, char *argv[]) {
     while (true) {
         t = function_declare(c, s, st, tok,
                              ctx);  // Compound_Statement(s, st, tok);
-        printf("Tree rn: %p\n", t);
         Compiler_Gen(c, st, ctx, t);
         if (tok->token == T_EOF) break;
     }

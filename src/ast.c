@@ -40,7 +40,6 @@ void ASTnode_Free(ASTnode this) {
 // maybe move this to tokens.c or scan.c
 static enum ASTOP arithop(Scanner s, enum OPCODES tok) {
     if (tok > T_EOF && tok < T_INTLIT) return (enum ASTOP)tok;
-    printf("artihop:\n");
     fprintf(stderr, "Error: Syntax error on line %d token %d\n", s->line, tok);
     exit(-1);
 }
@@ -102,25 +101,21 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t) {
                 // this needs to somehow be left - fixed
                 Scanner_Scan(s, t);
                 if (t->token == T_LPAREN) {
-                    printf("Should be a function call\n");
                     stack[++top] = ASTnode_FuncCall(s, st, t);
                 } else {
                     Scanner_RejectToken(s, t);
-                    printf("Other scanner text: %s\n", s->text);
                     if ((id = SymTable_GlobFind(st, s, S_VAR)) == -1) {
                         fprintf(stderr,
                                 "Error: Unknown variable %s on line %d\n",
                                 s->text, s->line);
                         exit(-1);
                     }
-                    printf("Found type %d id %d\n", st->Gsym[id].type, id);
                     stack[++top] =
                         ASTnode_NewLeaf(A_IDENT, st->Gsym[id].type, id);
                 }
                 break;
             // TODO: IMPLEMENT PERTHENESIS
             default:
-                printf("I wished I owned a gtr %d\n", t->token);
                 curOp = arithop(s, t->token);
                 while (opTop != -1 &&
                        precedence(opStack[opTop]) >= precedence(curOp)) {
@@ -153,15 +148,9 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t) {
         }
     } while (Scanner_Scan(s, t));
 
-    printf("opTop: %d\n", opTop);
     while (opTop != -1) {
-        printf("Leftovers\n");
         enum ASTOP op = opStack[opTop--];
         if (top < 1) {
-            if (top == 0) {
-                printf("Top: %d\n", top);
-                printf("left: %d\n", stack[top]->op);
-            }
             fprintf(stderr, "Error: Syntax error on line %d\n", s->line);
             exit(-1);
         }
@@ -175,7 +164,6 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t) {
 
     free(stack);
     free(opStack);
-    printf("Returning\n");
 
     return n;
 }
@@ -193,7 +181,7 @@ void ASTnode_PrintTree(ASTnode n) {
 }
 
 ASTnode ASTnode_FuncCall(Scanner s, SymTable st, Token tok) {
-    printf("FuncCall\n");
+
     ASTnode t;
     int id;
     if ((id = SymTable_GlobFind(st, s, S_FUNC)) == -1) {
@@ -202,15 +190,13 @@ ASTnode ASTnode_FuncCall(Scanner s, SymTable st, Token tok) {
         exit(-1);
     }
     lparen(s, tok);
-    printf("Should be consumed\n");
 
     t = ASTnode_Order(s, st, tok);
     t = ASTnode_NewUnary(A_FUNCCALL, st->Gsym[id].type, t, id);
 
     rparen(s, tok);
-    printf("Should be consumed 2\n");
-    printf("Token now %d\n", tok->token);
-    // Buggy?
+
+    // Needed for the scanner to check for semicolon in main loop
     Scanner_RejectToken(s, tok);
     return t;
 }

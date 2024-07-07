@@ -10,8 +10,7 @@ static int allocReg(Compiler this);
 static void freeReg(Compiler this, int reg1);
 
 int PrimSize(enum ASTPRIM type) {
-    printf("wtf\n");
-    if (type < P_NONE || type > P_LONG) {
+    if (type < P_NONE || type > P_INT) {
         fprintf(stderr, "Error: Unknown type %d\n", type);
         exit(-1);
     }
@@ -100,14 +99,12 @@ int MIPS_Mod(Compiler this, int r1, int r2) {
 }
 
 void MIPS_PrintInt(Compiler this, int r) {
-    printf("Printing int\n");
     fprintf(this->outfile, "\tli\t$v0, 1\n");
     fprintf(this->outfile, "\tmove\t$a0, %s\n", reglist[r]);
     fprintf(this->outfile, "\tsyscall\n");
 }
 
 void MIPS_PrintChar(Compiler this, int r) {
-    printf("Printing char\n");
     fprintf(this->outfile, "\tli\t$v0, 11\n");
     fprintf(this->outfile, "\tmove\t$a0, %s\n", reglist[r]);
     fprintf(this->outfile, "\tsyscall\n");

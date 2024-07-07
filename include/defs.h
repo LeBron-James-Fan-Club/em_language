@@ -92,8 +92,7 @@ enum ASTPRIM {
     P_NONE,
     P_VOID,
     P_CHAR,
-    P_INT,
-    P_LONG
+    P_INT
 };
 
 
