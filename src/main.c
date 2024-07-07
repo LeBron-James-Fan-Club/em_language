@@ -2,12 +2,13 @@
 #include <stdlib.h>
 
 #include "ast.h"
+#include "context.h"
+#include "decl.h"
+#include "defs.h"
 #include "gen.h"
 #include "scan.h"
 #include "stmt.h"
-#include "tokens.h"
 #include "sym.h"
-#include "decl.h"
 
 int main(int argc, char *argv[]) {
     if (argc < 3) {
@@ -24,28 +25,32 @@ int main(int argc, char *argv[]) {
     Compiler c = Compiler_New(argv[2]);
     SymTable st = SymTable_New();
     Token tok = calloc(1, sizeof(struct token));
+    Context ctx = Context_New();
 
-    //MIPS_Pre(c);
+    // MIPS_Pre(c);
     Scanner_Scan(s, tok);
-    
+
     ASTnode t;
     while (true) {
-        t = function_declare(s, st, tok); //Compound_Statement(s, st, tok);
+        t = function_declare(c, s, st, tok,
+                             ctx);  // Compound_Statement(s, st, tok);
         printf("Tree rn: %p\n", t);
-        Compiler_Gen(c, st, t);
+        Compiler_Gen(c, st, ctx, t);
         if (tok->token == T_EOF) break;
     }
-    
-    //Compiler_Gen(c, st, t);
+
+    // Compiler_Gen(c, st, t);
 
     MIPS_Post(c);
-    
+
     Compiler_GenData(c, st);
-    
+
     Scanner_Free(s);
     Compiler_Free(c);
     SymTable_Free(st);
     free(tok);
+    Context_Free(ctx);
+
     printf("Success!\n");
 
     exit(0);

@@ -5,8 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "tokens.h"
-
 static char next(Scanner);
 static void putback(Scanner, char c);
 static char skip(Scanner this);
@@ -65,6 +63,17 @@ static char skip(Scanner this) {
 
 bool Scanner_Scan(Scanner this, Token t) {
     char c, tokenType;
+
+    if (this->rejToken) {
+        // might be buggy check later
+        t->token = this->rejToken->token;
+        t->intvalue = this->rejToken->intvalue;
+        this->rejToken = NULL;
+        if (t->token == T_EOF || t->token == T_SEMI || t->token == T_RPAREN)
+            return false;
+        return true;
+    }
+
     c = skip(this);
 
     switch (c) {
@@ -140,6 +149,9 @@ bool Scanner_Scan(Scanner this, Token t) {
             // TODO WHEN WE USE PARENS
             t->token = T_RPAREN;
             return false;
+        case ',':
+            t->token = T_COMMA;
+            return false;
         default:
             if (isdigit(c)) {
                 t->intvalue = scanInt(this, c);
@@ -168,6 +180,8 @@ bool Scanner_Scan(Scanner this, Token t) {
 
 static int keyword(char *s) {
     switch (*s) {
+        case 'c':
+            if (!strcmp(s, "char")) return T_CHAR;
         case 'f':
             if (!strcmp(s, "for")) return T_FOR;
         case 'e':
@@ -182,13 +196,24 @@ static int keyword(char *s) {
             if (!strcmp(s, "label")) return T_LABEL;
         case 'p':
             if (!strcmp(s, "print")) return T_PRINT;
+        case 'r':
+            if (!strcmp(s, "return")) return T_RETURN;
         case 'v':
             if (!strcmp(s, "void")) return T_VOID;
         case 'w':
             if (!strcmp(s, "while")) return T_WHILE;
-    
-        }
+    }
     return 0;
+}
+
+void Scanner_RejectToken(Scanner this, Token t) {
+    if (this->rejToken) {
+        fprintf(stderr,
+                "Error: Cannot reject token twice, occured on line %d\n",
+                this->line);
+        exit(-1);
+    }
+    this->rejToken = t;
 }
 
 static int scanIdent(Scanner this, int c) {
@@ -229,3 +254,25 @@ static int chrpos(char *s, int c) {
     p = strchr(s, c);
     return p ? p - s : -1;
 }
+
+void match(Scanner s, Token t, enum OPCODES op, char *tok) {
+    if (t->token == op) {
+        Scanner_Scan(s, t);
+    } else {
+        fprintf(stderr, "Error: %s expected on line %d\n", tok, s->line);
+        fprintf(stderr, "got instead %d\n", t->token);
+        exit(-1);
+    }
+}
+
+void semi(Scanner s, Token t) { match(s, t, T_SEMI, ";"); }
+
+void ident(Scanner s, Token t) { match(s, t, T_IDENT, "identifier"); }
+
+void lbrace(Scanner s, Token t) { match(s, t, T_LBRACE, "{"); }
+
+void rbrace(Scanner s, Token t) { match(s, t, T_RBRACE, "}"); }
+
+void lparen(Scanner s, Token t) { match(s, t, T_LPAREN, "("); }
+
+void rparen(Scanner s, Token t) { match(s, t, T_RPAREN, ")"); }

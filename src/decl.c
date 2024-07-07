@@ -1,26 +1,59 @@
 #include "decl.h"
 
 void var_declare(Scanner s, SymTable st, Token tok) {
-    match(s, tok, T_INT, "int");
-
+    enum ASTPRIM type = parse_type(s, tok);
+    printf("declared type %d\n", type);
+    // match(s, tok, T_INT, "int");
+    Scanner_Scan(s, tok);
+    printf("check ident\n");
     ident(s, tok);
 
-    SymTable_GlobAdd(st, s);
+    SymTable_GlobAdd(st, s, type, S_VAR);
     semi(s, tok);
     // * .comm written is supposed to be here but it will be
     // * deferred
 }
 
-ASTnode function_declare(Scanner s, SymTable st, Token tok) {
-    match(s, tok, T_VOID, "void");
+ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
+                         Context ctx) {
+    // match(s, tok, T_VOID, "void");
 
+    int type = parse_type(s, tok);
+    Scanner_Scan(s, tok);
     ident(s, tok);
-    int id = SymTable_GlobAdd(st, s);
-    SymTable_GlobSetFunc(st, id);
-    
+
+    // Might change later to use names instead of numbered labels
+    int id = SymTable_GlobAdd(st, s, type, S_FUNC);
+
+    Context_SetFunctionId(ctx, id);
+
+    ASTnode tree, finalstmt;
+
     lparen(s, tok);
     rparen(s, tok);
 
-    ASTnode tree = Compound_Statement(s, st, tok);
-    return ASTnode_NewUnary(A_FUNCTION, tree, id);
+    tree = Compound_Statement(s, st, tok, ctx);
+    if (type != P_VOID) {
+        finalstmt = (tree->op == A_GLUE) ? tree->right : tree;
+        if (finalstmt == NULL || finalstmt->op != A_RETURN) {
+            fprintf(stderr, "Error: non-void function must return a value\n");
+            exit(-1);
+        }
+    }
+
+    return ASTnode_NewUnary(A_FUNCTION, P_VOID, tree, id);
+}
+
+enum ASTOP parse_type(Scanner s, Token tok) {
+    switch (tok->token) {
+        case T_INT:
+            return P_INT;
+        case T_CHAR:
+            return P_CHAR;
+        case T_VOID:
+            return P_VOID;
+        default:
+            fprintf(stderr, "Error: unknown type\n");
+            exit(-1);
+    }
 }

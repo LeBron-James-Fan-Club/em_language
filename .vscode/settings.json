@@ -4,6 +4,11 @@
         "data.h": "c",
         "decl.h": "c",
         "gen.h": "c",
-        "globs.h": "c"
+        "globs.h": "c",
+        "tokens.h": "c",
+        "sym.h": "c",
+        "stmt.h": "c",
+        "types.h": "c",
+        "ast.h": "c"
     }
 }
