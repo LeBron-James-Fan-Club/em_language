@@ -1,7 +1,118 @@
-i32 cool(void) {
-    MOVE 0 72;
-    PRINT 0;
+// for files in path
+[include("common.h")]
+
+// for files in local directory
+[include("@stuff.h")]
+
+package main;
+
+// The order to write stuff to
+[
+    FunctionOrder(
+        "main",
+        "cool"
+    )
+]
+
+struct Person {
+    private:
+    i32 age;
+    public:
+    i32 height;
+};
+
+struct Joe : Person {
+    u32 coolness;
 }
+
+i32 (Joe *this) get_coolness(void) {
+    return this->coolness;
+}
+
+enum MyEnum {
+    A,
+    B,
+    C
+};
+
+i32 cool(void);
+i32 main(void);
+
+i32 cool(void) {
+    // extremely dangerous command
+    RESETREGS;
+
+    // print 6
+    LI $t0, 5;
+    LI $t1, 1;
+    ADD $t1, $t0, $t1;
+    MOVE $t2, $t1;
+
+    LI $v0, 1;
+    MOVE $a0, $t2;
+    SYSCALL;
+
+    return 42;
+}
+
 i32 main(void) {
-    u32
+    u32 foo = 42;
+    i32 bar = 69;
+    print(foo + bar);
+    print(cool());
+    
+    [LabelName("Some_Cool_Label")]
+    if (foo == bar) {
+        print(1, 'a');
+    } else {
+        print(0, 'b');
+    }
+
+    while (foo != bar) {
+        print(1, 'c');
+        foo = foo + 1;
+    }
+
+    for (i32 i = 0; i < 10; i = i + 1) {
+        print(i);
+    }
+    
+    i32 x[5] = { 1, 2, 3, 4, 5 };
+
+    // probs wont put
+    foreach (int i : x) {
+        print(i);
+    }
+
+    // Can create own stack frame
+    {
+        i32 x = 42;
+        print(x);
+    }
+
+    // Can print registers
+    print($t0);
+
+    // Can input registers - dangerous
+    input($t0);
+
+    // maybe
+    defer () => {
+        print("deferred");
+    }();
+    
+    Joe* joe = new(Joe);
+
+    joe->coolness = 100;
+    print(joe::get_coolness());
+
+    print((char)10);
+
+    defer () => {
+        free(joe);
+    }();
+
+    print(MyEnum::A);
+
+    return 0;
 }

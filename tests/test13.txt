@@ -24,8 +24,10 @@ void main() {
         input choice;
         if (choice == 1) {
             print add(11);
+            print 10;
         } else {
             print sub(11);
+            print 10;
         }
     }
 }

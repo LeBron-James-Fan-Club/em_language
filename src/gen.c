@@ -130,6 +130,10 @@ static int genAST(Compiler this, int reg, SymTable st, Context ctx, ASTnode n,
             return NO_REG;
         case A_FUNCCALL:
             return MIPS_Call(this, st, leftReg, n->v.id);
+        case A_ADDR:
+            return MIPS_Address(this,  st, n->v.id);
+        case A_DEREF:
+            return MIPS_Deref(this, leftReg, n->left->type);
         default:
             fprintf(stderr, "Error: Unknown AST operator %d\n", n->op);
             exit(-1);

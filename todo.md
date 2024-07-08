@@ -10,3 +10,7 @@
     - u8, i8, u16, i16, u32, i32
 
 - vars declaration is b : i32 = 2 * 4;
+- need to have directives that define constants in the assembly files
+
+- have a include assembly macro
+- e.g. a macro is defined in assembly to the compiler will use that instead

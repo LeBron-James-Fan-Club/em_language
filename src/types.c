@@ -33,3 +33,31 @@ bool type_compatible(int *left, int *right, bool onlyright) {
     *left = *right = 0;
     return true;
 }
+
+enum ASTPRIM pointer_to(enum ASTPRIM type) {
+    switch (type) {
+        case P_VOID:
+            return P_VOIDPTR;
+        case P_INT:
+            return P_INTPTR;
+        case P_CHAR:
+            return P_CHARPTR;
+        default:
+            fprintf(stderr, "Error: Unknown type %d for pointer\n", type);
+            exit(-1);
+    }
+}
+
+enum ASTPRIM value_at(enum ASTPRIM type) {
+    switch (type) {
+        case P_VOIDPTR:
+            return P_VOID;
+        case P_INTPTR:
+            return P_INT;
+        case P_CHARPTR:
+            return P_CHAR;
+        default:
+            fprintf(stderr, "Error: Unknown type %d for pointer\n", type);
+            exit(-1);
+    }
+}

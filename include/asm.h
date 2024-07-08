@@ -52,8 +52,11 @@ void MIPS_Jump(Compiler, int l);
 void MIPS_GotoLabel(Compiler, SymTable st, int id);
 void MIPS_GotoJump(Compiler, SymTable st, int id);
 
-void MIPS_Return(Compiler this, SymTable st, int r, int id, Context ctx);
-int MIPS_Call(Compiler this, SymTable st, int r, int id);
+void MIPS_Return(Compiler, SymTable st, int r, int id, Context ctx);
+int MIPS_Call(Compiler, SymTable st, int r, int id);
+
+int MIPS_Address(Compiler, SymTable st, int id);
+int MIPS_Deref(Compiler, int r, enum ASTPRIM type);
 
 int label(Compiler);
 

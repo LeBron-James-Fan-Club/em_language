@@ -49,7 +49,9 @@ enum OPCODES {
     T_VOID,
     T_CHAR,
     T_COMMA,
-    T_RETURN
+    T_RETURN,
+    T_AMPER,
+    T_LOGAND
 
 };
 
@@ -83,16 +85,23 @@ enum ASTOP {
     A_FUNCTION,
     A_WIDEN,
     A_FUNCCALL,
-    A_RETURN
+    A_RETURN,
+    A_ADDR,
+    A_DEREF
 
 };
 
 // Primitives
 enum ASTPRIM {
     P_NONE,
+
     P_VOID,
     P_CHAR,
-    P_INT
+    P_INT,
+
+    P_VOIDPTR,
+    P_CHARPTR,
+    P_INTPTR
 };
 
 

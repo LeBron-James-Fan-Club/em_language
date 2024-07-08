@@ -29,17 +29,7 @@ int main(int argc, char *argv[]) {
 
     // MIPS_Pre(c);
     Scanner_Scan(s, tok);
-
-    ASTnode t;
-    while (true) {
-        t = function_declare(c, s, st, tok,
-                             ctx);  // Compound_Statement(s, st, tok);
-        Compiler_Gen(c, st, ctx, t);
-        if (tok->token == T_EOF) break;
-    }
-
-    // Compiler_Gen(c, st, t);
-
+    global_declare(c, s, st, tok, ctx);
     MIPS_Post(c);
 
     Compiler_GenData(c, st);

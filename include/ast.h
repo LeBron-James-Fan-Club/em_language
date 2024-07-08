@@ -35,5 +35,6 @@ ASTnode ASTnode_Order(Scanner s, SymTable st,  Token t);
 
 void ASTnode_PrintTree(ASTnode n);
 ASTnode ASTnode_FuncCall(Scanner s, SymTable st, Token tok);
+ASTnode ASTnode_Prefix(Scanner s, SymTable st, Token tok);
 
 #endif

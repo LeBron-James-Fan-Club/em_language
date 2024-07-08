@@ -84,7 +84,6 @@ bool Scanner_Scan(Scanner this, Token t) {
             // equv to eof
             // Need to manage putback of characters
             t->token = T_SEMI;
-            // putback(this, c);
             return false;
         case '+':
             t->token = T_PLUS;
@@ -151,6 +150,14 @@ bool Scanner_Scan(Scanner this, Token t) {
         case ',':
             t->token = T_COMMA;
             return false;
+        case '&':
+            if ((c = next(this)) == '&') {
+                t->token = T_LOGAND;
+            } else {
+                putback(this, c);
+                t->token = T_AMPER;
+            }
+            break;
         default:
             if (isdigit(c)) {
                 t->intvalue = scanInt(this, c);

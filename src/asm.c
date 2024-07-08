@@ -4,13 +4,14 @@ static char *reglist[MAX_REG] = {
     "$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7", "$t8", "$t9",
 };
 
-static int psize[] = {0, 0, 1, 4};
+static int psize[] = {0, 0, 1, 4, 4, 4, 4};
 
 static int allocReg(Compiler this);
 static void freeReg(Compiler this, int reg1);
 
 int PrimSize(enum ASTPRIM type) {
-    if (type < P_NONE || type > P_INT) {
+    if (type < P_NONE || type > P_INTPTR) {
+        printf("what\n");
         fprintf(stderr, "Error: Unknown type %d\n", type);
         exit(-1);
     }
@@ -112,36 +113,50 @@ void MIPS_PrintChar(Compiler this, int r) {
 
 int MIPS_LoadGlob(Compiler this, SymTable st, int id) {
     int r = allocReg(this);
-    if (st->Gsym[id].type == P_INT) {
-        fprintf(this->outfile, "\tlw\t%s, %s\n", reglist[r], st->Gsym[id].name);
-    } else if (st->Gsym[id].type == P_CHAR) {
-        // Load one byte unsigned - zero extend it
-        fprintf(this->outfile, "\tlbu\t%s, %s\n", reglist[r],
-                st->Gsym[id].name);
-    } else {
-        fprintf(stderr, "Error: Unknown type %d\n", st->Gsym[id].type);
-        exit(-1);
+    switch (st->Gsym[id].type) {
+        case P_INT:
+            fprintf(this->outfile, "\tlw\t%s, %s\n", reglist[r],
+                    st->Gsym[id].name);
+            break;
+        case P_CHAR:
+            fprintf(this->outfile, "\tlbu\t%s, %s\n", reglist[r],
+                    st->Gsym[id].name);
+            break;
+        case P_CHARPTR:
+        case P_INTPTR:
+            fprintf(this->outfile, "\tlw\t%s, %s\n", reglist[r],
+                    st->Gsym[id].name);
+            break;
+        default:
+            fprintf(stderr, "Error: Unknown type %d\n", st->Gsym[id].type);
+            exit(-1);
     }
     return r;
 }
 
 int MIPS_StoreGlob(Compiler this, int r1, SymTable st, int id) {
-    // Bug empty register
-    if (r1 == -1) {
+    if (r1 == NO_REG) {
         fprintf(stderr, "Error: Trying to store an empty register\n");
         exit(-1);
     }
 
-    if (st->Gsym[id].type == P_INT) {
-        fprintf(this->outfile, "\tsw\t%s, %s\n", reglist[r1],
-                st->Gsym[id].name);
-    } else if (st->Gsym[id].type == P_CHAR) {
-        // Store one byte
-        fprintf(this->outfile, "\tsb\t%s, %s\n", reglist[r1],
-                st->Gsym[id].name);
-    } else {
-        fprintf(stderr, "Error: Unknown type %d\n", st->Gsym[id].type);
-        exit(-1);
+    switch (st->Gsym[id].type) {
+        case P_INT:
+            fprintf(this->outfile, "\tsw\t%s, %s\n", reglist[r1],
+                    st->Gsym[id].name);
+            break;
+        case P_CHAR:
+            fprintf(this->outfile, "\tsb\t%s, %s\n", reglist[r1],
+                    st->Gsym[id].name);
+            break;
+        case P_CHARPTR:
+        case P_INTPTR:
+            fprintf(this->outfile, "\tsw\t%s, %s\n", reglist[r1],
+                    st->Gsym[id].name);
+            break;
+        default:
+            fprintf(stderr, "Error: Unknown type %d\n", st->Gsym[id].type);
+            exit(-1);
     }
 
     return r1;
@@ -155,8 +170,13 @@ int MIPS_Widen(Compiler this, int r1, enum ASTPRIM newType) {
 // Needs to be below .data
 void MIPS_GlobSym(Compiler this, char *sym, enum ASTPRIM type) {
     int typesize = PrimSize(type);
-
     fprintf(this->outfile, "\t%s:\t.space %d\n", sym, typesize);
+    switch (type) {
+        case P_CHAR:
+            fprintf(this->outfile, "\t.align 2\n");
+            break;
+        default:
+    }
 }
 
 int MIPS_InputInt(Compiler this) {
@@ -288,6 +308,27 @@ int MIPS_Call(Compiler this, SymTable st, int r, int id) {
     fprintf(this->outfile, "\tmove\t%s, $v0\n", reglist[outr]);
     freeReg(this, r);
     return outr;
+}
+
+int MIPS_Address(Compiler this, SymTable st, int id) {
+    int r = allocReg(this);
+    fprintf(this->outfile, "\tla\t%s, %s\n", reglist[r], st->Gsym[id].name);
+    return r;
+}
+
+int MIPS_Deref(Compiler this, int r, enum ASTPRIM type) {
+    switch (type) {
+        case P_CHARPTR:
+            fprintf(this->outfile, "\tlbu\t%s, 0(%s)\n", reglist[r], reglist[r]);
+            break;
+        case P_INTPTR:
+            fprintf(this->outfile, "\tlw\t%s, 0(%s)\n", reglist[r], reglist[r]);
+            break;
+        default:
+            fprintf(stderr, "Error: Unknown pointer type %d\n", type);
+            exit(-1);
+    }
+    return r;
 }
 
 static int allocReg(Compiler this) {

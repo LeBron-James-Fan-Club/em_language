@@ -12,10 +12,26 @@ void var_declare(Scanner s, SymTable st, Token tok) {
     // * deferred
 }
 
-ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
-                         Context ctx) {
+void global_declare(Compiler c, Scanner s, SymTable st, Token tok,
+                    Context ctx) {
+    ASTnode tree;
+    enum ASTPRIM type;
 
-    int type = parse_type(s, tok);
+    while (true) {
+        type = parse_type(s, tok);
+        ident(s, tok);
+        if (tok->token == T_LPAREN) {
+            tree = function_declare(c, s, st, tok, ctx, type);
+            Compiler_Gen(c, st, ctx, tree);
+        } else {
+            var_declare(s, st, tok);
+        }
+        if (tok->token == T_EOF) break;
+    }
+}
+
+ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
+                         Context ctx, enum ASTPRIM type) {
     Scanner_Scan(s, tok);
     ident(s, tok);
 
@@ -42,15 +58,29 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
 }
 
 enum ASTOP parse_type(Scanner s, Token tok) {
+    enum ASTOP type;
     switch (tok->token) {
         case T_INT:
-            return P_INT;
+            type = P_INT;
+            break;
         case T_CHAR:
-            return P_CHAR;
+            type = P_CHAR;
+            break;
         case T_VOID:
-            return P_VOID;
+            type = P_VOID;
+            break;
         default:
             fprintf(stderr, "Error: unknown type\n");
             exit(-1);
     }
+
+    // allows the user to do int ******a
+    while (true) {
+        Scanner_Scan(s, tok);
+        if (tok->token != T_STAR) break;
+        type = pointer_to(type);
+    }
+    Scanner_RejectToken(s, tok);
+
+    return type;
 }

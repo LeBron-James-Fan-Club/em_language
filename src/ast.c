@@ -3,6 +3,8 @@
 #define MAX_STACK 500
 
 static enum ASTOP arithop(Scanner s, enum OPCODES tok);
+static int precedence(enum ASTOP op);
+static ASTnode primary(Scanner s, SymTable st, Token t);
 
 ASTnode ASTnode_New(enum ASTOP op, enum ASTPRIM type, ASTnode left, ASTnode mid,
                     ASTnode right, int intvalue) {
@@ -71,6 +73,36 @@ static int precedence(enum ASTOP op) {
     }
 }
 
+static ASTnode primary(Scanner s, SymTable st, Token t) {
+    int id;
+    switch (t->token) {
+        case T_INTLIT:
+            // any int literal is automatically casted as char 0 <= x < 256
+            if (t->intvalue >= 0 && t->intvalue < 256)
+                return ASTnode_NewLeaf(A_INTLIT, P_CHAR, t->intvalue);
+            else
+                return ASTnode_NewLeaf(A_INTLIT, P_INT, t->intvalue);
+        case T_IDENT:
+            Scanner_Scan(s, t);
+            if (t->token == T_LPAREN) {
+                return ASTnode_FuncCall(s, st, t);
+            } else {
+                Scanner_RejectToken(s, t);
+                if ((id = SymTable_GlobFind(st, s, S_VAR)) == -1) {
+                    fprintf(stderr, "Error: Unknown variable %s on line %d\n",
+                            s->text, s->line);
+                    exit(-1);
+                }
+                return ASTnode_NewLeaf(A_IDENT, st->Gsym[id].type, id);
+            }
+        default:
+            //stfu
+            break;
+    }
+    // Shouldn't occur
+    return NULL;
+}
+
 // Stunting yard algo was good before
 // but didnt go so well with register assignment stuff
 
@@ -78,8 +110,9 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t) {
     ASTnode *stack = calloc(MAX_STACK, sizeof(ASTnode));
     enum ASTOP *opStack = calloc(MAX_STACK, sizeof(enum ASTOP));
     enum ASTOP curOp;
-    int id;
     int rightType, leftType;
+
+    bool expectPreOp = true;
 
     //! SCANNER_SCAN MUST BE CALLED FIRST
     //! IN ORDER FOR THIS TO WORK!
@@ -87,35 +120,20 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t) {
     int top = -1, opTop = -1;
     do {
         switch (t->token) {
+            //! Probs bug - we need to scan
+            //! T_STAR in but its also used for multiplication
             case T_INTLIT:
-                // any int literal is automatically casted as char 0 <= x < 256
-                if (t->intvalue >= 0 && t->intvalue < 256)
-                    stack[++top] =
-                        ASTnode_NewLeaf(A_INTLIT, P_CHAR, t->intvalue);
-                else
-                    stack[++top] =
-                        ASTnode_NewLeaf(A_INTLIT, P_INT, t->intvalue);
-                break;
             case T_IDENT:
-                // Need to fix this
-                // this needs to somehow be left - fixed
-                Scanner_Scan(s, t);
-                if (t->token == T_LPAREN) {
-                    stack[++top] = ASTnode_FuncCall(s, st, t);
-                } else {
-                    Scanner_RejectToken(s, t);
-                    if ((id = SymTable_GlobFind(st, s, S_VAR)) == -1) {
-                        fprintf(stderr,
-                                "Error: Unknown variable %s on line %d\n",
-                                s->text, s->line);
-                        exit(-1);
-                    }
-                    stack[++top] =
-                        ASTnode_NewLeaf(A_IDENT, st->Gsym[id].type, id);
-                }
+                stack[++top] = primary(s, st, t);
+                expectPreOp = false;
                 break;
             // TODO: IMPLEMENT PERTHENESIS
             default:
+                if ((t->token == T_STAR || t->token == T_AMPER) &&
+                    expectPreOp) {
+                    stack[++top] = ASTnode_Prefix(s, st, t);
+                    break;
+                }
                 curOp = arithop(s, t->token);
                 while (opTop != -1 &&
                        precedence(opStack[opTop]) >= precedence(curOp)) {
@@ -145,6 +163,7 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t) {
                         ASTnode_New(op, left->type, left, NULL, right, 0);
                 }
                 opStack[++opTop] = curOp;
+                expectPreOp = true;
         }
     } while (Scanner_Scan(s, t));
 
@@ -181,7 +200,6 @@ void ASTnode_PrintTree(ASTnode n) {
 }
 
 ASTnode ASTnode_FuncCall(Scanner s, SymTable st, Token tok) {
-
     ASTnode t;
     int id;
     if ((id = SymTable_GlobFind(st, s, S_FUNC)) == -1) {
@@ -198,5 +216,38 @@ ASTnode ASTnode_FuncCall(Scanner s, SymTable st, Token tok) {
 
     // Needed for the scanner to check for semicolon in main loop
     Scanner_RejectToken(s, tok);
+    return t;
+}
+
+ASTnode ASTnode_Prefix(Scanner s, SymTable st, Token tok) {
+    ASTnode t;
+    switch (tok->token) {
+        case T_AMPER:
+            Scanner_Scan(s, tok);
+            t = ASTnode_Prefix(s, st, tok);
+
+            if (t->op != A_IDENT) {
+                fprintf(stderr, "Error: Expected identifier on line %d\n",
+                        s->line);
+                exit(-1);
+            }
+            t->op = A_ADDR;
+            t->type = pointer_to(t->type);
+            break;
+        case T_STAR:
+            Scanner_Scan(s, tok);
+            t = ASTnode_Prefix(s, st, tok);
+            if (t->op != A_IDENT && t->op != A_DEREF) {
+                fprintf(stderr,
+                        "Error: * Operatior must be followed by an identifier "
+                        "or *, occurred on line %d\n",
+                        s->line);
+                exit(-1);
+            }
+            t = ASTnode_NewUnary(A_DEREF, value_at(t->type), t, 0);
+            break;
+        default:
+            t = primary(s, st, tok);
+    }
     return t;
 }

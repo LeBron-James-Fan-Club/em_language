@@ -8,4 +8,7 @@
 
 bool type_compatible(int *left, int *right, bool onlyright);
 
+enum ASTPRIM pointer_to(enum ASTPRIM type);
+enum ASTPRIM value_at(enum ASTPRIM type);
+
 #endif
