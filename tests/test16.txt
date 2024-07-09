@@ -1,0 +1,17 @@
+int   c;
+int   d;
+int  *e;
+int   f;
+
+int main() {
+  c = 12;
+  d = 18;
+  print c;
+  print 10;
+  e = &c + 1;
+
+  f = *e; 
+  
+  print f;
+  return(0);
+}
