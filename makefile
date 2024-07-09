@@ -8,8 +8,8 @@ SRCDIR = src
 OBJDIR = obj
 INCDIR = include
 
-# Add context.o to the list of object files
-OBJS = $(OBJDIR)/main.o $(OBJDIR)/scan.o $(OBJDIR)/ast.o $(OBJDIR)/gen.o $(OBJDIR)/stmt.o $(OBJDIR)/sym.o $(OBJDIR)/decl.o $(OBJDIR)/comp.o $(OBJDIR)/asm.o $(OBJDIR)/types.o $(OBJDIR)/context.o
+# Add context.o and expr.o to the list of object files
+OBJS = $(OBJDIR)/main.o $(OBJDIR)/scan.o $(OBJDIR)/ast.o $(OBJDIR)/gen.o $(OBJDIR)/stmt.o $(OBJDIR)/sym.o $(OBJDIR)/decl.o $(OBJDIR)/comp.o $(OBJDIR)/asm.o $(OBJDIR)/types.o $(OBJDIR)/context.o $(OBJDIR)/expr.o
 
 # Default target
 all: $(TARGET)
@@ -20,37 +20,37 @@ $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS)
 
 # Rule to compile main.c
-$(OBJDIR)/main.o: $(SRCDIR)/main.c $(INCDIR)/defs.h $(INCDIR)/ast.h $(INCDIR)/context.h
+$(OBJDIR)/main.o: $(SRCDIR)/main.c $(INCDIR)/defs.h $(INCDIR)/ast.h $(INCDIR)/context.h $(INCDIR)/expr.h
 	mkdir -p $(OBJDIR)
 	$(CC) $(CFLAGS) -c $(SRCDIR)/main.c -o $@
 
 # Rule to compile scan.c
-$(OBJDIR)/scan.o: $(SRCDIR)/scan.c $(INCDIR)/defs.h $(INCDIR)/ast.h $(INCDIR)/context.h
+$(OBJDIR)/scan.o: $(SRCDIR)/scan.c $(INCDIR)/defs.h $(INCDIR)/ast.h $(INCDIR)/context.h $(INCDIR)/expr.h
 	mkdir -p $(OBJDIR)
 	$(CC) $(CFLAGS) -c $(SRCDIR)/scan.c -o $@
 
 # Rule to compile ast.c
-$(OBJDIR)/ast.o: $(SRCDIR)/ast.c $(INCDIR)/defs.h $(INCDIR)/ast.h $(INCDIR)/context.h
+$(OBJDIR)/ast.o: $(SRCDIR)/ast.c $(INCDIR)/defs.h $(INCDIR)/ast.h $(INCDIR)/context.h $(INCDIR)/expr.h
 	mkdir -p $(OBJDIR)
 	$(CC) $(CFLAGS) -c $(SRCDIR)/ast.c -o $@
 
 # Rule to compile gen.c
-$(OBJDIR)/gen.o: $(SRCDIR)/gen.c $(INCDIR)/defs.h $(INCDIR)/ast.h $(INCDIR)/context.h
+$(OBJDIR)/gen.o: $(SRCDIR)/gen.c $(INCDIR)/defs.h $(INCDIR)/ast.h $(INCDIR)/context.h $(INCDIR)/expr.h
 	mkdir -p $(OBJDIR)
 	$(CC) $(CFLAGS) -c $(SRCDIR)/gen.c -o $@
 
 # Rule to compile stmt.c
-$(OBJDIR)/stmt.o: $(SRCDIR)/stmt.c $(INCDIR)/defs.h $(INCDIR)/ast.h $(INCDIR)/context.h
+$(OBJDIR)/stmt.o: $(SRCDIR)/stmt.c $(INCDIR)/defs.h $(INCDIR)/ast.h $(INCDIR)/context.h $(INCDIR)/expr.h
 	mkdir -p $(OBJDIR)
 	$(CC) $(CFLAGS) -c $(SRCDIR)/stmt.c -o $@
 
 # Rule to compile sym.c
-$(OBJDIR)/sym.o: $(SRCDIR)/sym.c $(INCDIR)/defs.h $(INCDIR)/ast.h $(INCDIR)/context.h
+$(OBJDIR)/sym.o: $(SRCDIR)/sym.c $(INCDIR)/defs.h $(INCDIR)/ast.h $(INCDIR)/context.h $(INCDIR)/expr.h
 	mkdir -p $(OBJDIR)
 	$(CC) $(CFLAGS) -c $(SRCDIR)/sym.c -o $@
 
 # Rule to compile decl.c
-$(OBJDIR)/decl.o: $(SRCDIR)/decl.c $(INCDIR)/defs.h $(INCDIR)/ast.h $(INCDIR)/context.h
+$(OBJDIR)/decl.o: $(SRCDIR)/decl.c $(INCDIR)/defs.h $(INCDIR)/ast.h $(INCDIR)/context.h $(INCDIR)/expr.h
 	mkdir -p $(OBJDIR)
 	$(CC) $(CFLAGS) -c $(SRCDIR)/decl.c -o $@
 
@@ -73,6 +73,11 @@ $(OBJDIR)/types.o: $(SRCDIR)/types.c $(INCDIR)/types.h $(INCDIR)/context.h
 $(OBJDIR)/context.o: $(SRCDIR)/context.c $(INCDIR)/context.h
 	mkdir -p $(OBJDIR)
 	$(CC) $(CFLAGS) -c $(SRCDIR)/context.c -o $@
+
+# Rule to compile expr.c
+$(OBJDIR)/expr.o: $(SRCDIR)/expr.c $(INCDIR)/expr.h
+	mkdir -p $(OBJDIR)
+	$(CC) $(CFLAGS) -c $(SRCDIR)/expr.c -o $@
 
 # Clean up generated files
 clean:

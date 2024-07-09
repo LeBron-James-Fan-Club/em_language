@@ -10,7 +10,7 @@
 #include "gen.h"
 
 enum ASTOP parse_type(Scanner s, Token tok);
-void var_declare(Scanner s, SymTable st, Token tok);
+void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type);
 void global_declare(Compiler c, Scanner s, SymTable st, Token tok,
                     Context ctx);
 ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,

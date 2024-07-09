@@ -131,9 +131,22 @@ static int genAST(Compiler this, int reg, SymTable st, Context ctx, ASTnode n,
         case A_FUNCCALL:
             return MIPS_Call(this, st, leftReg, n->v.id);
         case A_ADDR:
-            return MIPS_Address(this,  st, n->v.id);
+            return MIPS_Address(this, st, n->v.id);
         case A_DEREF:
             return MIPS_Deref(this, leftReg, n->left->type);
+        case A_SCALE:
+            switch (n->v.size) {
+                // optimization if power of 2 shift it
+                case 2:
+                    return MIPS_ShiftLeftConstant(this, leftReg, 1);
+                case 4:
+                    return MIPS_ShiftLeftConstant(this, leftReg, 2);
+                default:
+                    // loads reg with size
+                    // and multiplies leftreg with size
+                    rightReg = MIPS_Load(this, n->v.size);
+                    return MIPS_Mul(this, leftReg, rightReg);
+            }
         default:
             fprintf(stderr, "Error: Unknown AST operator %d\n", n->op);
             exit(-1);

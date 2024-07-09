@@ -128,7 +128,7 @@ int MIPS_LoadGlob(Compiler this, SymTable st, int id) {
                     st->Gsym[id].name);
             break;
         default:
-            fprintf(stderr, "Error: Unknown type %d\n", st->Gsym[id].type);
+            fprintf(stderr, "Error!: Unknown type %d\n", st->Gsym[id].type);
             exit(-1);
     }
     return r;
@@ -155,7 +155,7 @@ int MIPS_StoreGlob(Compiler this, int r1, SymTable st, int id) {
                     st->Gsym[id].name);
             break;
         default:
-            fprintf(stderr, "Error: Unknown type %d\n", st->Gsym[id].type);
+            fprintf(stderr, "Error!!: Unknown type %d\n", st->Gsym[id].type);
             exit(-1);
     }
 
@@ -295,7 +295,7 @@ void MIPS_Return(Compiler this, SymTable st, int r, int id, Context ctx) {
         // I dont think we need the below
         // fprintf(this->outfile, "\tandi\t$v0, %s, 0xFF\n", reglist[r]);
     } else {
-        fprintf(stderr, "Error: Unknown type %d\n", st->Gsym[id].type);
+        fprintf(stderr, "Error!!!: Unknown type %d\n", st->Gsym[id].type);
         exit(-1);
     }
 }
@@ -328,6 +328,11 @@ int MIPS_Deref(Compiler this, int r, enum ASTPRIM type) {
             fprintf(stderr, "Error: Unknown pointer type %d\n", type);
             exit(-1);
     }
+    return r;
+}
+
+int MIPS_ShiftLeftConstant(Compiler this, int r, int c) {
+    fprintf(this->outfile, "\tsll\t%s, %s, %d\n", reglist[r], reglist[r], c);
     return r;
 }
 

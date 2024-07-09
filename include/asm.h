@@ -57,6 +57,7 @@ int MIPS_Call(Compiler, SymTable st, int r, int id);
 
 int MIPS_Address(Compiler, SymTable st, int id);
 int MIPS_Deref(Compiler, int r, enum ASTPRIM type);
+int MIPS_ShiftLeftConstant(Compiler this, int r, int c);
 
 int label(Compiler);
 

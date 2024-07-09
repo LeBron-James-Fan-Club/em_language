@@ -6,6 +6,8 @@
 #include "sym.h"
 #include "defs.h"
 #include "decl.h"
+#include "expr.h"
+#include "types.h"
 
 ASTnode Compound_Statement(Scanner s, SymTable st, Token tok, Context ctx);
 

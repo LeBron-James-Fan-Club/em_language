@@ -59,12 +59,15 @@ ASTnode Compound_Statement(Scanner s, SymTable st, Token tok, Context ctx) {
 
 static ASTnode single_statement(Scanner s, SymTable st, Token tok,
                                 Context ctx) {
+    int type;
     switch (tok->token) {
         case T_PRINT:
             return print_statement(s, st, tok);
         case T_CHAR:
         case T_INT:
-            var_declare(s, st, tok);
+            type = parse_type(s, tok);
+            ident(s, tok);
+            var_declare(s, st, tok, type);
             return NULL;
         case T_IDENT:
             return assignment_statement(s, st, tok);
@@ -150,18 +153,14 @@ static ASTnode assignment_statement(Scanner s, SymTable st, Token tok) {
 
     left = ASTnode_Order(s, st, tok);
 
-    int leftType = left->type;
-    int rightType = right->type;
-    if (!type_compatible(&leftType, &rightType, true)) {
-        fprintf(stderr, "Error: Type mismatch on line %d\n", s->line);
+    left = modify_type(left, right->type, A_NONE, false);
+    if (left == NULL) {
+        fprintf(stderr, "Error: Type mismatch in assignment on line %d\n",
+                s->line);
         exit(-1);
     }
 
-    if (leftType) {
-        left = ASTnode_NewUnary(A_WIDEN, leftType, left, 0);
-    }
-
-    tree = ASTnode_New(A_ASSIGN, P_NONE, left, NULL, right, 0);
+    tree = ASTnode_New(A_ASSIGN, P_INT, left, NULL, right, 0);
 
     return tree;
 }
@@ -178,17 +177,12 @@ static ASTnode input_statement(Scanner s, SymTable st, Token tok) {
         exit(-1);
     }
 
-    int leftType = P_INT;
-    int rightType = st->Gsym[id].type;
+    ASTnode left = ASTnode_NewLeaf(A_INPUT, P_INT, 0);
+    ASTnode right = ASTnode_NewLeaf(A_LVIDENT, st->Gsym[id].type, id);
 
-    if (!type_compatible(&leftType, &rightType, false)) {
-        fprintf(stderr, "Error: Type mismatch on line %d\n", s->line);
-        exit(-1);
-    }
+    ASTnode tree = modify_type(right, left->type, A_NONE, true);
 
-    ASTnode left = ASTnode_NewLeaf(A_INPUT, P_NONE, 0);
-    ASTnode right = ASTnode_NewLeaf(A_LVIDENT, P_INT, id);
-    ASTnode tree = ASTnode_New(A_ASSIGN, P_NONE, left, NULL, right, 0);
+    tree = ASTnode_New(A_ASSIGN, P_NONE, left, NULL, tree, 0);
 
     return tree;
 }
@@ -296,7 +290,6 @@ static ASTnode goto_statement(Scanner s, SymTable st, Token tok) {
 static ASTnode return_statement(Scanner s, SymTable st, Token tok,
                                 Context ctx) {
     ASTnode t;
-    int returnType, funcType;
     int funcId = Context_GetFunctionId(ctx);
     if (st->Gsym[funcId].name == NULL) {
         fprintf(stderr, "Error: Return outside of function on line %d\n",
@@ -314,16 +307,10 @@ static ASTnode return_statement(Scanner s, SymTable st, Token tok,
 
     t = ASTnode_Order(s, st, tok);
 
-    returnType = t->type;
-    funcType = st->Gsym[funcId].type;
-
-    if (!type_compatible(&returnType, &funcType, true)) {
-        fprintf(stderr, "Error: Type mismatch on line %d\n", s->line);
+    t = modify_type(t, st->Gsym[funcId].type, A_NONE, false);
+    if (t == NULL) {
+        fprintf(stderr, "Error: Type mismatch in return on line %d\n", s->line);
         exit(-1);
-    }
-
-    if (returnType) {
-        t = ASTnode_NewUnary(returnType, funcType, t, 0);
     }
 
     rparen(s, tok);

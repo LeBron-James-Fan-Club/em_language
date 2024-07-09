@@ -10,6 +10,7 @@
 
 #define NO_REG -1
 
+
 struct compiler {
     bool regUsed[MAX_REG];
     FILE *outfile;

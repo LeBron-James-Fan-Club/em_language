@@ -57,7 +57,8 @@ enum OPCODES {
 
 enum ASTOP {
     // 1:1 (almost) with tokens
-    A_ADD = 1,
+    A_NONE,
+    A_ADD,
     A_SUBTRACT,
     A_MULTIPLY,
     A_DIVIDE,
@@ -87,7 +88,8 @@ enum ASTOP {
     A_FUNCCALL,
     A_RETURN,
     A_ADDR,
-    A_DEREF
+    A_DEREF,
+    A_SCALE
 
 };
 
