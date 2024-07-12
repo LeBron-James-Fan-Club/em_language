@@ -22,8 +22,9 @@ void MIPS_PrintInt(Compiler, int r);
 void MIPS_PrintChar(Compiler, int r);
 
 int MIPS_LoadGlob(Compiler, SymTable st, int id);
-void MIPS_GlobSym(Compiler this, char *sym, enum ASTPRIM type);
+void MIPS_GlobSym(Compiler this, char *sym, enum ASTPRIM type, int size);
 int MIPS_StoreGlob(Compiler, int r1, SymTable st, int id);
+int MIPS_StoreRef(Compiler this, int r1, int r2, enum ASTPRIM type);
 int MIPS_Widen(Compiler this, int r1, enum ASTPRIM newType);
 
 int MIPS_EqualSet(Compiler, int r1, int r2);

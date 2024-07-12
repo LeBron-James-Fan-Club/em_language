@@ -1,41 +1,49 @@
 #include "decl.h"
 
 void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type) {
-    while (true) {
-        //        ident(s, tok);
 
-        SymTable_GlobAdd(st, s, type, S_VAR);
-        printf("tok %d\n", tok->token);
+    //* int x[2], a;
+    while (true) {
+        if (tok->token == T_LBRACKET) {
+            Scanner_Scan(s, tok);
+            if (tok->token == T_INTLIT) {
+                SymTable_GlobAdd(st, s, pointer_to(type), S_ARRAY,
+                                 tok->intvalue);
+            }
+            Scanner_Scan(s, tok);
+            match(s, tok, T_RBRACKET, "]");
+        } else {
+            SymTable_GlobAdd(st, s, type, S_VAR, 1);
+        }
         if (tok->token == T_SEMI) {
             Scanner_Scan(s, tok);
             return;
         }
         if (tok->token != T_COMMA) {
-            fprintf(stderr, "Error: comma expected on line %d got %d\n", s->line, tok->token);
+            fprintf(stderr, "Error: comma expected on line %d got %d\n",
+                    s->line, tok->token);
             exit(-1);
         }
         Scanner_Scan(s, tok);
         ident(s, tok);
     }
-    // * .comm written is supposed to be here but it will be
-    // * deferred
 }
 
-void global_declare(Compiler c, Scanner s, SymTable st, Token tok,
-                    Context ctx) {
+void global_declare(Compiler c, Scanner s, SymTable st, Token tok, Context ctx,
+                    Flags f) {
     ASTnode tree;
     enum ASTPRIM type;
 
     while (true) {
-        printf("Occured\n");
         type = parse_type(s, tok);
-        printf("A\n");
         ident(s, tok);
-        printf("B %d %d\n", tok->token, T_LPAREN);
         if (tok->token == T_LPAREN) {
-            printf("C\n");
             tree = function_declare(c, s, st, tok, ctx, type);
+            if (f.dumpAST) {
+                ASTnode_Dump(tree, st, NO_LABEL, 0);
+            }
             Compiler_Gen(c, st, ctx, tree);
+            ASTnode_Free(tree);
         } else {
             var_declare(s, st, tok, type);
         }
@@ -49,7 +57,7 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
     // ident(s, tok);
 
     // Might change later to use names instead of numbered labels
-    int id = SymTable_GlobAdd(st, s, type, S_FUNC);
+    int id = SymTable_GlobAdd(st, s, type, S_FUNC, 1);
 
     Context_SetFunctionId(ctx, id);
 
@@ -70,8 +78,8 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
     return ASTnode_NewUnary(A_FUNCTION, P_VOID, tree, id);
 }
 
-enum ASTOP parse_type(Scanner s, Token tok) {
-    enum ASTOP type;
+enum ASTPRIM parse_type(Scanner s, Token tok) {
+    enum ASTPRIM type;
     switch (tok->token) {
         case T_INT:
             type = P_INT;

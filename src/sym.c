@@ -9,7 +9,12 @@ SymTable SymTable_New(void) {
     return g;
 }
 
-void SymTable_Free(SymTable this) { free(this); }
+void SymTable_Free(SymTable this) { 
+    for (int i = 0; i < this->globs; i++) {
+        free(this->Gsym[i].name);
+    }
+    free(this);
+}
 
 int SymTable_GlobFind(SymTable this, Scanner s, enum STRUCTTYPE stype) {
     for (int i = 0; i < this->globs; i++) {
@@ -40,7 +45,7 @@ int SymTable_GlobFind(SymTable this, Scanner s, enum STRUCTTYPE stype) {
 }
 
 int SymTable_GlobAdd(SymTable this, Scanner s, enum ASTPRIM type,
-                     enum STRUCTTYPE stype) {
+                     enum STRUCTTYPE stype, int size) {
     int y;
     if ((y = SymTable_GlobFind(this, s, stype)) != -1) {
         if (type != this->Gsym[y].type) {
@@ -62,6 +67,7 @@ int SymTable_GlobAdd(SymTable this, Scanner s, enum ASTPRIM type,
     this->Gsym[y].name = strdup(s->text);
     this->Gsym[y].type = type;
     this->Gsym[y].stype = stype;
+    this->Gsym[y].size = size;
 
     return y;
 }

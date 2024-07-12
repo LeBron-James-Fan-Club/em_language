@@ -2,6 +2,7 @@ int   c;
 int   d;
 int  *e;
 int   f;
+int lol;
 
 int main() {
   c = 12;
@@ -13,5 +14,9 @@ int main() {
   f = *e; 
   
   print f;
+  
+  input lol;
+  print lol;
+  print 10;
   return(0);
 }

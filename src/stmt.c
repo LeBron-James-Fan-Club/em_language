@@ -11,7 +11,7 @@ void lparen(Scanner s, Token t);
 void rparen(Scanner s, Token t);
 
 static ASTnode print_statement(Scanner s, SymTable st, Token tok);
-static ASTnode assignment_statement(Scanner s, SymTable st, Token tok);
+// static ASTnode assignment_statement(Scanner s, SymTable st, Token tok);
 static ASTnode input_statement(Scanner s, SymTable st, Token tok);
 static ASTnode if_statement(Scanner s, SymTable st, Token tok, Context ctx);
 
@@ -38,9 +38,12 @@ ASTnode Compound_Statement(Scanner s, SymTable st, Token tok, Context ctx) {
         tree = single_statement(s, st, tok, ctx);
 
         // Might be weird here:
+        printf("op11: %d\n", tree->op);
         if (tree != NULL && (tree->op == A_PRINT || tree->op == A_INPUT ||
                              tree->op == A_RETURN || tree->op == A_ASSIGN ||
-                             tree->op == A_LABEL || tree->op == A_GOTO)) {
+                             tree->op == A_FUNCCALL || tree->op == A_LABEL ||
+                             tree->op == A_GOTO)) {
+            printf("Yum i ate a semicolon\n");
             semi(s, tok);
         }
 
@@ -69,8 +72,8 @@ static ASTnode single_statement(Scanner s, SymTable st, Token tok,
             ident(s, tok);
             var_declare(s, st, tok, type);
             return NULL;
-        case T_IDENT:
-            return assignment_statement(s, st, tok);
+            // case T_IDENT:
+            //    return assignment_statement(s, st, tok);
         case T_INPUT:
             return input_statement(s, st, tok);
         case T_IF:
@@ -87,9 +90,12 @@ static ASTnode single_statement(Scanner s, SymTable st, Token tok,
         case T_RETURN:
             return return_statement(s, st, tok, ctx);
         default:
-            fprintf(stderr, "Error: Unknown statement on line %d tok %d\n",
-                    s->line, tok->token);
-            exit(-1);
+            printf("tok: %d\n", tok->token);
+            return ASTnode_Order(s, st, tok);
+            //    fprintf(stderr, "Error: Unknown statement on line %d tok
+            //    %d\n",
+            //            s->line, tok->token);
+            //    exit(-1);
     }
 }
 
@@ -110,6 +116,7 @@ static ASTnode print_statement(Scanner s, SymTable st, Token tok) {
         t = ASTnode_Order(s, st, tok);
 
         int rightType = t->type;
+        t->rvalue = true;
 
         // P_NONE should never occur thereotically for now
         if (rightType == P_NONE || rightType == P_VOID) {
@@ -132,6 +139,7 @@ static ASTnode print_statement(Scanner s, SymTable st, Token tok) {
     return parent;
 }
 
+/*
 static ASTnode assignment_statement(Scanner s, SymTable st, Token tok) {
     ASTnode left, right, tree;
     int id;
@@ -153,7 +161,7 @@ static ASTnode assignment_statement(Scanner s, SymTable st, Token tok) {
 
     left = ASTnode_Order(s, st, tok);
 
-    left = modify_type(left, right->type, A_NONE, false);
+    left = modify_type(left, right->type, A_NONE);
     if (left == NULL) {
         fprintf(stderr, "Error: Type mismatch in assignment on line %d\n",
                 s->line);
@@ -163,7 +171,7 @@ static ASTnode assignment_statement(Scanner s, SymTable st, Token tok) {
     tree = ASTnode_New(A_ASSIGN, P_INT, left, NULL, right, 0);
 
     return tree;
-}
+}*/
 
 static ASTnode input_statement(Scanner s, SymTable st, Token tok) {
     int id;
@@ -178,9 +186,10 @@ static ASTnode input_statement(Scanner s, SymTable st, Token tok) {
     }
 
     ASTnode left = ASTnode_NewLeaf(A_INPUT, P_INT, 0);
-    ASTnode right = ASTnode_NewLeaf(A_LVIDENT, st->Gsym[id].type, id);
+    ASTnode right = ASTnode_NewLeaf(A_IDENT, st->Gsym[id].type, id);
+    right->rvalue = 1;
 
-    ASTnode tree = modify_type(right, left->type, A_NONE, true);
+    ASTnode tree = modify_type(right, left->type, A_NONE);
 
     tree = ASTnode_New(A_ASSIGN, P_NONE, left, NULL, tree, 0);
 
@@ -263,7 +272,7 @@ static ASTnode label_statement(Scanner s, SymTable st, Token tok) {
     match(s, tok, T_LABEL, "label");
     ident(s, tok);
 
-    int id = SymTable_GlobAdd(st, s, P_NONE, S_LABEL);
+    int id = SymTable_GlobAdd(st, s, P_NONE, S_LABEL, 0);
 
     ASTnode t = ASTnode_NewLeaf(A_LABEL, P_NONE, id);
 
@@ -307,7 +316,7 @@ static ASTnode return_statement(Scanner s, SymTable st, Token tok,
 
     t = ASTnode_Order(s, st, tok);
 
-    t = modify_type(t, st->Gsym[funcId].type, A_NONE, false);
+    t = modify_type(t, st->Gsym[funcId].type, A_NONE);
     if (t == NULL) {
         fprintf(stderr, "Error: Type mismatch in return on line %d\n", s->line);
         exit(-1);

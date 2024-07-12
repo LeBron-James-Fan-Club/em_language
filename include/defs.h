@@ -6,33 +6,34 @@
 enum OPCODES {
     T_EOF,  // 0
 
+    T_ASSIGN,  // 1
+
     // Arithmetic
-    T_PLUS,    // 1
-    T_MINUS,   // 2
-    T_STAR,    // 3
-    T_SLASH,   // 4
-    T_MODULO,  // 5
+    T_PLUS,    // 2
+    T_MINUS,   // 3
+    T_STAR,    // 4
+    T_SLASH,   // 5
+    T_MODULO,  // 6
 
     // Comparison
-    T_EQ,  // 6
-    T_NE,  // 7
-    T_LT,  // 8
-    T_GT,  // 9
-    T_LE,  // 10
-    T_GE,  // 11
+    T_EQ,  // 7
+    T_NE,  // 8
+    T_LT,  // 9
+    T_GT,  // 10
+    T_LE,  // 11
+    T_GE,  // 12
 
-    // Braces
-    T_LBRACE,  // 12
-    T_RBRACE,  // 13
-    T_LPAREN,  // 14
-    T_RPAREN,  // 15
+    T_INTLIT,  // 13
+    T_SEMI,    // 14
+    T_IDENT,  // 15
 
-    T_INTLIT,  // 16
-    T_SEMI,    // 17
-
-    T_ASSIGN,  // 18
-
-    T_IDENT,  // 19
+        // Braces
+    T_LBRACE,  // 16
+    T_RBRACE,  // 17
+    T_LPAREN,  // 18
+    T_RPAREN,  // 19
+    T_LBRACKET, // 20
+    T_RBRACKET, // 21
 
     // Keywords
     T_PRINT,  // 20
@@ -58,6 +59,7 @@ enum OPCODES {
 enum ASTOP {
     // 1:1 (almost) with tokens
     A_NONE,
+    A_ASSIGN,
     A_ADD,
     A_SUBTRACT,
     A_MULTIPLY,
@@ -72,8 +74,9 @@ enum ASTOP {
 
     // After this we need checks
     A_IDENT,
+    // for some god damn reason
+    // commenting out this line causes a segfault
     A_LVIDENT,
-    A_ASSIGN,
     A_PRINT,
     A_INPUT,
     A_GLUE,
@@ -89,7 +92,10 @@ enum ASTOP {
     A_RETURN,
     A_ADDR,
     A_DEREF,
-    A_SCALE
+    A_SCALE,
+    
+    // misc so the compiler stops complaining
+    A_STARTPAREN
 
 };
 

@@ -14,3 +14,6 @@
 
 - have a include assembly macro
 - e.g. a macro is defined in assembly to the compiler will use that instead
+
+
+- make bad apple in mips

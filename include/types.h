@@ -7,10 +7,10 @@
 #include "asm.h"
 #include "ast.h"
 
-bool type_compatible(int *left, int *right, bool onlyright);
-
+bool inttype(enum ASTPRIM type);
+bool ptrtype(enum ASTPRIM type);
 enum ASTPRIM pointer_to(enum ASTPRIM type);
 enum ASTPRIM value_at(enum ASTPRIM type);
-ASTnode modify_type(ASTnode tree, enum ASTPRIM rtype, enum ASTOP op, bool onlyright);
+ASTnode modify_type(ASTnode tree, enum ASTPRIM rtype, enum ASTOP op) ;
 
 #endif

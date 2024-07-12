@@ -76,6 +76,8 @@ bool Scanner_Scan(Scanner this, Token t) {
 
     c = skip(this);
 
+    printf("Scanning: %c\n", c);
+
     switch (c) {
         case EOF:
             t->token = T_EOF;
@@ -144,8 +146,14 @@ bool Scanner_Scan(Scanner this, Token t) {
             break;
         case ')':
             // TODO NEED TO CHANGE THIS LATER ON
-            // TODO WHEN WE USE PARENS
+            // TODO WHEN WE USE PARENS - fixed? (its kinda shitty tho)
             t->token = T_RPAREN;
+            return false;
+        case '[':
+            t->token = T_LBRACKET;
+            break;
+        case ']':
+            t->token = T_RBRACKET;
             return false;
         case ',':
             t->token = T_COMMA;

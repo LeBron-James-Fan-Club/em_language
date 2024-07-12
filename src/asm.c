@@ -162,20 +162,47 @@ int MIPS_StoreGlob(Compiler this, int r1, SymTable st, int id) {
     return r1;
 }
 
+int MIPS_StoreRef(Compiler this, int r1, int r2, enum ASTPRIM type) {
+    if (r1 == NO_REG) {
+        fprintf(stderr, "Error: Trying to store an empty register\n");
+        exit(-1);
+    }
+
+    if (r2 == NO_REG) {
+        fprintf(stderr, "Error: Trying to store an empty register 2\n");
+        exit(-1);
+    }
+
+    switch (type) {
+        case P_CHAR:
+            fprintf(this->outfile, "\tsb\t%s, 0(%s)\n", reglist[r1], reglist[r2]);
+            break;
+        case P_INT:
+            fprintf(this->outfile, "\tsw\t%s, 0(%s)\n", reglist[r1], reglist[r2]);
+            break;
+        default:
+            fprintf(stderr, "Error: Unknown pointer type %d\n", type);
+            exit(-1);
+    }
+
+    return r1;
+}
+
 int MIPS_Widen(Compiler this, int r1, enum ASTPRIM newType) {
     // nothing to do, its already done by zero extending
     return r1;
 }
 
 // Needs to be below .data
-void MIPS_GlobSym(Compiler this, char *sym, enum ASTPRIM type) {
+void MIPS_GlobSym(Compiler this, char *sym, enum ASTPRIM type, int size) {
     int typesize = PrimSize(type);
-    fprintf(this->outfile, "\t%s:\t.space %d\n", sym, typesize);
+    fprintf(this->outfile, "\t%s:\t.space %d\n", sym, typesize * size);
     switch (type) {
         case P_CHAR:
             fprintf(this->outfile, "\t.align 2\n");
             break;
         default:
+        break;
     }
 }
 
@@ -317,6 +344,7 @@ int MIPS_Address(Compiler this, SymTable st, int id) {
 }
 
 int MIPS_Deref(Compiler this, int r, enum ASTPRIM type) {
+    //! bug: derefing not occuring for b[3]
     switch (type) {
         case P_CHARPTR:
             fprintf(this->outfile, "\tlbu\t%s, 0(%s)\n", reglist[r], reglist[r]);
@@ -366,6 +394,6 @@ void Compiler_GenData(Compiler this, SymTable st) {
     fputs("\n.data\n", this->outfile);
     for (int i = 0; i < st->globs; i++) {
         if (st->Gsym[i].stype == S_FUNC) continue;
-        MIPS_GlobSym(this, st->Gsym[i].name, st->Gsym[i].type);
+        MIPS_GlobSym(this, st->Gsym[i].name, st->Gsym[i].type, st->Gsym[i].size);
     }
 }

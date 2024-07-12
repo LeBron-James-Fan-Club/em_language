@@ -23,10 +23,22 @@ main:
 	add	$t1, $t0, $t1
 	sw	$t1, e
 	lw	$t0, e
-	lw	$t0, 0($t0)
 	sw	$t0, f
 	lw	$t0, f
 	li	$v0, 1
+	move	$a0, $t0
+	syscall
+	li	$v0, 5
+	syscall
+	move	$t0, $v0
+	lw	$t1, lol
+	sw	$t0, lol
+	lw	$t0, lol
+	li	$v0, 1
+	move	$a0, $t0
+	syscall
+	li $t0, 10
+	li	$v0, 11
 	move	$a0, $t0
 	syscall
 	li $t0, 0
@@ -42,3 +54,4 @@ main:
 	d:	.space 4
 	e:	.space 4
 	f:	.space 4
+	lol:	.space 4
