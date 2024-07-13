@@ -71,7 +71,8 @@ bool Scanner_Scan(Scanner this, Token t) {
         t->token = this->rejToken->token;
         t->intvalue = this->rejToken->intvalue;
         this->rejToken = NULL;
-        if (t->token == T_EOF || t->token == T_SEMI || t->token == T_RPAREN)
+        if (t->token == T_EOF || t->token == T_SEMI || t->token == T_RPAREN ||
+            t->token == T_RBRACKET)
             return false;
         return true;
     }
@@ -91,10 +92,20 @@ bool Scanner_Scan(Scanner this, Token t) {
             t->token = T_SEMI;
             return false;
         case '+':
-            t->token = T_PLUS;
+            if ((c = next(this)) == '+') {
+                t->token = T_INC;
+            } else {
+                putback(this, c);
+                t->token = T_PLUS;
+            }
             break;
         case '-':
-            t->token = T_MINUS;
+            if ((c = next(this)) == '-') {
+                t->token = T_DEC;
+            } else {
+                putback(this, c);
+                t->token = T_MINUS;
+            }
             break;
         case '*':
             t->token = T_STAR;
@@ -125,6 +136,8 @@ bool Scanner_Scan(Scanner this, Token t) {
         case '<':
             if ((c = next(this)) == '=') {
                 t->token = T_LE;
+            } else if (c == '<') {
+                t->token = T_LSHIFT;
             } else {
                 putback(this, c);
                 t->token = T_LT;
@@ -133,6 +146,8 @@ bool Scanner_Scan(Scanner this, Token t) {
         case '>':
             if ((c = next(this)) == '=') {
                 t->token = T_GE;
+            } else if (c == '>') {
+                t->token = T_RSHIFT;
             } else {
                 putback(this, c);
                 t->token = T_GT;
@@ -156,6 +171,9 @@ bool Scanner_Scan(Scanner this, Token t) {
             t->token = T_LBRACKET;
             break;
         case ']':
+#if DEBUG
+            printf("RBRACKET\n");
+#endif
             t->token = T_RBRACKET;
             return false;
         case ',':
@@ -167,6 +185,17 @@ bool Scanner_Scan(Scanner this, Token t) {
             } else {
                 putback(this, c);
                 t->token = T_AMPER;
+            }
+            break;
+        case '^':
+            t->token = T_XOR;
+            break;
+        case '|':
+            if ((c = next(this)) == '|') {
+                t->token = T_LOGOR;
+            } else {
+                putback(this, c);
+                t->token = T_OR;
             }
             break;
         case '\'':

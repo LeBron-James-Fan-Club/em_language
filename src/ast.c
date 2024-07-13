@@ -163,6 +163,51 @@ void ASTnode_Dump(ASTnode n, SymTable st, int label, int level) {
         case A_STRLIT:
             printf("A_STRLIT %s\n", st->Gsym[n->v.id].name);
             return;
+        case A_PREINC:
+            printf("A_PREINC\n");
+            return;
+        case A_PREDEC:
+            printf("A_PREDEC\n");
+            return;
+        case A_LOGOR:
+            printf("A_LOGOR\n");
+            return;
+        case A_LOGAND:
+            printf("A_LOGAND\n");
+            return;
+        case A_OR:
+            printf("A_OR\n");
+            return;
+        case A_XOR:
+            printf("A_XOR\n");
+            return;
+        case A_AND:
+            printf("A_AND\n");
+            return;
+        case A_LSHIFT:
+            printf("A_LSHIFT\n");
+            return;
+        case A_RSHIFT:
+            printf("A_RSHIFT\n");
+            return;
+        case A_NEGATE:
+            printf("A_NEGATE\n");
+            return;
+        case A_INVERT:
+            printf("A_INVERT\n");
+            return;
+        case A_LOGNOT:
+            printf("A_LOGNOT\n");
+            return;
+        case A_POSTINC:
+            printf("A_POSTINC\n");
+            return;
+        case A_POSTDEC:
+            printf("A_POSTDEC\n");
+            return;
+        case A_TOBOOL:
+            printf("A_TOBOOL\n");
+            return;
         default:
             fprintf(stderr, "Error: Unknown AST node %d\n", n->op);
             exit(-1);

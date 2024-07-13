@@ -1,0 +1,42 @@
+int bob;
+int joe;
+int awesome;
+
+int main() {
+    bob = 1;
+    joe = 2;
+    awesome = 8;
+    
+    print("Values before: ", bob, ' ' , joe, ' ' , awesome, 10);
+    print("Bob: ", ++bob, " Joe: " , joe++, 10);
+    print("Joe: ", joe, 10);
+    awesome = awesome << 2;
+    
+    print("Awesome: ", awesome, 10);
+    print("And his name is JOHN CENA *music plays*: " , --joe , 10);
+    print("Decrementing after joe mama", joe--, 10);
+    print("\n");
+    
+    print("Lets test if the number is odd or even", 10);
+    print("Input number: ");
+    input(joe);
+
+    if (joe & 1) {
+        print("The number is odd", 10);
+    } else {
+        print("The number is even", 10);
+    }
+    
+    print("Bitwise OR test", 10);
+    print("Input number: ");
+    input(joe);
+
+    print("output: ", joe | 1, 10, 10);
+    
+    print("Bitwise XOR test", 10);
+    print("Input number: ");
+    input(joe);
+
+    print("output: ", joe ^ 1, 10, 10);
+    return 0;
+}

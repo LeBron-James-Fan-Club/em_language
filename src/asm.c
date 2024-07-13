@@ -122,21 +122,69 @@ int MIPS_LoadGlobStr(Compiler this, SymTable st, int id) {
     return r;
 }
 
-int MIPS_LoadGlob(Compiler this, SymTable st, int id) {
+int MIPS_LoadGlob(Compiler this, SymTable st, int id, enum ASTOP op) {
     int r = allocReg(this);
     switch (st->Gsym[id].type) {
         case P_INT:
+            if (op == A_PREINC) {
+                fprintf(this->outfile, "\taddi\t%s, %s, 1\n", reglist[r],
+                        st->Gsym[id].name);
+            }
+            if (op == A_PREDEC) {
+                fprintf(this->outfile, "\tsubi\t%s, %s, 1\n", reglist[r],
+                        st->Gsym[id].name);
+            }
             fprintf(this->outfile, "\tlw\t%s, %s\n", reglist[r],
                     st->Gsym[id].name);
+            if (op == A_POSTINC) {
+                fprintf(this->outfile, "\taddi\t%s, %s, 1\n", reglist[r],
+                        st->Gsym[id].name);
+            }
+            if (op == A_POSTDEC) {
+                fprintf(this->outfile, "\tsubi\t%s, %s, 1\n", reglist[r],
+                        st->Gsym[id].name);
+            }
             break;
         case P_CHAR:
+            if (op == A_PREINC) {
+                fprintf(this->outfile, "\taddi\t%s, %s, 1\n", reglist[r],
+                        st->Gsym[id].name);
+            }
+            if (op == A_PREDEC) {
+                fprintf(this->outfile, "\tsubi\t%s, %s, 1\n", reglist[r],
+                        st->Gsym[id].name);
+            }
             fprintf(this->outfile, "\tlbu\t%s, %s\n", reglist[r],
                     st->Gsym[id].name);
+            if (op == A_POSTINC) {
+                fprintf(this->outfile, "\taddi\t%s, %s, 1\n", reglist[r],
+                        st->Gsym[id].name);
+            }
+            if (op == A_POSTDEC) {
+                fprintf(this->outfile, "\tsubi\t%s, %s, 1\n", reglist[r],
+                        st->Gsym[id].name);
+            }
             break;
         case P_CHARPTR:
         case P_INTPTR:
+            if (op == A_PREINC) {
+                fprintf(this->outfile, "\taddi\t%s, %s, 1\n", reglist[r],
+                        st->Gsym[id].name);
+            }
+            if (op == A_PREDEC) {
+                fprintf(this->outfile, "\tsubi\t%s, %s, 1\n", reglist[r],
+                        st->Gsym[id].name);
+            }
             fprintf(this->outfile, "\tlw\t%s, %s\n", reglist[r],
                     st->Gsym[id].name);
+            if (op == A_POSTINC) {
+                fprintf(this->outfile, "\taddi\t%s, %s, 1\n", reglist[r],
+                        st->Gsym[id].name);
+            }
+            if (op == A_POSTDEC) {
+                fprintf(this->outfile, "\tsubi\t%s, %s, 1\n", reglist[r],
+                        st->Gsym[id].name);
+            }
             break;
         default:
             fprintf(stderr, "Error!: Unknown type %d\n", st->Gsym[id].type);
@@ -342,7 +390,8 @@ void MIPS_Return(Compiler this, SymTable st, int r, Context ctx) {
         // I dont think we need the below
         // fprintf(this->outfile, "\tandi\t$v0, %s, 0xFF\n", reglist[r]);
     } else {
-        fprintf(stderr, "Error!!!: Unknown type %d\n", st->Gsym[ctx->functionId].type);
+        fprintf(stderr, "Error!!!: Unknown type %d\n",
+                st->Gsym[ctx->functionId].type);
         exit(-1);
     }
 }
@@ -382,6 +431,69 @@ int MIPS_Deref(Compiler this, int r, enum ASTPRIM type) {
 
 int MIPS_ShiftLeftConstant(Compiler this, int r, int c) {
     fprintf(this->outfile, "\tsll\t%s, %s, %d\n", reglist[r], reglist[r], c);
+    return r;
+}
+
+int MIPS_ShiftLeft(Compiler this, int r1, int r2) {
+    // swap values if it doesnt work
+    fprintf(this->outfile, "\tsllv\t%s, %s, %s\n", reglist[r2], reglist[r1],
+            reglist[r2]);
+    freeReg(this, r1);
+    return r2;
+}
+
+int MIPS_ShiftRight(Compiler this, int r1, int r2) {
+    fprintf(this->outfile, "\tsrav\t%s, %s, %s\n", reglist[r2], reglist[r1],
+            reglist[r2]);
+    freeReg(this, r1);
+    return r2;
+}
+
+int MIPS_Negate(Compiler this, int r) {
+    fprintf(this->outfile, "\tneg\t%s, %s\n", reglist[r], reglist[r]);
+    return r;
+}
+
+int MIPS_BitNOT(Compiler this, int r) {
+    fprintf(this->outfile, "\tnot\t%s, %s\n", reglist[r], reglist[r]);
+    return r;
+}
+
+int MIPS_LogNOT(Compiler this, int r) {
+    fprintf(this->outfile, "\tnor\t%s, %s, %s\n", reglist[r], reglist[r],
+            reglist[r]);
+    return r;
+}
+
+int MIPS_BitAND(Compiler this, int r1, int r2) {
+    fprintf(this->outfile, "\tand\t%s, %s, %s\n", reglist[r2], reglist[r1],
+            reglist[r2]);
+    freeReg(this, r1);
+    return r2;
+}
+
+int MIPS_BitOR(Compiler this, int r1, int r2) {
+    fprintf(this->outfile, "\tor\t%s, %s, %s\n", reglist[r2], reglist[r1],
+            reglist[r2]);
+    freeReg(this, r1);
+    return r2;
+}
+
+int MIPS_BitXOR(Compiler this, int r1, int r2) {
+    fprintf(this->outfile, "\txor\t%s, %s, %s\n", reglist[r2], reglist[r1],
+            reglist[r2]);
+    freeReg(this, r1);
+    return r2;
+}
+
+int MIPS_ToBool(Compiler this, enum ASTOP parentOp, int r, int label) {
+    if (parentOp == A_WHILE || parentOp == A_IF) {
+        // fake instruction
+        fprintf(this->outfile, "\tbltu\t%s, $zero, L%d\n", reglist[r], label);
+        return r;
+    } else {
+        fprintf(this->outfile, "\tsltu\t%s, $zero, %s\n", reglist[r], reglist[r]);
+    }
     return r;
 }
 

@@ -1,0 +1,4 @@
+int main() {
+    print("Hello, World!\n", 10, 10,10, 'a', 10,12,'a');
+    return 0;
+}

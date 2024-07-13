@@ -5,9 +5,12 @@ static int precedence(enum ASTOP op);
 static ASTnode primary(Scanner s, SymTable st, Token t);
 static void orderOp(Scanner s, SymTable st, Token t, ASTnode *stack,
                     enum ASTOP *opStack, int *top, int *opTop);
+
 static ASTnode ASTnode_FuncCall(Scanner s, SymTable st, Token tok);
-static ASTnode ASTnode_Prefix(Scanner s, SymTable st, Token tok);
 static ASTnode ASTnode_ArrayRef(Scanner s, SymTable st, Token tok);
+
+static ASTnode ASTnode_Prefix(Scanner s, SymTable st, Token tok);
+static ASTnode ASTnode_Postfix(Scanner s, SymTable st, Token tok);
 
 static enum ASTOP arithOp(Scanner s, enum OPCODES tok) {
     if (tok > T_EOF && tok < T_INTLIT) return (enum ASTOP)tok;
@@ -21,20 +24,30 @@ static int precedence(enum ASTOP op) {
         case T_GT:
         case T_LE:
         case T_GE:
-            return 5;
+            return 9;
         case T_EQ:
         case T_NE:
-            return 4;
+            return 8;
 
         case T_MODULO:
         case T_SLASH:
         case T_STAR:
-            return 3;
+            return 7;
 
         case T_PLUS:
         case T_MINUS:
-            return 2;
+            return 6;
 
+        case T_LSHIFT:
+        case T_RSHIFT:
+            return 5;
+        // BIT AND
+        case T_AMPER:
+            return 4;
+        case T_XOR:
+            return 3;
+        case T_OR:
+            return 2;
         case T_ASSIGN:
             return 1;
         default:
@@ -60,20 +73,7 @@ static ASTnode primary(Scanner s, SymTable st, Token t) {
                 return ASTnode_NewLeaf(A_INTLIT, P_INT, t->intvalue);
             }
         case T_IDENT:
-            Scanner_Scan(s, t);
-            if (t->token == T_LPAREN) {
-                return ASTnode_FuncCall(s, st, t);
-            } else if (t->token == T_LBRACKET) {
-                return ASTnode_ArrayRef(s, st, t);
-            } else {
-                Scanner_RejectToken(s, t);
-                if ((id = SymTable_GlobFind(st, s, S_VAR)) == -1) {
-                    fprintf(stderr, "Error: Unknown variable %s on line %d\n",
-                            s->text, s->line);
-                    exit(-1);
-                }
-                return ASTnode_NewLeaf(A_IDENT, st->Gsym[id].type, id);
-            }
+            return ASTnode_Postfix(s, st, t);
         default:
             break;
     }
@@ -141,6 +141,9 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t) {
 
     int top = -1, opTop = -1;
     do {
+#if DEBUG
+        printf("Token: %d\n", t->token);
+#endif
         switch (t->token) {
             case T_SEMI:
             case T_EOF:
@@ -154,6 +157,9 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t) {
                 expectPreOp = false;
                 break;
             case T_LPAREN:
+#if DEBUG
+                printf("LPAREN\n");
+#endif
                 opStack[++opTop] = A_STARTPAREN;
                 parenCount++;
                 break;
@@ -165,7 +171,8 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t) {
                 parenCount--;
                 break;
             default:
-                if ((t->token == T_STAR || t->token == T_AMPER) &&
+                if ((t->token == T_STAR || t->token == T_AMPER ||
+                     t->token == T_INC || t->token == T_DEC) &&
                     expectPreOp) {
                     // need to somehow add rvalue here
                     stack[++top] = ASTnode_Prefix(s, st, t);
@@ -229,15 +236,19 @@ static ASTnode ASTnode_ArrayRef(Scanner s, SymTable st, Token tok) {
     ASTnode left, right;
     int id;
     if ((id = SymTable_GlobFind(st, s, S_ARRAY)) == -1) {
-        fprintf(stderr, "Error: Undefined array %s on line %d\n", s->text,
+        fprintf(stderr, "Error: Undeclared array %s on line %d\n", s->text,
                 s->line);
         exit(-1);
     }
     left = ASTnode_NewLeaf(A_ADDR, st->Gsym[id].type, id);
     Scanner_Scan(s, tok);
     right = ASTnode_Order(s, st, tok);
+    right->rvalue = 1;
 
     match(s, tok, T_RBRACKET, "]");
+#if DEBUG
+    printf("Consumed right bracket\n");
+#endif
     if (!inttype(right->type)) {
         fprintf(stderr, "Error: Array index must be an integer on line %d\n",
                 s->line);
@@ -277,8 +288,85 @@ static ASTnode ASTnode_Prefix(Scanner s, SymTable st, Token tok) {
             }
             t = ASTnode_NewUnary(A_DEREF, value_at(t->type), t, 0);
             break;
+        case T_INC:
+            Scanner_Scan(s, tok);
+#if DEBUG
+            printf("INC\n");
+#endif
+            t = ASTnode_Postfix(s, st, tok);
+#if DEBUG
+            printf("%p\n", t);
+#endif
+            // temp check - cause inc also sets the rvalue
+            if (t->op != A_IDENT) {
+                fprintf(
+                    stderr,
+                    "Error: ++ must be followed by an identifier on line %d\n",
+                    s->line);
+                exit(-1);
+            }
+            t = ASTnode_NewUnary(A_PREINC, t->type, t, 0);
+            break;
+        case T_MINUS:
+            Scanner_Scan(s, tok);
+            // for ---a
+            t = ASTnode_Prefix(s, st, tok);
+            t->rvalue = 1;
+            t = ASTnode_NewUnary(A_NEGATE, t->type, t, 0);
+            break;
+        case T_INVERT:
+            Scanner_Scan(s, tok);
+            t = ASTnode_Prefix(s, st, tok);
+            t->rvalue = 1;
+            t = ASTnode_NewUnary(A_INVERT, t->type, t, 0);
+            break;
+        case T_LOGNOT:
+            Scanner_Scan(s, tok);
+            t = ASTnode_Prefix(s, st, tok);
+            t->rvalue = 1;
+            t = ASTnode_NewUnary(A_LOGNOT, t->type, t, 0);
+            break;
+        case T_DEC:
+            Scanner_Scan(s, tok);
+            t = ASTnode_Postfix(s, st, tok);
+            if (t->op != A_IDENT) {
+                fprintf(
+                    stderr,
+                    "Error: -- must be followed by an identifier on line %d\n",
+                    s->line);
+                exit(-1);
+            }
+            t = ASTnode_NewUnary(A_PREDEC, t->type, t, 0);
+            break;
         default:
             t = primary(s, st, tok);
     }
     return t;
+}
+
+static ASTnode ASTnode_Postfix(Scanner s, SymTable st, Token tok) {
+    int id;
+
+    Scanner_Scan(s, tok);
+    if (tok->token == T_LPAREN) return ASTnode_FuncCall(s, st, tok);
+    printf("Checking for array ref\n");
+    if (tok->token == T_LBRACKET) return ASTnode_ArrayRef(s, st, tok);
+    Scanner_RejectToken(s, tok);
+
+    if ((id = SymTable_GlobFind(st, s, S_VAR)) == -1) {
+        fprintf(stderr, "Error: Unknown variable %s on line %d\n", s->text,
+                s->line);
+        exit(-1);
+    }
+
+    switch (tok->token) {
+        case T_INC:
+            Scanner_Scan(s, tok);
+            return ASTnode_NewLeaf(A_POSTINC, st->Gsym[id].type, id);
+        case T_DEC:
+            Scanner_Scan(s, tok);
+            return ASTnode_NewLeaf(A_POSTDEC, st->Gsym[id].type, id);
+        default:
+            return ASTnode_NewLeaf(A_IDENT, st->Gsym[id].type, id);
+    }
 }

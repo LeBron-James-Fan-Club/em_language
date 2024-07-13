@@ -8,7 +8,8 @@
 
 #include "defs.h"
 
-#define TEXTLEN 512
+// May god forgive me for this
+#define TEXTLEN 100000000
 
 struct scanner {
     // file to scan in

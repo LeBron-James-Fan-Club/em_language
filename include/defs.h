@@ -3,12 +3,32 @@
 
 // Commonly used stuff - prevents circular includes
 
-#define DEBUG 0
+#define DEBUG 1
 
 enum OPCODES {
     T_EOF,  // 0
 
     T_ASSIGN,  // 1
+
+    // Not supported yet
+    T_LOGOR,
+    T_LOGAND,
+
+    T_OR,
+    T_XOR,
+    T_AMPER,
+
+    // Comparison
+    T_EQ,  // 7
+    T_NE,  // 8
+
+    T_LT,  // 9
+    T_GT,  // 10
+    T_LE,  // 11
+    T_GE,  // 12
+
+    T_LSHIFT,
+    T_RSHIFT,
 
     // Arithmetic
     T_PLUS,    // 2
@@ -17,13 +37,10 @@ enum OPCODES {
     T_SLASH,   // 5
     T_MODULO,  // 6
 
-    // Comparison
-    T_EQ,  // 7
-    T_NE,  // 8
-    T_LT,  // 9
-    T_GT,  // 10
-    T_LE,  // 11
-    T_GE,  // 12
+    T_INC,
+    T_DEC,
+    T_INVERT,
+    T_LOGNOT,
 
     T_INTLIT,  // 13
     T_SEMI,    // 14
@@ -53,8 +70,6 @@ enum OPCODES {
     T_CHAR,
     T_COMMA,
     T_RETURN,
-    T_AMPER,
-    T_LOGAND,
     T_STRLIT
 
 };
@@ -62,27 +77,45 @@ enum OPCODES {
 enum ASTOP {
     // 1:1 (almost) with tokens
     A_NONE,
+
     A_ASSIGN,
+
+    // Not supported yet
+    A_LOGOR,
+    A_LOGAND,
+
+    A_OR,
+    A_XOR,
+    A_AND,
+
+    A_EQ,
+    A_NE,
+
+    A_LT,
+    A_GT,
+    A_LE,
+    A_GE,
+
+    A_LSHIFT,
+    A_RSHIFT,
+
     A_ADD,
     A_SUBTRACT,
     A_MULTIPLY,
     A_DIVIDE,
     A_MODULO,
 
-    A_EQ,
-    A_NE,
-    A_LT,
-    A_GT,
-    A_LE,
-    A_GE,
-
     A_INTLIT,
+
+    // 1:1 ends here
 
     // After this we need checks
     A_IDENT,
+
     // for some god damn reason
     // commenting out this line causes a segfault
     A_LVIDENT,
+
     A_PRINT,
     A_INPUT,
     A_GLUE,
@@ -100,6 +133,17 @@ enum ASTOP {
     A_DEREF,
     A_SCALE,
     A_STRLIT,
+
+    A_PREINC,
+    A_PREDEC,
+    A_POSTINC,
+    A_POSTDEC,
+
+    A_NEGATE,
+    A_INVERT,
+    A_LOGNOT,
+
+    A_TOBOOL,
 
     // misc so the compiler stops complaining
     A_STARTPAREN

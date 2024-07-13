@@ -21,7 +21,11 @@ int SymTable_GlobFind(SymTable this, Scanner s, enum STRUCTTYPE stype) {
     for (int i = 0; i < this->globs; i++) {
         if (*s->text == *this->Gsym[i].name &&
             !strcmp(s->text, this->Gsym[i].name)) {
-            if (stype != this->Gsym[i].stype) {
+            if (stype != this->Gsym[i].stype ) {
+#if DEBUG
+                printf("stype %d, stype other %d\n", stype,
+                       this->Gsym[i].stype);
+#endif
                 fprintf(stderr,
                         "Error: Variable %s already declared and wrong "
                         "structure type %d\n",

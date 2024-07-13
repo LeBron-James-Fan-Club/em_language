@@ -106,8 +106,9 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             return MIPS_Load(this, n->v.intvalue);
         case A_IDENT:
             if (n->rvalue || parentASTop == A_DEREF) {
-                return MIPS_LoadGlob(this, st, n->v.id);
+                return MIPS_LoadGlob(this, st, n->v.id, n->op);
             } else {
+                printf("Variable not right %s\n", st->Gsym[n->v.id].name);
                 return NO_REG;
             }
         case A_ASSIGN:
@@ -172,6 +173,31 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             }
         case A_STRLIT:
             return MIPS_LoadGlobStr(this, st, n->v.id);
+        
+        case A_AND:
+            return MIPS_BitAND(this, leftReg, rightReg);
+        case A_OR:
+            return MIPS_BitOR(this, leftReg, rightReg);
+        case A_XOR:
+            return MIPS_BitXOR(this, leftReg, rightReg);
+        case A_LSHIFT:
+            return MIPS_ShiftLeft(this, leftReg, rightReg);
+        case A_RSHIFT:
+            return MIPS_ShiftRight(this, leftReg, rightReg);
+        case A_NEGATE:
+            return MIPS_Negate(this, leftReg);
+        case A_INVERT:
+            return MIPS_BitNOT(this, leftReg);
+        case A_LOGNOT:
+            return MIPS_LogNOT(this, leftReg);
+        case A_PREINC:
+        case A_PREDEC:
+            return MIPS_LoadGlob(this, st, n->left->v.id, n->op);
+        case A_POSTINC:
+        case A_POSTDEC:
+            return MIPS_LoadGlob(this, st, n->v.id, n->op);
+        case A_TOBOOL:
+            return MIPS_ToBool(this, parentASTop, leftReg, label);
         default:
             fprintf(stderr, "Error: Unknown AST operator %d\n", n->op);
             exit(-1);
@@ -213,7 +239,6 @@ static int genWHILEAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
 
     MIPS_Label(this, Lstart);
 
-    // reg acts as parameter for label
     genAST(this, st, Lend, ctx, n->left, n->op);
     Compiler_FreeAllReg(this);
 

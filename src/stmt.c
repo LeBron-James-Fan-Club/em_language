@@ -96,7 +96,6 @@ static ASTnode single_statement(Scanner s, SymTable st, Token tok,
     }
 }
 
-// TODO add comma support for print statement
 static ASTnode print_statement(Scanner s, SymTable st, Token tok) {
     ASTnode t;
 
@@ -126,6 +125,7 @@ static ASTnode print_statement(Scanner s, SymTable st, Token tok) {
         t = ASTnode_NewUnary(A_PRINT, rightType, t, 0);
 
         if (firstGone) {
+            // memory leak occurs here
             parent = ASTnode_New(A_GLUE, P_NONE, parent, NULL, t, 0);
         } else {
             parent = t;
@@ -174,8 +174,7 @@ static ASTnode if_statement(Scanner s, SymTable st, Token tok, Context ctx) {
 
     // Might remove this guard later
     if (condAST->op < A_EQ || condAST->op > A_GE) {
-        fprintf(stderr, "Error: Bad comparison operator\n");
-        exit(-1);
+        condAST = ASTnode_NewUnary(A_TOBOOL, condAST->type, condAST, 0);
     }
 
     rparen(s, tok);

@@ -23,7 +23,7 @@ void MIPS_PrintChar(Compiler, int r);
 void MIPS_PrintStr(Compiler this, int r);
 
 int MIPS_LoadGlobStr(Compiler this, SymTable st, int id);
-int MIPS_LoadGlob(Compiler, SymTable st, int id);
+int MIPS_LoadGlob(Compiler this, SymTable st, int id, enum ASTOP op);
 
 void MIPS_GlobSym(Compiler this, SymTable st, int id);
 int MIPS_StoreGlob(Compiler, int r1, SymTable st, int id);
@@ -61,7 +61,20 @@ int MIPS_Call(Compiler, SymTable st, int r, int id);
 
 int MIPS_Address(Compiler, SymTable st, int id);
 int MIPS_Deref(Compiler, int r, enum ASTPRIM type);
-int MIPS_ShiftLeftConstant(Compiler this, int r, int c);
+int MIPS_ShiftLeftConstant(Compiler, int r, int c);
+
+int MIPS_ShiftLeft(Compiler, int r1, int r2);
+int MIPS_ShiftRight(Compiler, int r1, int r2);
+
+int MIPS_Negate(Compiler, int r);
+int MIPS_BitNOT(Compiler, int r);
+int MIPS_LogNOT(Compiler, int r);
+
+int MIPS_BitAND(Compiler, int r1, int r2);
+int MIPS_BitOR(Compiler, int r1, int r2);
+int MIPS_BitXOR(Compiler, int r1, int r2);
+
+int MIPS_ToBool(Compiler this, enum ASTOP parentOp, int r, int label);
 
 int label(Compiler);
 
