@@ -8,12 +8,12 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type) {
             Scanner_Scan(s, tok);
             if (tok->token == T_INTLIT) {
                 SymTable_GlobAdd(st, s, pointer_to(type), S_ARRAY,
-                                 tok->intvalue);
+                                 tok->intvalue, false);
             }
             Scanner_Scan(s, tok);
             match(s, tok, T_RBRACKET, "]");
         } else {
-            SymTable_GlobAdd(st, s, type, S_VAR, 1);
+            SymTable_GlobAdd(st, s, type, S_VAR, 1, false);
         }
         if (tok->token == T_SEMI) {
             Scanner_Scan(s, tok);
@@ -53,11 +53,8 @@ void global_declare(Compiler c, Scanner s, SymTable st, Token tok, Context ctx,
 
 ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
                          Context ctx, enum ASTPRIM type) {
-    // Scanner_Scan(s, tok);
-    // ident(s, tok);
-
-    // Might change later to use names instead of numbered labels
-    int id = SymTable_GlobAdd(st, s, type, S_FUNC, 1);
+    
+    int id = SymTable_GlobAdd(st, s, type, S_FUNC, 1, false);
 
     Context_SetFunctionId(ctx, id);
 

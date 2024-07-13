@@ -60,7 +60,6 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
     if (n->right) {
         rightReg = genAST(this, st,NO_LABEL, ctx, n->right, n->op);
     }
-   // printf("AST OP: %d\n", n->op);
 
     switch (n->op) {
         case A_ADD:
@@ -107,10 +106,6 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             return MIPS_Load(this, n->v.intvalue);
         case A_IDENT:
             if (n->rvalue || parentASTop == A_DEREF) {
-                printf("IDENT ACCESS\n");
-                if (parentASTop == A_DEREF) {
-                    printf("DEREF ACCESS\n");
-                }
                 return MIPS_LoadGlob(this, st, n->v.id);
             } else {
                 return NO_REG;
@@ -128,10 +123,13 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             }
             //return rightReg;
         case A_PRINT:
-            if (n->type == P_CHAR)
+            if (n->type == P_CHAR) {
                 MIPS_PrintChar(this, leftReg);
-            else
+            } else if (n->type == P_CHARPTR) {
+                MIPS_PrintStr(this, leftReg);
+            } else {
                 MIPS_PrintInt(this, leftReg);
+            }
             Compiler_FreeAllReg(this);
             return NO_REG;
         case A_INPUT:
@@ -145,7 +143,9 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
         case A_WIDEN:
             return MIPS_Widen(this, leftReg, n->type);
         case A_RETURN:
-            MIPS_Return(this, st, leftReg, n->v.id, ctx);
+            // TODO: Why am I returning id only?
+            // What if its a number?
+            MIPS_Return(this, st, leftReg, ctx);
             return NO_REG;
         case A_FUNCCALL:
             return MIPS_Call(this, st, leftReg, n->v.id);
@@ -153,8 +153,6 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             return MIPS_Address(this, st, n->v.id);
         case A_DEREF:
             if (n->rvalue) {
-                //! bug: n->rvalue not setting
-                printf("DEREF reg %d\n", leftReg);
                 return MIPS_Deref(this, leftReg, n->left->type);
             } else {
                 return leftReg;
@@ -172,6 +170,8 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
                     rightReg = MIPS_Load(this, n->v.size);
                     return MIPS_Mul(this, leftReg, rightReg);
             }
+        case A_STRLIT:
+            return MIPS_LoadGlobStr(this, st, n->v.id);
         default:
             fprintf(stderr, "Error: Unknown AST operator %d\n", n->op);
             exit(-1);

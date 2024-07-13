@@ -38,7 +38,11 @@ ASTnode modify_type(ASTnode tree, enum ASTPRIM rtype, enum ASTOP op) {
 
         if (inttype(ltype) && ptrtype(rtype)) {
             rsize = PrimSize(value_at(rtype));
-            if (rsize > 1) return ASTnode_NewUnary(A_SCALE, rtype, tree, rsize);
+            if (rsize > 1) {
+                return ASTnode_NewUnary(A_SCALE, rtype, tree, rsize);
+            } else {
+                return tree;
+            }
         }
     }
 

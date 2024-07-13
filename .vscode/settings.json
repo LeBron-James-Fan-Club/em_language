@@ -9,6 +9,7 @@
         "sym.h": "c",
         "stmt.h": "c",
         "types.h": "c",
-        "ast.h": "c"
+        "ast.h": "c",
+        "stdbool.h": "c"
     }
 }

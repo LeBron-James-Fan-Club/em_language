@@ -20,9 +20,12 @@ int MIPS_Mod(Compiler, int r1, int r2);
 
 void MIPS_PrintInt(Compiler, int r);
 void MIPS_PrintChar(Compiler, int r);
+void MIPS_PrintStr(Compiler this, int r);
 
+int MIPS_LoadGlobStr(Compiler this, SymTable st, int id);
 int MIPS_LoadGlob(Compiler, SymTable st, int id);
-void MIPS_GlobSym(Compiler this, char *sym, enum ASTPRIM type, int size);
+
+void MIPS_GlobSym(Compiler this, SymTable st, int id);
 int MIPS_StoreGlob(Compiler, int r1, SymTable st, int id);
 int MIPS_StoreRef(Compiler this, int r1, int r2, enum ASTPRIM type);
 int MIPS_Widen(Compiler this, int r1, enum ASTPRIM newType);
@@ -53,7 +56,7 @@ void MIPS_Jump(Compiler, int l);
 void MIPS_GotoLabel(Compiler, SymTable st, int id);
 void MIPS_GotoJump(Compiler, SymTable st, int id);
 
-void MIPS_Return(Compiler, SymTable st, int r, int id, Context ctx);
+void MIPS_Return(Compiler, SymTable st, int r, Context ctx);
 int MIPS_Call(Compiler, SymTable st, int r, int id);
 
 int MIPS_Address(Compiler, SymTable st, int id);

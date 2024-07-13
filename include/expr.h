@@ -10,7 +10,5 @@
 
 ASTnode ASTnode_Order(Scanner s, SymTable st,  Token t);
 
-void ASTnode_PrintTree(ASTnode n);
-
 
 #endif

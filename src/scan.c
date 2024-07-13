@@ -9,8 +9,10 @@ static char next(Scanner);
 static void putback(Scanner, char c);
 static char skip(Scanner this);
 
-static int scanIdent(Scanner this, int c);
+static int scanIdent(Scanner this, char c);
+static int scanChr(Scanner this);
 static int scanInt(Scanner, char c);
+static int scanStr(Scanner this);
 static int keyword(char *s);
 
 static int chrpos(char *s, int c);
@@ -76,8 +78,9 @@ bool Scanner_Scan(Scanner this, Token t) {
 
     c = skip(this);
 
+#if DEBUG
     printf("Scanning: %c\n", c);
-
+#endif
     switch (c) {
         case EOF:
             t->token = T_EOF;
@@ -166,6 +169,21 @@ bool Scanner_Scan(Scanner this, Token t) {
                 t->token = T_AMPER;
             }
             break;
+        case '\'':
+            t->intvalue = scanChr(this);
+            t->token = T_INTLIT;
+            if (next(this) != '\'') {
+                fprintf(
+                    stderr,
+                    "Error: Expected \' at end of char literal on line %d\n",
+                    this->line);
+                exit(-1);
+            }
+            break;
+        case '"':
+            scanStr(this);
+            t->token = T_STRLIT;
+            break;
         default:
             if (isdigit(c)) {
                 t->intvalue = scanInt(this, c);
@@ -229,7 +247,7 @@ void Scanner_RejectToken(Scanner this, Token t) {
     this->rejToken = t;
 }
 
-static int scanIdent(Scanner this, int c) {
+static int scanIdent(Scanner this, char c) {
     int i = 0;
 
     while (isalpha(c) || isdigit(c) || c == '_') {
@@ -259,6 +277,54 @@ static int scanInt(Scanner this, char c) {
 
     putback(this, c);
     return val;
+}
+
+static int scanChr(Scanner this) {
+    char c = next(this);
+    if (c == '\\') {
+        switch (c = next(this)) {
+            case 'n':
+                return '\n';
+            case 't':
+                return '\t';
+            case 'r':
+                return '\r';
+            case 'f':
+                return '\f';
+            case 'b':
+                return '\b';
+            case '\\':
+                return '\\';
+            case '\'':
+                return '\'';
+            case '\"':
+                return '\"';
+            default:
+                fprintf(stderr,
+                        "Error: Unknown escape sequence %c on line %d\n", c,
+                        this->line);
+                exit(-1);
+        }
+    }
+    return c;
+}
+
+static int scanStr(Scanner this) {
+    char c;
+    for (int i = 0; i < TEXTLEN - 1; i++) {
+        c = next(this);
+        if (c == EOF) {
+            fprintf(stderr, "Error: EOF in string on line %d\n", this->line);
+            exit(-1);
+        }
+        if (c == '"') {
+            this->text[i] = '\0';
+            return i;
+        }
+        this->text[i] = c;
+    }
+    fprintf(stderr, "Error: String too long on line %d\n", this->line);
+    exit(-1);
 }
 
 static int chrpos(char *s, int c) {

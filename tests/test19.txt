@@ -1,0 +1,9 @@
+char *p;
+int a;
+
+int main() {
+    p = "THE ONE PIECE, THE ONE PIECE IS REAL\n- Whitebeard\n";
+    a = 2;
+    print(p, a);
+    return 0;
+}

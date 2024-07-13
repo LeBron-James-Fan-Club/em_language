@@ -4,6 +4,9 @@
 
 #include <stdbool.h>
 
+#define _GNU_SOURCE
+#include <stdio.h>
+
 #include "defs.h"
 #include "scan.h"
 
@@ -16,11 +19,15 @@ typedef struct symTableEntry {
     enum ASTPRIM type;
     enum STRUCTTYPE stype;
     int size;  // Number of elements in the symbol
+    // for annoymous strings, for now
+    char *value;
 } SymTableEntry;
 
 struct symTable {
     SymTableEntry Gsym[MAX_SYMBOLS];
     int globs;
+    // for annoymous
+    int anon;
 };
 
 typedef struct symTable *SymTable;
@@ -29,6 +36,7 @@ SymTable SymTable_New(void);
 void SymTable_Free(SymTable);
 int SymTable_GlobFind(SymTable this, Scanner s, enum STRUCTTYPE stype);
 int SymTable_GlobAdd(SymTable this, Scanner s, enum ASTPRIM type,
-                     enum STRUCTTYPE stype, int size);
+                     enum STRUCTTYPE stype, int size, bool isAnon);
+void SymTable_GlobSetText(SymTable this, Scanner s, int id);
 
 #endif

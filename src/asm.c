@@ -11,7 +11,6 @@ static void freeReg(Compiler this, int reg1);
 
 int PrimSize(enum ASTPRIM type) {
     if (type < P_NONE || type > P_INTPTR) {
-        printf("what\n");
         fprintf(stderr, "Error: Unknown type %d\n", type);
         exit(-1);
     }
@@ -111,6 +110,18 @@ void MIPS_PrintChar(Compiler this, int r) {
     fprintf(this->outfile, "\tsyscall\n");
 }
 
+void MIPS_PrintStr(Compiler this, int r) {
+    fprintf(this->outfile, "\tli\t$v0, 4\n");
+    fprintf(this->outfile, "\tmove\t$a0, %s\n", reglist[r]);
+    fprintf(this->outfile, "\tsyscall\n");
+}
+
+int MIPS_LoadGlobStr(Compiler this, SymTable st, int id) {
+    int r = allocReg(this);
+    fprintf(this->outfile, "\tla\t%s, %s\n", reglist[r], st->Gsym[id].name);
+    return r;
+}
+
 int MIPS_LoadGlob(Compiler this, SymTable st, int id) {
     int r = allocReg(this);
     switch (st->Gsym[id].type) {
@@ -175,10 +186,12 @@ int MIPS_StoreRef(Compiler this, int r1, int r2, enum ASTPRIM type) {
 
     switch (type) {
         case P_CHAR:
-            fprintf(this->outfile, "\tsb\t%s, 0(%s)\n", reglist[r1], reglist[r2]);
+            fprintf(this->outfile, "\tsb\t%s, 0(%s)\n", reglist[r1],
+                    reglist[r2]);
             break;
         case P_INT:
-            fprintf(this->outfile, "\tsw\t%s, 0(%s)\n", reglist[r1], reglist[r2]);
+            fprintf(this->outfile, "\tsw\t%s, 0(%s)\n", reglist[r1],
+                    reglist[r2]);
             break;
         default:
             fprintf(stderr, "Error: Unknown pointer type %d\n", type);
@@ -194,15 +207,22 @@ int MIPS_Widen(Compiler this, int r1, enum ASTPRIM newType) {
 }
 
 // Needs to be below .data
-void MIPS_GlobSym(Compiler this, char *sym, enum ASTPRIM type, int size) {
-    int typesize = PrimSize(type);
-    fprintf(this->outfile, "\t%s:\t.space %d\n", sym, typesize * size);
-    switch (type) {
-        case P_CHAR:
-            fprintf(this->outfile, "\t.align 2\n");
-            break;
-        default:
-        break;
+void MIPS_GlobSym(Compiler this, SymTable st, int id) {
+    int typesize = PrimSize(st->Gsym[id].type);
+    enum ASTPRIM type = st->Gsym[id].type;
+    if (type == P_CHARPTR && st->Gsym[id].value != NULL) {
+        fprintf(this->outfile, "\t%s:\t.asciiz \"%s\"\n", st->Gsym[id].name,
+                st->Gsym[id].value);
+    } else {
+        fprintf(this->outfile, "\t%s:\t.space %d\n", st->Gsym[id].name,
+                typesize * st->Gsym[id].size);
+        switch (type) {
+            case P_CHAR:
+                fprintf(this->outfile, "\t.align 2\n");
+                break;
+            default:
+                break;
+        }
     }
 }
 
@@ -314,15 +334,15 @@ void MIPS_GotoJump(Compiler this, SymTable st, int id) {
     fprintf(this->outfile, "\tb\t%s\n", st->Gsym[id].name);
 }
 
-void MIPS_Return(Compiler this, SymTable st, int r, int id, Context ctx) {
-    if (st->Gsym[id].type == P_INT) {
+void MIPS_Return(Compiler this, SymTable st, int r, Context ctx) {
+    if (st->Gsym[ctx->functionId].type == P_INT) {
         fprintf(this->outfile, "\tmove\t$v0, %s\n", reglist[r]);
-    } else if (st->Gsym[id].type == P_CHAR) {
+    } else if (st->Gsym[ctx->functionId].type == P_CHAR) {
         fprintf(this->outfile, "\tmove\t$v0, %s\n", reglist[r]);
         // I dont think we need the below
         // fprintf(this->outfile, "\tandi\t$v0, %s, 0xFF\n", reglist[r]);
     } else {
-        fprintf(stderr, "Error!!!: Unknown type %d\n", st->Gsym[id].type);
+        fprintf(stderr, "Error!!!: Unknown type %d\n", st->Gsym[ctx->functionId].type);
         exit(-1);
     }
 }
@@ -347,7 +367,8 @@ int MIPS_Deref(Compiler this, int r, enum ASTPRIM type) {
     //! bug: derefing not occuring for b[3]
     switch (type) {
         case P_CHARPTR:
-            fprintf(this->outfile, "\tlbu\t%s, 0(%s)\n", reglist[r], reglist[r]);
+            fprintf(this->outfile, "\tlbu\t%s, 0(%s)\n", reglist[r],
+                    reglist[r]);
             break;
         case P_INTPTR:
             fprintf(this->outfile, "\tlw\t%s, 0(%s)\n", reglist[r], reglist[r]);
@@ -394,6 +415,6 @@ void Compiler_GenData(Compiler this, SymTable st) {
     fputs("\n.data\n", this->outfile);
     for (int i = 0; i < st->globs; i++) {
         if (st->Gsym[i].stype == S_FUNC) continue;
-        MIPS_GlobSym(this, st->Gsym[i].name, st->Gsym[i].type, st->Gsym[i].size);
+        MIPS_GlobSym(this, st, i);
     }
 }

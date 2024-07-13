@@ -9,9 +9,10 @@ SymTable SymTable_New(void) {
     return g;
 }
 
-void SymTable_Free(SymTable this) { 
+void SymTable_Free(SymTable this) {
     for (int i = 0; i < this->globs; i++) {
         free(this->Gsym[i].name);
+        if (this->Gsym[i].value) free(this->Gsym[i].value);
     }
     free(this);
 }
@@ -45,7 +46,7 @@ int SymTable_GlobFind(SymTable this, Scanner s, enum STRUCTTYPE stype) {
 }
 
 int SymTable_GlobAdd(SymTable this, Scanner s, enum ASTPRIM type,
-                     enum STRUCTTYPE stype, int size) {
+                     enum STRUCTTYPE stype, int size, bool isAnon) {
     int y;
     if ((y = SymTable_GlobFind(this, s, stype)) != -1) {
         if (type != this->Gsym[y].type) {
@@ -55,7 +56,6 @@ int SymTable_GlobAdd(SymTable this, Scanner s, enum ASTPRIM type,
                 s->text, type, this->Gsym[y].type);
             exit(-1);
         }
-        //printf("Found %d\n", type);
         return y;
     }
 
@@ -64,10 +64,22 @@ int SymTable_GlobAdd(SymTable this, Scanner s, enum ASTPRIM type,
         exit(-1);
     }
 
-    this->Gsym[y].name = strdup(s->text);
+    if (isAnon) {
+        // annoymous variable
+        asprintf(&this->Gsym[y].name, "anon_%d", this->anon++);
+    } else {
+        this->Gsym[y].name = strdup(s->text);
+    }
     this->Gsym[y].type = type;
     this->Gsym[y].stype = stype;
     this->Gsym[y].size = size;
 
     return y;
+}
+
+// Cant be fucked doing array shit initialisation
+// e.g. 2, 3, 4
+// Only accepts text rn
+void SymTable_GlobSetText(SymTable this, Scanner s, int id) {
+    this->Gsym[id].value = strdup(s->text);
 }

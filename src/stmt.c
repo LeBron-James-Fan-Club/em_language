@@ -37,13 +37,12 @@ ASTnode Compound_Statement(Scanner s, SymTable st, Token tok, Context ctx) {
         // TODO:  Compiler directive will be checked here
         tree = single_statement(s, st, tok, ctx);
 
-        // Might be weird here:
-        printf("op11: %d\n", tree->op);
-        if (tree != NULL && (tree->op == A_PRINT || tree->op == A_INPUT ||
-                             tree->op == A_RETURN || tree->op == A_ASSIGN ||
-                             tree->op == A_FUNCCALL || tree->op == A_LABEL ||
-                             tree->op == A_GOTO)) {
+        if (tree != NULL && (tree->op == A_INPUT || tree->op == A_RETURN ||
+                             tree->op == A_ASSIGN || tree->op == A_FUNCCALL ||
+                             tree->op == A_LABEL || tree->op == A_GOTO)) {
+#if DEBUG
             printf("Yum i ate a semicolon\n");
+#endif
             semi(s, tok);
         }
 
@@ -90,12 +89,10 @@ static ASTnode single_statement(Scanner s, SymTable st, Token tok,
         case T_RETURN:
             return return_statement(s, st, tok, ctx);
         default:
+#if DEBUG
             printf("tok: %d\n", tok->token);
+#endif
             return ASTnode_Order(s, st, tok);
-            //    fprintf(stderr, "Error: Unknown statement on line %d tok
-            //    %d\n",
-            //            s->line, tok->token);
-            //    exit(-1);
     }
 }
 
@@ -109,6 +106,8 @@ static ASTnode print_statement(Scanner s, SymTable st, Token tok) {
 
     // loops til no more commas - we can do hello world now
     ASTnode parent = NULL;
+    bool firstGone = false;
+    lparen(s, tok);
     do {
         if (parent) {
             Scanner_Scan(s, tok);
@@ -124,58 +123,26 @@ static ASTnode print_statement(Scanner s, SymTable st, Token tok) {
             exit(-1);
         }
 
-        // inefficient? - always gonna have one extra A_GLUE
         t = ASTnode_NewUnary(A_PRINT, rightType, t, 0);
-        if (parent == NULL) {
-            parent = ASTnode_NewUnary(A_GLUE, P_NONE, t, 0);
-        } else {
-            parent->right = t;
-            parent = ASTnode_NewUnary(A_GLUE, P_NONE, parent, 0);
-        }
 
+        if (firstGone) {
+            parent = ASTnode_New(A_GLUE, P_NONE, parent, NULL, t, 0);
+        } else {
+            parent = t;
+            firstGone = true;
+        }
     } while (tok->token == T_COMMA);
+    rparen(s, tok);
+
     semi(s, tok);
 
     return parent;
 }
 
-/*
-static ASTnode assignment_statement(Scanner s, SymTable st, Token tok) {
-    ASTnode left, right, tree;
-    int id;
-    // Looks unnecessary but it consumes token
-    ident(s, tok);
-
-    if ((id = SymTable_GlobFind(st, s, S_VAR)) == -1) {
-        fprintf(stderr, "Error: Undefined variable %s on line %d\n", s->text,
-                s->line);
-        exit(-1);
-    }
-
-    if (tok->token == T_LPAREN) {
-        return ASTnode_FuncCall(s, st, tok);
-    }
-
-    right = ASTnode_NewLeaf(A_LVIDENT, st->Gsym[id].type, id);
-    match(s, tok, T_ASSIGN, "=");
-
-    left = ASTnode_Order(s, st, tok);
-
-    left = modify_type(left, right->type, A_NONE);
-    if (left == NULL) {
-        fprintf(stderr, "Error: Type mismatch in assignment on line %d\n",
-                s->line);
-        exit(-1);
-    }
-
-    tree = ASTnode_New(A_ASSIGN, P_INT, left, NULL, right, 0);
-
-    return tree;
-}*/
-
 static ASTnode input_statement(Scanner s, SymTable st, Token tok) {
     int id;
     match(s, tok, T_INPUT, "input");
+    lparen(s, tok);
 
     ident(s, tok);
 
@@ -192,6 +159,7 @@ static ASTnode input_statement(Scanner s, SymTable st, Token tok) {
     ASTnode tree = modify_type(right, left->type, A_NONE);
 
     tree = ASTnode_New(A_ASSIGN, P_NONE, left, NULL, tree, 0);
+    rparen(s, tok);
 
     return tree;
 }
@@ -272,7 +240,7 @@ static ASTnode label_statement(Scanner s, SymTable st, Token tok) {
     match(s, tok, T_LABEL, "label");
     ident(s, tok);
 
-    int id = SymTable_GlobAdd(st, s, P_NONE, S_LABEL, 0);
+    int id = SymTable_GlobAdd(st, s, P_NONE, S_LABEL, 0, false);
 
     ASTnode t = ASTnode_NewLeaf(A_LABEL, P_NONE, id);
 
@@ -312,7 +280,6 @@ static ASTnode return_statement(Scanner s, SymTable st, Token tok,
     }
 
     match(s, tok, T_RETURN, "return");
-    lparen(s, tok);
 
     t = ASTnode_Order(s, st, tok);
 
@@ -321,8 +288,5 @@ static ASTnode return_statement(Scanner s, SymTable st, Token tok,
         fprintf(stderr, "Error: Type mismatch in return on line %d\n", s->line);
         exit(-1);
     }
-
-    rparen(s, tok);
-
     return ASTnode_NewUnary(A_RETURN, P_NONE, t, 0);
 }

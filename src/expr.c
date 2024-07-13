@@ -49,12 +49,14 @@ static bool rightAssoc(enum ASTOP op) { return op == T_ASSIGN; }
 static ASTnode primary(Scanner s, SymTable st, Token t) {
     int id;
     switch (t->token) {
+        case T_STRLIT:
+            id = SymTable_GlobAdd(st, s, P_CHARPTR, S_VAR, 1, true);
+            SymTable_GlobSetText(st, s, id);
+            return ASTnode_NewLeaf(A_STRLIT, P_CHARPTR, id);
         case T_INTLIT:
             if (t->intvalue >= 0 && t->intvalue < 256) {
-                printf("char\n");
                 return ASTnode_NewLeaf(A_INTLIT, P_CHAR, t->intvalue);
             } else {
-                printf("int\n");
                 return ASTnode_NewLeaf(A_INTLIT, P_INT, t->intvalue);
             }
         case T_IDENT:
@@ -62,7 +64,6 @@ static ASTnode primary(Scanner s, SymTable st, Token t) {
             if (t->token == T_LPAREN) {
                 return ASTnode_FuncCall(s, st, t);
             } else if (t->token == T_LBRACKET) {
-                printf("ArrayRef\n");
                 return ASTnode_ArrayRef(s, st, t);
             } else {
                 Scanner_RejectToken(s, t);
@@ -81,7 +82,6 @@ static ASTnode primary(Scanner s, SymTable st, Token t) {
 
 static void orderOp(Scanner s, SymTable st, Token t, ASTnode *stack,
                     enum ASTOP *opStack, int *top, int *opTop) {
-    printf("holdup\n");
     ASTnode ltemp, rtemp;
     if (*opTop < 0) {
         fprintf(stderr, "Error: Syntax error on line (opTop < 0) %d\n",
@@ -95,7 +95,6 @@ static void orderOp(Scanner s, SymTable st, Token t, ASTnode *stack,
         fprintf(stderr, "Error: Syntax error on line %d\n", s->line);
         exit(-1);
     }
-    printf("OK WE PULL UP\n");
 
     ASTnode right = stack[(*top)--];
     ASTnode left = stack[(*top)--];
@@ -129,8 +128,6 @@ static void orderOp(Scanner s, SymTable st, Token t, ASTnode *stack,
         if (ltemp != NULL) left = ltemp;
         if (rtemp != NULL) right = rtemp;
     }
-    printf("SAVING TO STACK\n");
-    printf("left %p right %p\n", left, right);
     stack[++(*top)] = ASTnode_New(op, left->type, left, NULL, right, 0);
 }
 
@@ -147,20 +144,20 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t) {
         switch (t->token) {
             case T_SEMI:
             case T_EOF:
+            case T_COMMA:
                 // Breaks out of loop if parenthesis are not balanced
                 goto out;
             case T_INTLIT:
             case T_IDENT:
+            case T_STRLIT:
                 stack[++top] = primary(s, st, t);
                 expectPreOp = false;
                 break;
             case T_LPAREN:
-                printf("LPAREN\n");
                 opStack[++opTop] = A_STARTPAREN;
                 parenCount++;
                 break;
             case T_RPAREN:
-                printf("RPAREN\n");
                 while (opTop != -1 && opStack[opTop] != A_STARTPAREN) {
                     orderOp(s, st, t, stack, opStack, &top, &opTop);
                 }
@@ -168,7 +165,6 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t) {
                 parenCount--;
                 break;
             default:
-                printf("Ehm what the sigma\n");
                 if ((t->token == T_STAR || t->token == T_AMPER) &&
                     expectPreOp) {
                     // need to somehow add rvalue here
@@ -180,7 +176,6 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t) {
                        (precedence(opStack[opTop]) >= precedence(curOp) ||
                         (rightAssoc(opStack[opTop]) &&
                          precedence(opStack[opTop]) == precedence(curOp)))) {
-                    printf("Ordering\n");
                     orderOp(s, st, t, stack, opStack, &top, &opTop);
                 }
                 opStack[++opTop] = curOp;
@@ -193,28 +188,20 @@ out:
         orderOp(s, st, t, stack, opStack, &top, &opTop);
     }
 
+#if DEBUG
     printf("Top: %d\n", top);
+#endif
 
     ASTnode n = stack[top];
 
+#if DEBUG
     printf("Dumping AST\n");
     ASTnode_Dump(n, st, NO_LABEL, 0);
+#endif
 
     free(stack);
     free(opStack);
     return n;
-}
-
-void ASTnode_PrintTree(ASTnode n) {
-    static char *ASTop[] = {"+", "-", "*", "/", "%"};
-
-    if (n->op == A_INTLIT)
-        printf("INTLIT: %d\n", n->v.id);
-    else
-        printf("%d Operator: %s\n", n->op, ASTop[n->op]);
-
-    if (n->left) ASTnode_PrintTree(n->left);
-    if (n->right) ASTnode_PrintTree(n->right);
 }
 
 static ASTnode ASTnode_FuncCall(Scanner s, SymTable st, Token tok) {
@@ -249,8 +236,7 @@ static ASTnode ASTnode_ArrayRef(Scanner s, SymTable st, Token tok) {
     left = ASTnode_NewLeaf(A_ADDR, st->Gsym[id].type, id);
     Scanner_Scan(s, tok);
     right = ASTnode_Order(s, st, tok);
-    // TODO: Check if ] then stop
-    printf("Consume right ]\n");
+
     match(s, tok, T_RBRACKET, "]");
     if (!inttype(right->type)) {
         fprintf(stderr, "Error: Array index must be an integer on line %d\n",

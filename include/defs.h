@@ -3,6 +3,8 @@
 
 // Commonly used stuff - prevents circular includes
 
+#define DEBUG 0
+
 enum OPCODES {
     T_EOF,  // 0
 
@@ -25,15 +27,15 @@ enum OPCODES {
 
     T_INTLIT,  // 13
     T_SEMI,    // 14
-    T_IDENT,  // 15
+    T_IDENT,   // 15
 
-        // Braces
-    T_LBRACE,  // 16
-    T_RBRACE,  // 17
-    T_LPAREN,  // 18
-    T_RPAREN,  // 19
-    T_LBRACKET, // 20
-    T_RBRACKET, // 21
+    // Braces
+    T_LBRACE,    // 16
+    T_RBRACE,    // 17
+    T_LPAREN,    // 18
+    T_RPAREN,    // 19
+    T_LBRACKET,  // 20
+    T_RBRACKET,  // 21
 
     // Keywords
     T_PRINT,  // 20
@@ -52,7 +54,8 @@ enum OPCODES {
     T_COMMA,
     T_RETURN,
     T_AMPER,
-    T_LOGAND
+    T_LOGAND,
+    T_STRLIT
 
 };
 
@@ -65,10 +68,13 @@ enum ASTOP {
     A_MULTIPLY,
     A_DIVIDE,
     A_MODULO,
-    
-    A_EQ, A_NE,
-    A_LT, A_GT,
-    A_LE, A_GE,
+
+    A_EQ,
+    A_NE,
+    A_LT,
+    A_GT,
+    A_LE,
+    A_GE,
 
     A_INTLIT,
 
@@ -83,7 +89,7 @@ enum ASTOP {
     A_IF,
     A_LABEL,
     A_GOTO,
-    
+
     // for is also A_WHILE
     A_WHILE,
     A_FUNCTION,
@@ -93,7 +99,8 @@ enum ASTOP {
     A_ADDR,
     A_DEREF,
     A_SCALE,
-    
+    A_STRLIT,
+
     // misc so the compiler stops complaining
     A_STARTPAREN
 
@@ -111,7 +118,6 @@ enum ASTPRIM {
     P_CHARPTR,
     P_INTPTR
 };
-
 
 struct token {
     enum OPCODES token;

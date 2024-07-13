@@ -28,7 +28,9 @@ int main(int argc, char *argv[]) {
     int i;
 
     for (i = 1; i < argc; i++) {
+#if DEBUG
         printf("argv[%d] = %s\n", i, argv[i]);
+#endif
         if (*argv[i] != '-') {
             break;
         }
@@ -49,7 +51,7 @@ int main(int argc, char *argv[]) {
         exit(-1);
     }
 
-    Compiler c = Compiler_New(argv[i+1]);
+    Compiler c = Compiler_New(argv[i + 1]);
     SymTable st = SymTable_New();
     Token tok = calloc(1, sizeof(struct token));
     Context ctx = Context_New();
