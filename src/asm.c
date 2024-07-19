@@ -124,66 +124,79 @@ int MIPS_LoadGlobStr(Compiler this, SymTable st, int id) {
 
 int MIPS_LoadGlob(Compiler this, SymTable st, int id, enum ASTOP op) {
     int r = allocReg(this);
+    int r2;
     switch (st->Gsym[id].type) {
         case P_INT:
-            if (op == A_PREINC) {
-                fprintf(this->outfile, "\taddi\t%s, %s, 1\n", reglist[r],
-                        st->Gsym[id].name);
-            }
-            if (op == A_PREDEC) {
-                fprintf(this->outfile, "\tsubi\t%s, %s, 1\n", reglist[r],
-                        st->Gsym[id].name);
-            }
             fprintf(this->outfile, "\tlw\t%s, %s\n", reglist[r],
                     st->Gsym[id].name);
-            if (op == A_POSTINC) {
-                fprintf(this->outfile, "\taddi\t%s, %s, 1\n", reglist[r],
+
+            if (op == A_PREINC || op == A_PREDEC) {
+                fprintf(this->outfile, "\t%s\t%s, %s, 1\n",
+                        op == A_PREINC ? "addi" : "subi", reglist[r],
+                        reglist[r]);
+                fprintf(this->outfile, "\tsw\t%s, %s\n", reglist[r],
                         st->Gsym[id].name);
             }
-            if (op == A_POSTDEC) {
-                fprintf(this->outfile, "\tsubi\t%s, %s, 1\n", reglist[r],
+
+            if (op == A_POSTINC || op == A_POSTDEC) {
+                r2 = allocReg(this);
+                fprintf(this->outfile, "\tmove\t%s, %s\n", reglist[r2],
+                        reglist[r]);
+                fprintf(this->outfile, "\t%s\t%s, %s, 1\n",
+                        op == A_POSTINC ? "addi" : "subi", reglist[r2],
+                        reglist[r2]);
+                fprintf(this->outfile, "\tsw\t%s, %s\n", reglist[r2],
                         st->Gsym[id].name);
+                freeReg(this, r2);
             }
+
             break;
         case P_CHAR:
-            if (op == A_PREINC) {
-                fprintf(this->outfile, "\taddi\t%s, %s, 1\n", reglist[r],
+            fprintf(this->outfile, "\tlbu\t%s, %s\n", reglist[r], reglist[r]);
+
+            if (op == A_PREINC || op == A_PREDEC) {
+                fprintf(this->outfile, "\t%s\t%s, %s, 1\n",
+                        op == A_PREINC ? "addi" : "subi", reglist[r],
+                        reglist[r]);
+                fprintf(this->outfile, "\tsb\t%s, %s\n", reglist[r],
                         st->Gsym[id].name);
             }
-            if (op == A_PREDEC) {
-                fprintf(this->outfile, "\tsubi\t%s, %s, 1\n", reglist[r],
+
+            if (op == A_POSTINC || op == A_POSTDEC) {
+                r2 = allocReg(this);
+                fprintf(this->outfile, "\tmove\t%s, %s\n", reglist[r2],
+                        reglist[r]);
+                fprintf(this->outfile, "\t%s\t%s, %s, 1\n",
+                        op == A_POSTINC ? "addi" : "subi", reglist[r2],
+                        reglist[r2]);
+                fprintf(this->outfile, "\tsb\t%s, %s\n", reglist[r2],
                         st->Gsym[id].name);
+                freeReg(this, r2);
             }
-            fprintf(this->outfile, "\tlbu\t%s, %s\n", reglist[r],
-                    st->Gsym[id].name);
-            if (op == A_POSTINC) {
-                fprintf(this->outfile, "\taddi\t%s, %s, 1\n", reglist[r],
-                        st->Gsym[id].name);
-            }
-            if (op == A_POSTDEC) {
-                fprintf(this->outfile, "\tsubi\t%s, %s, 1\n", reglist[r],
-                        st->Gsym[id].name);
-            }
+
             break;
         case P_CHARPTR:
         case P_INTPTR:
-            if (op == A_PREINC) {
-                fprintf(this->outfile, "\taddi\t%s, %s, 1\n", reglist[r],
+            fprintf(this->outfile, "\tlw\t%s, %s\n", reglist[r], reglist[r]);
+
+            if (op == A_PREINC || op == A_PREDEC) {
+                fprintf(this->outfile, "\t%s\t%s, %s, 1\n",
+                        op == A_PREINC ? "addi" : "subi", reglist[r],
+                        reglist[r]);
+                fprintf(this->outfile, "\tsw\t%s, %s\n", reglist[r],
                         st->Gsym[id].name);
             }
-            if (op == A_PREDEC) {
-                fprintf(this->outfile, "\tsubi\t%s, %s, 1\n", reglist[r],
+
+            if (op == A_POSTINC || op == A_POSTDEC) {
+                r2 = allocReg(this);
+                fprintf(this->outfile, "\tmove\t%s, %s\n", reglist[r2],
+                        reglist[r]);
+                fprintf(this->outfile, "\t%s\t%s, %s, 1\n",
+                        op == A_POSTINC ? "addi" : "subi", reglist[r2],
+                        reglist[r2]);
+                fprintf(this->outfile, "\tsw\t%s, %s\n", reglist[r2],
                         st->Gsym[id].name);
-            }
-            fprintf(this->outfile, "\tlw\t%s, %s\n", reglist[r],
-                    st->Gsym[id].name);
-            if (op == A_POSTINC) {
-                fprintf(this->outfile, "\taddi\t%s, %s, 1\n", reglist[r],
-                        st->Gsym[id].name);
-            }
-            if (op == A_POSTDEC) {
-                fprintf(this->outfile, "\tsubi\t%s, %s, 1\n", reglist[r],
-                        st->Gsym[id].name);
+                freeReg(this, r2);
             }
             break;
         default:
@@ -492,7 +505,8 @@ int MIPS_ToBool(Compiler this, enum ASTOP parentOp, int r, int label) {
         fprintf(this->outfile, "\tbltu\t%s, $zero, L%d\n", reglist[r], label);
         return r;
     } else {
-        fprintf(this->outfile, "\tsltu\t%s, $zero, %s\n", reglist[r], reglist[r]);
+        fprintf(this->outfile, "\tsltu\t%s, $zero, %s\n", reglist[r],
+                reglist[r]);
     }
     return r;
 }

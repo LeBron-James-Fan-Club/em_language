@@ -1,0 +1,12 @@
+int index;
+int arr[5];
+int i;
+
+int main() {
+    for (i = 0; i < 5; i++) {
+        arr[i] = i;
+    }
+    input(index);
+    print("Value at index ", index, " is ", arr[index], 10);
+    return 0;
+}
