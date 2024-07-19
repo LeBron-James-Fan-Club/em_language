@@ -9,6 +9,6 @@
 #include "expr.h"
 #include "types.h"
 
-ASTnode Compound_Statement(Scanner s, SymTable st, Token tok, Context ctx);
+ASTnode Compound_Statement(Compiler c, Scanner s, SymTable st, Token tok, Context ctx);
 
 #endif

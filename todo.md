@@ -15,7 +15,8 @@
 - have a include assembly macro
 - e.g. a macro is defined in assembly to the compiler will use that instead
 
-
+- Implement peek and poke because why not? - Allows for integer values which iirc &(10) is not allowed
+    - kinda unneccessary but fun ig
 - make bad apple in mips
 
 - need to fix variable index

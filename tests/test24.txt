@@ -1,0 +1,9 @@
+int main() {
+    int joe;
+    joe = 2;
+    print("Joe is ", joe, 10);
+    poke(0x10010000, 5);
+    joe = peek(0x10010000);
+    print("Joe is ", joe, 10);
+    return 0;
+}

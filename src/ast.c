@@ -29,6 +29,7 @@ ASTnode ASTnode_NewUnary(enum ASTOP op, enum ASTPRIM type, ASTnode left,
 
 void ASTnode_Free(ASTnode this) {
     if (this->left) ASTnode_Free(this->left);
+    if (this->mid) ASTnode_Free(this->mid);
     if (this->right) ASTnode_Free(this->right);
     free(this);
 }
@@ -207,6 +208,12 @@ void ASTnode_Dump(ASTnode n, SymTable st, int label, int level) {
             return;
         case A_TOBOOL:
             printf("A_TOBOOL\n");
+            return;
+        case A_PEEK:
+            printf("A_PEEK\n");
+            return;
+        case A_POKE:
+            printf("A_POKE\n");
             return;
         default:
             fprintf(stderr, "Error: Unknown AST node %d\n", n->op);

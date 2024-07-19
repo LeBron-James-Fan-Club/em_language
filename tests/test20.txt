@@ -21,6 +21,7 @@ int main() {
     print("Lets test if the number is odd or even", 10);
     print("Input number: ");
     input(joe);
+    print("AND: ", joe & 1, 10);
 
     if (joe & 1) {
         print("The number is odd", 10);

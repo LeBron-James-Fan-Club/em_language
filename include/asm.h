@@ -4,12 +4,13 @@
 #include "comp.h"
 #include "defs.h"
 #include "context.h"
+#include "sym.h"
 
 void MIPS_Pre(Compiler);
 void MIPS_Post(Compiler);
 
-void MIPS_PreFunc(Compiler, SymTable st, int id);
-void MIPS_PostFunc(Compiler);
+void MIPS_PreFunc(Compiler this, SymTable st, Context ctx);
+void MIPS_PostFunc(Compiler this, SymTable st, Context ctx);
 
 int MIPS_Load(Compiler, int value);
 int MIPS_Add(Compiler, int r1, int r2);
@@ -28,6 +29,10 @@ int MIPS_LoadGlob(Compiler this, SymTable st, int id, enum ASTOP op);
 void MIPS_GlobSym(Compiler this, SymTable st, int id);
 int MIPS_StoreGlob(Compiler, int r1, SymTable st, int id);
 int MIPS_StoreRef(Compiler this, int r1, int r2, enum ASTPRIM type);
+
+int MIPS_LoadLocal(Compiler this, SymTable st, int id, enum ASTOP op);
+int MIPS_StoreLocal(Compiler this, int r1, SymTable st, int id);
+
 int MIPS_Widen(Compiler this, int r1, enum ASTPRIM newType);
 
 int MIPS_EqualSet(Compiler, int r1, int r2);
@@ -55,6 +60,8 @@ void MIPS_Jump(Compiler, int l);
 
 void MIPS_GotoLabel(Compiler, SymTable st, int id);
 void MIPS_GotoJump(Compiler, SymTable st, int id);
+void MIPS_ReturnLabel(Compiler this,SymTable st, Context ctx);
+void MIPS_ReturnJump(Compiler this, SymTable st, Context ctx);
 
 void MIPS_Return(Compiler, SymTable st, int r, Context ctx);
 int MIPS_Call(Compiler, SymTable st, int r, int id);
@@ -75,6 +82,9 @@ int MIPS_BitOR(Compiler, int r1, int r2);
 int MIPS_BitXOR(Compiler, int r1, int r2);
 
 int MIPS_ToBool(Compiler this, enum ASTOP parentOp, int r, int label);
+
+void MIPS_Poke(Compiler this, int r1, int r2);
+int MIPS_Peek(Compiler this, int r1, int r2);
 
 int label(Compiler);
 

@@ -20,3 +20,10 @@ void Compiler_Free(Compiler this) {
     fclose(this->outfile);
     free(this);
 }
+
+void Compiler_ResetLocals(Compiler this) { this->localOffset = 0; }
+
+int Compiler_GetLocalOffset(Compiler this, enum ASTPRIM type, bool isparam) {
+    this->localOffset += (PrimSize(type) > 4) ? PrimSize(type) : 4;
+    return -this->localOffset;
+}

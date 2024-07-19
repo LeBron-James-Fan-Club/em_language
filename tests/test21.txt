@@ -7,6 +7,6 @@ int main() {
         arr[i] = i;
     }
     input(index);
-    print("Value at index ", index, " is ", arr[index], 10);
+    print("Value at index ", index, " is ", arr[index + 1], 10);
     return 0;
 }

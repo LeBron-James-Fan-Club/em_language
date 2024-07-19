@@ -10,21 +10,23 @@ void rbrace(Scanner s, Token t);
 void lparen(Scanner s, Token t);
 void rparen(Scanner s, Token t);
 
+static ASTnode poke_statement(Scanner s, SymTable st, Token tok);
+
 static ASTnode print_statement(Scanner s, SymTable st, Token tok);
 // static ASTnode assignment_statement(Scanner s, SymTable st, Token tok);
 static ASTnode input_statement(Scanner s, SymTable st, Token tok);
-static ASTnode if_statement(Scanner s, SymTable st, Token tok, Context ctx);
+static ASTnode if_statement(Compiler c, Scanner s, SymTable st, Token tok, Context ctx);
 
 static ASTnode label_statement(Scanner s, SymTable st, Token tok);
 static ASTnode goto_statement(Scanner s, SymTable st, Token tok);
-static ASTnode while_statement(Scanner s, SymTable st, Token tok, Context ctx);
+static ASTnode while_statement(Compiler c, Scanner s, SymTable st, Token tok, Context ctx);
 
-static ASTnode for_statement(Scanner s, SymTable st, Token tok, Context ctx);
+static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok, Context ctx);
 static ASTnode return_statement(Scanner s, SymTable st, Token tok, Context ctx);
 
-static ASTnode single_statement(Scanner s, SymTable st, Token tok, Context ctx);
+static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok, Context ctx);
 
-ASTnode Compound_Statement(Scanner s, SymTable st, Token tok, Context ctx) {
+ASTnode Compound_Statement(Compiler c, Scanner s, SymTable st, Token tok, Context ctx) {
     // Might combine assignment and declare
     // change syntax to lol : i32 = 2
 
@@ -35,11 +37,11 @@ ASTnode Compound_Statement(Scanner s, SymTable st, Token tok, Context ctx) {
 
     while (true) {
         // TODO:  Compiler directive will be checked here
-        tree = single_statement(s, st, tok, ctx);
+        tree = single_statement(c, s, st, tok, ctx);
 
         if (tree != NULL && (tree->op == A_INPUT || tree->op == A_RETURN ||
                              tree->op == A_ASSIGN || tree->op == A_FUNCCALL ||
-                             tree->op == A_LABEL || tree->op == A_GOTO)) {
+                             tree->op == A_LABEL || tree->op == A_GOTO || tree->op == A_POKE) ) {
 #if DEBUG
             printf("Yum i ate a semicolon\n");
 #endif
@@ -59,7 +61,7 @@ ASTnode Compound_Statement(Scanner s, SymTable st, Token tok, Context ctx) {
     }
 }
 
-static ASTnode single_statement(Scanner s, SymTable st, Token tok,
+static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
                                 Context ctx) {
     int type;
     switch (tok->token) {
@@ -69,23 +71,23 @@ static ASTnode single_statement(Scanner s, SymTable st, Token tok,
         case T_INT:
             type = parse_type(s, tok);
             ident(s, tok);
-            var_declare(s, st, tok, type);
+            var_declare(c, s, st, tok, type, true);
             return NULL;
-            // case T_IDENT:
-            //    return assignment_statement(s, st, tok);
+        case T_POKE:
+            return poke_statement(s, st, tok);
         case T_INPUT:
             return input_statement(s, st, tok);
         case T_IF:
-            return if_statement(s, st, tok, ctx);
+            return if_statement(c, s, st, tok, ctx);
         case T_LABEL:
             return label_statement(s, st, tok);
         case T_GOTO:
             return goto_statement(s, st, tok);
         case T_WHILE:
-            return while_statement(s, st, tok, ctx);
+            return while_statement(c, s, st, tok, ctx);
         case T_FOR:
             // Basically a while loop wrapper
-            return for_statement(s, st, tok, ctx);
+            return for_statement(c, s, st, tok, ctx);
         case T_RETURN:
             return return_statement(s, st, tok, ctx);
         default:
@@ -94,6 +96,17 @@ static ASTnode single_statement(Scanner s, SymTable st, Token tok,
 #endif
             return ASTnode_Order(s, st, tok);
     }
+}
+
+static ASTnode poke_statement(Scanner s, SymTable st, Token tok) {
+    ASTnode param1, param2;
+    match(s, tok, T_POKE, "poke");
+    lparen(s, tok);
+    param1 = ASTnode_Order(s, st, tok);
+    match(s, tok, T_COMMA, ",");
+    param2 = ASTnode_Order(s, st, tok);
+    rparen(s, tok);
+    return ASTnode_New(A_POKE, P_NONE, param2, NULL, param1, 0);
 }
 
 static ASTnode print_statement(Scanner s, SymTable st, Token tok) {
@@ -146,7 +159,7 @@ static ASTnode input_statement(Scanner s, SymTable st, Token tok) {
 
     ident(s, tok);
 
-    if ((id = SymTable_GlobFind(st, s, S_VAR)) == -1) {
+    if ((id = SymTable_Find(st, s, S_VAR)) == -1) {
         fprintf(stderr, "Error: Undefined variable %s on line %d\n", s->text,
                 s->line);
         exit(-1);
@@ -164,7 +177,7 @@ static ASTnode input_statement(Scanner s, SymTable st, Token tok) {
     return tree;
 }
 
-static ASTnode if_statement(Scanner s, SymTable st, Token tok, Context ctx) {
+static ASTnode if_statement(Compiler c, Scanner s, SymTable st, Token tok, Context ctx) {
     ASTnode condAST, trueAST, falseAST = NULL;
 
     match(s, tok, T_IF, "if");
@@ -179,17 +192,17 @@ static ASTnode if_statement(Scanner s, SymTable st, Token tok, Context ctx) {
 
     rparen(s, tok);
 
-    trueAST = Compound_Statement(s, st, tok, ctx);
+    trueAST = Compound_Statement(c, s, st, tok, ctx);
 
     if (tok->token == T_ELSE) {
         Scanner_Scan(s, tok);
-        falseAST = Compound_Statement(s, st, tok, ctx);
+        falseAST = Compound_Statement(c, s, st, tok, ctx);
     }
 
     return ASTnode_New(A_IF, P_NONE, condAST, trueAST, falseAST, 0);
 }
 
-static ASTnode while_statement(Scanner s, SymTable st, Token tok, Context ctx) {
+static ASTnode while_statement(Compiler c, Scanner s, SymTable st, Token tok, Context ctx) {
     ASTnode condAST, bodyAST;
 
     match(s, tok, T_WHILE, "while");
@@ -202,12 +215,12 @@ static ASTnode while_statement(Scanner s, SymTable st, Token tok, Context ctx) {
     }
 
     rparen(s, tok);
-    bodyAST = Compound_Statement(s, st, tok, ctx);
+    bodyAST = Compound_Statement(c, s, st, tok, ctx);
 
     return ASTnode_New(A_WHILE, P_NONE, condAST, NULL, bodyAST, 0);
 }
 
-static ASTnode for_statement(Scanner s, SymTable st, Token tok, Context ctx) {
+static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok, Context ctx) {
     ASTnode condAST, bodyAST;
     ASTnode preopAST, postopAST;
     ASTnode t;
@@ -215,7 +228,7 @@ static ASTnode for_statement(Scanner s, SymTable st, Token tok, Context ctx) {
     match(s, tok, T_FOR, "for");
     lparen(s, tok);
 
-    preopAST = single_statement(s, st, tok, ctx);
+    preopAST = single_statement(c, s, st, tok, ctx);
     semi(s, tok);
 
     condAST = ASTnode_Order(s, st, tok);
@@ -225,10 +238,10 @@ static ASTnode for_statement(Scanner s, SymTable st, Token tok, Context ctx) {
     }
     semi(s, tok);
 
-    postopAST = single_statement(s, st, tok, ctx);
+    postopAST = single_statement(c, s, st, tok, ctx);
     rparen(s, tok);
 
-    bodyAST = Compound_Statement(s, st, tok, ctx);
+    bodyAST = Compound_Statement(c, s, st, tok, ctx);
 
     t = ASTnode_New(A_GLUE, P_NONE, bodyAST, NULL, postopAST, 0);
     t = ASTnode_New(A_WHILE, P_NONE, condAST, NULL, t, 0);
@@ -239,7 +252,7 @@ static ASTnode label_statement(Scanner s, SymTable st, Token tok) {
     match(s, tok, T_LABEL, "label");
     ident(s, tok);
 
-    int id = SymTable_GlobAdd(st, s, P_NONE, S_LABEL, 0, false);
+    int id = SymTable_Add(st, NULL, s, P_NONE, S_LABEL, 0, false, C_GLOBAL);
 
     ASTnode t = ASTnode_NewLeaf(A_LABEL, P_NONE, id);
 
@@ -252,7 +265,7 @@ static ASTnode goto_statement(Scanner s, SymTable st, Token tok) {
     match(s, tok, T_GOTO, "goto");
     // ! Might be buggy?
     ident(s, tok);
-    if ((id = SymTable_GlobFind(st, s, S_LABEL)) == -1) {
+    if ((id = SymTable_Find(st, s, S_LABEL)) == -1) {
         fprintf(stderr, "Error: Undefined variable %s on line %d\n", s->text,
                 s->line);
         exit(-1);
@@ -281,6 +294,7 @@ static ASTnode return_statement(Scanner s, SymTable st, Token tok,
     match(s, tok, T_RETURN, "return");
 
     t = ASTnode_Order(s, st, tok);
+    t->rvalue = 1;
 
     t = modify_type(t, st->Gsym[funcId].type, A_NONE);
     if (t == NULL) {
@@ -289,3 +303,4 @@ static ASTnode return_statement(Scanner s, SymTable st, Token tok,
     }
     return ASTnode_NewUnary(A_RETURN, P_NONE, t, 0);
 }
+

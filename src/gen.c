@@ -43,9 +43,9 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             Compiler_FreeAllReg(this);
             return NO_REG;
         case A_FUNCTION:
-            MIPS_PreFunc(this, st, n->v.id);
-            genAST(this, st,NO_LABEL, ctx, n->left, n->op);
-            MIPS_PostFunc(this);
+            MIPS_PreFunc(this, st, ctx);
+            genAST(this, st, NO_LABEL, ctx, n->left, n->op);
+            MIPS_PostFunc(this, st, ctx);
             return NO_REG;
         default:
             // stfu compiler
@@ -55,10 +55,10 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
     // if this doesnt work swap -1 to reg and vice versa
 
     if (n->left) {
-        leftReg = genAST(this, st,NO_LABEL, ctx, n->left, n->op);
+        leftReg = genAST(this, st, NO_LABEL, ctx, n->left, n->op);
     }
     if (n->right) {
-        rightReg = genAST(this, st,NO_LABEL, ctx, n->right, n->op);
+        rightReg = genAST(this, st, NO_LABEL, ctx, n->right, n->op);
     }
 
     switch (n->op) {
@@ -89,7 +89,8 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
                 return MIPS_LessThanSet(this, leftReg, rightReg);
         case A_GT:
             if (parentASTop == A_IF || parentASTop == A_WHILE)
-                return MIPS_GreaterThanEqualJump(this, leftReg, rightReg, label);
+                return MIPS_GreaterThanEqualJump(this, leftReg, rightReg,
+                                                 label);
             else
                 return MIPS_GreaterThanSet(this, leftReg, rightReg);
         case A_LE:
@@ -106,7 +107,11 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             return MIPS_Load(this, n->v.intvalue);
         case A_IDENT:
             if (n->rvalue || parentASTop == A_DEREF) {
-                return MIPS_LoadGlob(this, st, n->v.id, n->op);
+                if (st->Gsym[n->v.id].class == C_GLOBAL) {
+                    return MIPS_LoadGlob(this, st, n->v.id, n->op);
+                } else {
+                    return MIPS_LoadLocal(this, st, n->v.id, n->op);
+                }
             } else {
                 printf("Variable not right %s\n", st->Gsym[n->v.id].name);
                 return NO_REG;
@@ -114,15 +119,22 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
         case A_ASSIGN:
             switch (n->right->op) {
                 case A_IDENT:
-                    return MIPS_StoreGlob(this, leftReg, st, n->right->v.id);
+                    if (st->Gsym[n->right->v.id].class == C_GLOBAL) {
+                        return MIPS_StoreGlob(this, leftReg, st, n->right->v.id);
+                    } else {
+                        return MIPS_StoreLocal(this, leftReg, st, n->right->v.id);
+                    }
                 case A_DEREF:
                     //! bug: storing wrong type
-                    return MIPS_StoreRef(this, leftReg, rightReg, n->right->type);
+                    return MIPS_StoreRef(this, leftReg, rightReg,
+                                         n->right->type);
                 default:
-                    fprintf(stderr, "Error: Unknown AST operator for assign %d\n", n->right->op);
+                    fprintf(stderr,
+                            "Error: Unknown AST operator for assign %d\n",
+                            n->right->op);
                     exit(-1);
             }
-            //return rightReg;
+            // return rightReg;
         case A_PRINT:
             if (n->type == P_CHAR) {
                 MIPS_PrintChar(this, leftReg);
@@ -135,6 +147,12 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             return NO_REG;
         case A_INPUT:
             return MIPS_InputInt(this);
+        case A_POKE:
+            MIPS_Poke(this, leftReg, rightReg);
+            Compiler_FreeAllReg(this);
+            return NO_REG;
+        case A_PEEK:
+            return MIPS_Peek(this, leftReg, rightReg);
         case A_LABEL:
             MIPS_GotoLabel(this, st, n->v.id);
             return NO_REG;
@@ -173,7 +191,7 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             }
         case A_STRLIT:
             return MIPS_LoadGlobStr(this, st, n->v.id);
-        
+
         case A_AND:
             return MIPS_BitAND(this, leftReg, rightReg);
         case A_OR:

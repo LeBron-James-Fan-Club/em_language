@@ -42,11 +42,13 @@ L1:
 	syscall
 	la	$t0, arr
 	lw	$t1, index
-	sll	$t1, $t1, 2
-	add	$t1, $t0, $t1
-	lw	$t1, 0($t1)
+	li $t2, 1
+	add	$t2, $t1, $t2
+	sll	$t2, $t2, 2
+	add	$t2, $t0, $t2
+	lw	$t2, 0($t2)
 	li	$v0, 1
-	move	$a0, $t1
+	move	$a0, $t2
 	syscall
 	li $t0, 10
 	li	$v0, 11

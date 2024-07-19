@@ -59,6 +59,11 @@ enum OPCODES {
 
     // INPUT a - takes input and stores it in a
     T_INPUT,  // 21
+    
+    // dangerous shit
+    T_PEEK,
+    T_POKE,
+
     T_INT,    // 22
     T_IF,     // 23
     T_ELSE,   // 24
@@ -118,6 +123,10 @@ enum ASTOP {
 
     A_PRINT,
     A_INPUT,
+    
+    A_PEEK,
+    A_POKE,
+
     A_GLUE,
     A_IF,
     A_LABEL,
@@ -161,6 +170,11 @@ enum ASTPRIM {
     P_VOIDPTR,
     P_CHARPTR,
     P_INTPTR
+};
+
+enum STORECLASS {
+    C_GLOBAL = 1,
+    C_LOCAL
 };
 
 struct token {

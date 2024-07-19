@@ -10,6 +10,8 @@
         "stmt.h": "c",
         "types.h": "c",
         "ast.h": "c",
-        "stdbool.h": "c"
+        "stdbool.h": "c",
+        "asm.h": "c",
+        "comp.h": "c"
     }
 }

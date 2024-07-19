@@ -12,11 +12,16 @@ static ASTnode ASTnode_ArrayRef(Scanner s, SymTable st, Token tok);
 static ASTnode ASTnode_Prefix(Scanner s, SymTable st, Token tok);
 static ASTnode ASTnode_Postfix(Scanner s, SymTable st, Token tok);
 
+static ASTnode peek_statement(Scanner s, SymTable st, Token tok);
+
 static enum ASTOP arithOp(Scanner s, enum OPCODES tok) {
     if (tok > T_EOF && tok < T_INTLIT) return (enum ASTOP)tok;
     fprintf(stderr, "Error: Syntax error on line %d token %d\n", s->line, tok);
     exit(-1);
 }
+
+
+
 
 static int precedence(enum ASTOP op) {
     switch (op) {
@@ -63,8 +68,8 @@ static ASTnode primary(Scanner s, SymTable st, Token t) {
     int id;
     switch (t->token) {
         case T_STRLIT:
-            id = SymTable_GlobAdd(st, s, P_CHARPTR, S_VAR, 1, true);
-            SymTable_GlobSetText(st, s, id);
+            id = SymTable_Add(st, NULL, s, P_CHARPTR, S_VAR, C_GLOBAL, 1, true);
+            SymTable_SetText(st, s, id);
             return ASTnode_NewLeaf(A_STRLIT, P_CHARPTR, id);
         case T_INTLIT:
             if (t->intvalue >= 0 && t->intvalue < 256) {
@@ -72,6 +77,9 @@ static ASTnode primary(Scanner s, SymTable st, Token t) {
             } else {
                 return ASTnode_NewLeaf(A_INTLIT, P_INT, t->intvalue);
             }
+        case T_PEEK:
+            printf("PEEK\n");
+            return peek_statement(s, st, t);
         case T_IDENT:
             return ASTnode_Postfix(s, st, t);
         default:
@@ -153,6 +161,7 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t) {
             case T_INTLIT:
             case T_IDENT:
             case T_STRLIT:
+            case T_PEEK:
                 stack[++top] = primary(s, st, t);
                 expectPreOp = false;
                 break;
@@ -214,7 +223,7 @@ out:
 static ASTnode ASTnode_FuncCall(Scanner s, SymTable st, Token tok) {
     ASTnode t;
     int id;
-    if ((id = SymTable_GlobFind(st, s, S_FUNC)) == -1) {
+    if ((id = SymTable_Find(st, s, S_FUNC)) == -1) {
         fprintf(stderr, "Error: Undefined function %s on line %d\n", s->text,
                 s->line);
         exit(-1);
@@ -235,7 +244,7 @@ static ASTnode ASTnode_ArrayRef(Scanner s, SymTable st, Token tok) {
     //! only copying the right value
     ASTnode left, right;
     int id;
-    if ((id = SymTable_GlobFind(st, s, S_ARRAY)) == -1) {
+    if ((id = SymTable_Find(st, s, S_ARRAY)) == -1) {
         fprintf(stderr, "Error: Undeclared array %s on line %d\n", s->text,
                 s->line);
         exit(-1);
@@ -353,7 +362,7 @@ static ASTnode ASTnode_Postfix(Scanner s, SymTable st, Token tok) {
     if (tok->token == T_LBRACKET) return ASTnode_ArrayRef(s, st, tok);
     Scanner_RejectToken(s, tok);
 
-    if ((id = SymTable_GlobFind(st, s, S_VAR)) == -1) {
+    if ((id = SymTable_Find(st, s, S_VAR)) == -1) {
         fprintf(stderr, "Error: Unknown variable %s on line %d\n", s->text,
                 s->line);
         exit(-1);
@@ -369,4 +378,17 @@ static ASTnode ASTnode_Postfix(Scanner s, SymTable st, Token tok) {
         default:
             return ASTnode_NewLeaf(A_IDENT, st->Gsym[id].type, id);
     }
+}
+
+
+static ASTnode peek_statement(Scanner s, SymTable st, Token tok) {
+    ASTnode t;
+    match(s, tok, T_PEEK, "peek");
+    lparen(s, tok);
+    t = ASTnode_Order(s, st, tok);
+    t->rvalue = true;
+    rparen(s, tok);
+    Scanner_RejectToken(s, tok);
+    return ASTnode_NewUnary(A_PEEK, P_INT, t, 0);
+
 }

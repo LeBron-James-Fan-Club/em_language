@@ -1,19 +1,44 @@
 #include "decl.h"
 
-void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type) {
-
+void var_declare(Compiler c, Scanner s, SymTable st, Token tok, enum ASTPRIM type, bool isLocal) {
     //* int x[2], a;
+    // TODO : Support array initialisation
+    enum STORECLASS store = isLocal ? C_LOCAL : C_GLOBAL;
+
     while (true) {
         if (tok->token == T_LBRACKET) {
             Scanner_Scan(s, tok);
             if (tok->token == T_INTLIT) {
-                SymTable_GlobAdd(st, s, pointer_to(type), S_ARRAY,
+                SymTable_Add(st, c, s, pointer_to(type), S_ARRAY, store,
                                  tok->intvalue, false);
+            } else {
+                SymTable_Add(st, NULL, s, pointer_to(type), S_VAR, store, 1, false);
             }
             Scanner_Scan(s, tok);
             match(s, tok, T_RBRACKET, "]");
+        } else if (tok->token == T_ASSIGN) {
+            if (isLocal) {
+                fprintf(stderr, "Error: local variables cannot be initialised\n");
+                exit(-1);
+            }
+
+            Scanner_Scan(s, tok);
+
+            // Only for scalar types
+            int id = SymTable_Add(st, NULL, s, type, S_VAR, store, 1, false);
+            // For now until lazy evaluation is implemented
+            // we stick with singular values
+
+            // initialisation weird with local vars - doesnt work as of yet
+            if (tok->token == T_INTLIT) {
+                SymTable_SetValue(st, id, tok->intvalue);
+            } else {
+                fprintf(stderr, "Error: only integer literals are supported\n");
+                exit(-1);
+            }
+            Scanner_Scan(s, tok);
         } else {
-            SymTable_GlobAdd(st, s, type, S_VAR, 1, false);
+            SymTable_Add(st,c,  s, type, S_VAR, store, 1, false);
         }
         if (tok->token == T_SEMI) {
             Scanner_Scan(s, tok);
@@ -45,7 +70,7 @@ void global_declare(Compiler c, Scanner s, SymTable st, Token tok, Context ctx,
             Compiler_Gen(c, st, ctx, tree);
             ASTnode_Free(tree);
         } else {
-            var_declare(s, st, tok, type);
+            var_declare(c, s, st, tok, type, false);
         }
         if (tok->token == T_EOF) break;
     }
@@ -53,17 +78,19 @@ void global_declare(Compiler c, Scanner s, SymTable st, Token tok, Context ctx,
 
 ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
                          Context ctx, enum ASTPRIM type) {
-    
-    int id = SymTable_GlobAdd(st, s, type, S_FUNC, 1, false);
+    int id = SymTable_Add(st, NULL, s, type, S_FUNC, C_GLOBAL, 1, false);
 
     Context_SetFunctionId(ctx, id);
 
     ASTnode tree, finalstmt;
 
+    Compiler_ResetLocals(c);
+
     lparen(s, tok);
     rparen(s, tok);
 
-    tree = Compound_Statement(s, st, tok, ctx);
+    tree = Compound_Statement(c, s, st, tok, ctx);
+    printf("the local offset is %d\n", c->localOffset);
     if (type != P_VOID) {
         finalstmt = (tree->op == A_GLUE) ? tree->right : tree;
         if (finalstmt == NULL || finalstmt->op != A_RETURN) {

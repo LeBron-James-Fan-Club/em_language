@@ -33,25 +33,42 @@ void MIPS_Post(Compiler this) {
         this->outfile);
 }
 
-void MIPS_PreFunc(Compiler this, SymTable st, int id) {
+void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
+    char *name = st->Gsym[ctx->functionId].name;
+
+    // Aligns stack pointer to a multiple of 3 thats less than previous val
+    printf("Local offset: %d\n", this->localOffset);
+    
+    this->stackOffset = (this->localOffset + 3) & ~3;
+    this->stackOffset += 8;  // for $ra and $fp
+
+    printf("Stack offset: %d\n", this->stackOffset);
+
+    // For now i aint using push instructions
     fprintf(this->outfile,
             ".text\n"
             "\t.globl %s\n"
             "\n"
             "%s:\n"
 
-            "\tpush\t$fp\n"
-            "\tpush\t$ra\n"
-            "\tmove\t$fp, $sp\n",
-            st->Gsym[id].name, st->Gsym[id].name);
+            "\taddi $sp, $sp, %d\n"
+            "\tsw $ra, %d($sp)\n"
+            "\tsw $fp, %d($sp)\n"
+            "\tmove $fp, $sp\n",
+            name, name, -this->stackOffset, this->stackOffset - 4,
+            this->stackOffset - 8);
+    // Initialise variables
 }
 
-void MIPS_PostFunc(Compiler this) {
-    fputs(
-        "\tpop\t$ra\n"
-        "\tpop\t$fp\n"
+void MIPS_PostFunc(Compiler this, SymTable st, Context ctx) {
+    MIPS_ReturnLabel(this, st, ctx);
+    fprintf(this->outfile,
+        "\tlw\t$fp, %d($sp)\n"
+        "\tlw\t$ra, %d($sp)\n"
+        "\taddi\t$sp, $sp, %d\n"
         "\tjr\t$ra\n",
-        this->outfile);
+        this->stackOffset - 8, this->stackOffset - 4,
+        this->stackOffset);
 }
 
 int MIPS_Load(Compiler this, int value) {
@@ -131,9 +148,8 @@ int MIPS_LoadGlob(Compiler this, SymTable st, int id, enum ASTOP op) {
                     st->Gsym[id].name);
 
             if (op == A_PREINC || op == A_PREDEC) {
-                fprintf(this->outfile, "\t%s\t%s, %s, 1\n",
-                        op == A_PREINC ? "addi" : "subi", reglist[r],
-                        reglist[r]);
+                fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r],
+                        reglist[r], op == A_PREINC ? "1" : "-1");
                 fprintf(this->outfile, "\tsw\t%s, %s\n", reglist[r],
                         st->Gsym[id].name);
             }
@@ -142,9 +158,8 @@ int MIPS_LoadGlob(Compiler this, SymTable st, int id, enum ASTOP op) {
                 r2 = allocReg(this);
                 fprintf(this->outfile, "\tmove\t%s, %s\n", reglist[r2],
                         reglist[r]);
-                fprintf(this->outfile, "\t%s\t%s, %s, 1\n",
-                        op == A_POSTINC ? "addi" : "subi", reglist[r2],
-                        reglist[r2]);
+                fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r2],
+                        reglist[r2], op == A_POSTINC ? "1" : "-1");
                 fprintf(this->outfile, "\tsw\t%s, %s\n", reglist[r2],
                         st->Gsym[id].name);
                 freeReg(this, r2);
@@ -155,9 +170,8 @@ int MIPS_LoadGlob(Compiler this, SymTable st, int id, enum ASTOP op) {
             fprintf(this->outfile, "\tlbu\t%s, %s\n", reglist[r], reglist[r]);
 
             if (op == A_PREINC || op == A_PREDEC) {
-                fprintf(this->outfile, "\t%s\t%s, %s, 1\n",
-                        op == A_PREINC ? "addi" : "subi", reglist[r],
-                        reglist[r]);
+                fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r],
+                        reglist[r], op == A_PREINC ? "1" : "-1");
                 fprintf(this->outfile, "\tsb\t%s, %s\n", reglist[r],
                         st->Gsym[id].name);
             }
@@ -166,9 +180,8 @@ int MIPS_LoadGlob(Compiler this, SymTable st, int id, enum ASTOP op) {
                 r2 = allocReg(this);
                 fprintf(this->outfile, "\tmove\t%s, %s\n", reglist[r2],
                         reglist[r]);
-                fprintf(this->outfile, "\t%s\t%s, %s, 1\n",
-                        op == A_POSTINC ? "addi" : "subi", reglist[r2],
-                        reglist[r2]);
+                fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r2],
+                        reglist[r2], op == A_POSTINC ? "1" : "-1");
                 fprintf(this->outfile, "\tsb\t%s, %s\n", reglist[r2],
                         st->Gsym[id].name);
                 freeReg(this, r2);
@@ -180,9 +193,8 @@ int MIPS_LoadGlob(Compiler this, SymTable st, int id, enum ASTOP op) {
             fprintf(this->outfile, "\tlw\t%s, %s\n", reglist[r], reglist[r]);
 
             if (op == A_PREINC || op == A_PREDEC) {
-                fprintf(this->outfile, "\t%s\t%s, %s, 1\n",
-                        op == A_PREINC ? "addi" : "subi", reglist[r],
-                        reglist[r]);
+                fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r],
+                        reglist[r], op == A_PREINC ? "1" : "-1");
                 fprintf(this->outfile, "\tsw\t%s, %s\n", reglist[r],
                         st->Gsym[id].name);
             }
@@ -191,11 +203,89 @@ int MIPS_LoadGlob(Compiler this, SymTable st, int id, enum ASTOP op) {
                 r2 = allocReg(this);
                 fprintf(this->outfile, "\tmove\t%s, %s\n", reglist[r2],
                         reglist[r]);
-                fprintf(this->outfile, "\t%s\t%s, %s, 1\n",
-                        op == A_POSTINC ? "addi" : "subi", reglist[r2],
-                        reglist[r2]);
+                fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r2],
+                        reglist[r2], op == A_POSTINC ? "1" : "-1");
                 fprintf(this->outfile, "\tsw\t%s, %s\n", reglist[r2],
                         st->Gsym[id].name);
+                freeReg(this, r2);
+            }
+            break;
+        default:
+            fprintf(stderr, "Error!: Unknown type %d\n", st->Gsym[id].type);
+            exit(-1);
+    }
+    return r;
+}
+
+int MIPS_LoadLocal(Compiler this, SymTable st, int id, enum ASTOP op) {
+    int r = allocReg(this);
+    int r2;
+    switch (st->Gsym[id].type) {
+        case P_INT:
+            fprintf(this->outfile, "\tlw\t%s, %d($sp)\n", reglist[r],
+                    st->Gsym[id].offset);
+
+            if (op == A_PREINC || op == A_PREDEC) {
+                fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r],
+                        reglist[r], op == A_PREINC ? "1" : "-1");
+                fprintf(this->outfile, "\tsw\t%s, %d($sp)\n", reglist[r],
+                        st->Gsym[id].offset);
+            }
+
+            if (op == A_POSTINC || op == A_POSTDEC) {
+                r2 = allocReg(this);
+                fprintf(this->outfile, "\tmove\t%s, %s\n", reglist[r2],
+                        reglist[r]);
+                fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r2],
+                        reglist[r2], op == A_POSTINC ? "1" : "-1");
+                fprintf(this->outfile, "\tsw\t%s, %d($sp)\n", reglist[r2],
+                        st->Gsym[id].offset);
+                freeReg(this, r2);
+            }
+
+            break;
+        case P_CHAR:
+            fprintf(this->outfile, "\tlbu\t%s, %s\n", reglist[r], reglist[r]);
+
+            if (op == A_PREINC || op == A_PREDEC) {
+                fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r],
+                        reglist[r], op == A_PREINC ? "1" : "-1");
+                fprintf(this->outfile, "\tsb\t%s, %d($sp)\n", reglist[r],
+                        st->Gsym[id].offset);
+            }
+
+            if (op == A_POSTINC || op == A_POSTDEC) {
+                r2 = allocReg(this);
+                fprintf(this->outfile, "\tmove\t%s, %s\n", reglist[r2],
+                        reglist[r]);
+                fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r2],
+                        reglist[r2], op == A_POSTINC ? "1" : "-1");
+                fprintf(this->outfile, "\tsb\t%s, %d($sp)\n", reglist[r2],
+                        st->Gsym[id].offset);
+                freeReg(this, r2);
+            }
+
+            break;
+        case P_CHARPTR:
+        case P_INTPTR:
+            fprintf(this->outfile, "\tlw\t%s, %d($sp)\n", reglist[r],
+                    st->Gsym[id].offset);
+
+            if (op == A_PREINC || op == A_PREDEC) {
+                fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r],
+                        reglist[r], op == A_PREINC ? "1" : "-1");
+                fprintf(this->outfile, "\tsw\t%s, %d($sp)\n", reglist[r],
+                        st->Gsym[id].offset);
+            }
+
+            if (op == A_POSTINC || op == A_POSTDEC) {
+                r2 = allocReg(this);
+                fprintf(this->outfile, "\tmove\t%s, %s\n", reglist[r2],
+                        reglist[r]);
+                fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r2],
+                        reglist[r2], op == A_POSTINC ? "1" : "-1");
+                fprintf(this->outfile, "\tsw\t%s, %d($sp)\n", reglist[r2],
+                        st->Gsym[id].offset);
                 freeReg(this, r2);
             }
             break;
@@ -234,6 +324,36 @@ int MIPS_StoreGlob(Compiler this, int r1, SymTable st, int id) {
     return r1;
 }
 
+int MIPS_StoreLocal(Compiler this, int r1, SymTable st, int id) {
+    if (r1 == NO_REG) {
+        fprintf(stderr, "Error: Trying to store an empty register\n");
+        exit(-1);
+    }
+
+    switch (st->Gsym[id].type) {
+        case P_INT:
+            fprintf(this->outfile, "\tsw\t%s, %d($fp)\n", reglist[r1],
+                    st->Gsym[id].offset);
+            break;
+        case P_CHAR:
+            fprintf(this->outfile, "\tsb\t%s, %d($fp)\n", reglist[r1],
+                    st->Gsym[id].offset);
+            break;
+        case P_CHARPTR:
+        case P_INTPTR:
+            fprintf(this->outfile, "\tsw\t%s, %d($fp)\n", reglist[r1],
+                    st->Gsym[id].offset);
+            break;
+        default:
+            fprintf(stderr, "Error!!: Unknown type %d\n", st->Gsym[id].type);
+            exit(-1);
+    }
+
+    return r1;
+}
+
+
+
 int MIPS_StoreRef(Compiler this, int r1, int r2, enum ASTPRIM type) {
     if (r1 == NO_REG) {
         fprintf(stderr, "Error: Trying to store an empty register\n");
@@ -271,12 +391,22 @@ int MIPS_Widen(Compiler this, int r1, enum ASTPRIM newType) {
 void MIPS_GlobSym(Compiler this, SymTable st, int id) {
     int typesize = PrimSize(st->Gsym[id].type);
     enum ASTPRIM type = st->Gsym[id].type;
-    if (type == P_CHARPTR && st->Gsym[id].value != NULL) {
+    if (type == P_CHARPTR && st->Gsym[id].hasValue) {
         fprintf(this->outfile, "\t%s:\t.asciiz \"%s\"\n", st->Gsym[id].name,
-                st->Gsym[id].value);
+                st->Gsym[id].strValue);
     } else {
-        fprintf(this->outfile, "\t%s:\t.space %d\n", st->Gsym[id].name,
-                typesize * st->Gsym[id].size);
+        if (st->Gsym[id].hasValue) {
+            if (type == P_CHAR) {
+                fprintf(this->outfile, "\t%s:\t.byte %d\n", st->Gsym[id].name,
+                        st->Gsym[id].value);
+            } else {
+                fprintf(this->outfile, "\t%s:\t.word %d\n", st->Gsym[id].name,
+                        st->Gsym[id].value);
+            }
+        } else {
+            fprintf(this->outfile, "\t%s:\t.space %d\n", st->Gsym[id].name,
+                    typesize * st->Gsym[id].size);
+        }
         switch (type) {
             case P_CHAR:
                 fprintf(this->outfile, "\t.align 2\n");
@@ -395,6 +525,14 @@ void MIPS_GotoJump(Compiler this, SymTable st, int id) {
     fprintf(this->outfile, "\tb\t%s\n", st->Gsym[id].name);
 }
 
+void MIPS_ReturnLabel(Compiler this, SymTable st, Context ctx) {
+    fprintf(this->outfile, "%s_end:\n", st->Gsym[ctx->functionId].name);
+}
+
+void MIPS_ReturnJump(Compiler this, SymTable st, Context ctx) {
+    fprintf(this->outfile, "\tb\t%s_end\n", st->Gsym[ctx->functionId].name);
+}
+
 void MIPS_Return(Compiler this, SymTable st, int r, Context ctx) {
     if (st->Gsym[ctx->functionId].type == P_INT) {
         fprintf(this->outfile, "\tmove\t$v0, %s\n", reglist[r]);
@@ -407,6 +545,7 @@ void MIPS_Return(Compiler this, SymTable st, int r, Context ctx) {
                 st->Gsym[ctx->functionId].type);
         exit(-1);
     }
+    MIPS_ReturnJump(this, st, ctx);
 }
 
 int MIPS_Call(Compiler this, SymTable st, int r, int id) {
@@ -502,13 +641,24 @@ int MIPS_BitXOR(Compiler this, int r1, int r2) {
 int MIPS_ToBool(Compiler this, enum ASTOP parentOp, int r, int label) {
     if (parentOp == A_WHILE || parentOp == A_IF) {
         // fake instruction
-        fprintf(this->outfile, "\tbltu\t%s, $zero, L%d\n", reglist[r], label);
+        // used to be bltu - but for some reason it never works
+        fprintf(this->outfile, "\tbeq\t%s, $zero, L%d\n", reglist[r], label);
         return r;
     } else {
-        fprintf(this->outfile, "\tsltu\t%s, $zero, %s\n", reglist[r],
+        fprintf(this->outfile, "\tseq\t%s, %s, $zero\n", reglist[r],
                 reglist[r]);
     }
     return r;
+}
+
+void MIPS_Poke(Compiler this, int r1, int r2) {
+    fprintf(this->outfile, "\tsw\t%s, 0(%s)\n", reglist[r1], reglist[r2]);
+}
+
+int MIPS_Peek(Compiler this, int r1, int r2) {
+    fprintf(this->outfile, "\tlw\t%s, 0(%s)\n", reglist[r1], reglist[r2]);
+    freeReg(this, r2);
+    return r1;
 }
 
 static int allocReg(Compiler this) {
@@ -541,6 +691,7 @@ void Compiler_GenData(Compiler this, SymTable st) {
     fputs("\n.data\n", this->outfile);
     for (int i = 0; i < st->globs; i++) {
         if (st->Gsym[i].stype == S_FUNC) continue;
+        if (st->Gsym[i].class != C_GLOBAL) continue;
         MIPS_GlobSym(this, st, i);
     }
 }

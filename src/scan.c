@@ -12,6 +12,7 @@ static char skip(Scanner this);
 static int scanIdent(Scanner this, char c);
 static int scanChr(Scanner this);
 static int scanInt(Scanner, char c);
+static int scanHex(Scanner, char c);
 static int scanStr(Scanner this);
 static int keyword(char *s);
 
@@ -215,7 +216,18 @@ bool Scanner_Scan(Scanner this, Token t) {
             break;
         default:
             if (isdigit(c)) {
-                t->intvalue = scanInt(this, c);
+                if (c == '0') {
+                    c = next(this);
+                    if (c == 'x') {
+                        c = next(this);
+                        t->intvalue = scanHex(this, c);
+                    } else {
+                        putback(this, c);
+                        t->intvalue = scanInt(this, c);
+                    }
+                } else {
+                    t->intvalue = scanInt(this, c);
+                }
                 t->token = T_INTLIT;
                 break;
             } else if (isalpha(c) || c == '_') {
@@ -256,6 +268,8 @@ static int keyword(char *s) {
             if (!strcmp(s, "label")) return T_LABEL;
         case 'p':
             if (!strcmp(s, "print")) return T_PRINT;
+            if (!strcmp(s, "poke")) return T_POKE;
+            if (!strcmp(s, "peek")) return T_PEEK;
         case 'r':
             if (!strcmp(s, "return")) return T_RETURN;
         case 'v':
@@ -301,6 +315,18 @@ static int scanInt(Scanner this, char c) {
 
     while ((i = chrpos("0123456789", c)) >= 0) {
         val = val * 10 + i;
+        c = next(this);
+    }
+
+    putback(this, c);
+    return val;
+}
+
+static int scanHex(Scanner this, char c) {
+    int i, val = 0;
+
+    while ((i = chrpos("0123456789ABCDEF", toupper(c))) >= 0) {
+        val = val * 16 + i;
         c = next(this);
     }
 

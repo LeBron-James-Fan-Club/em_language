@@ -43,8 +43,9 @@ main:
 	li	$v0, 4
 	move	$a0, $t0
 	syscall
-	addi	$t0, bob, 1
 	lw	$t0, bob
+	addi	$t0, $t0, 1
+	sw	$t0, bob
 	li	$v0, 1
 	move	$a0, $t0
 	syscall
@@ -53,7 +54,9 @@ main:
 	move	$a0, $t0
 	syscall
 	lw	$t0, joe
-	addi	$t0, joe, 1
+	move	$t1, $t0
+	addi	$t1, $t1, 1
+	sw	$t1, joe
 	li	$v0, 1
 	move	$a0, $t0
 	syscall
@@ -93,8 +96,9 @@ main:
 	li	$v0, 4
 	move	$a0, $t0
 	syscall
-	subi	$t0, joe, 1
 	lw	$t0, joe
+	addi	$t0, $t0, -1
+	sw	$t0, joe
 	li	$v0, 1
 	move	$a0, $t0
 	syscall
@@ -107,7 +111,9 @@ main:
 	move	$a0, $t0
 	syscall
 	lw	$t0, joe
-	subi	$t0, joe, 1
+	move	$t1, $t0
+	addi	$t1, $t1, -1
+	sw	$t1, joe
 	li	$v0, 1
 	move	$a0, $t0
 	syscall
@@ -136,11 +142,25 @@ main:
 	move	$t0, $v0
 	lw	$t1, joe
 	sw	$t0, joe
+	la	$t0, anon_10
+	li	$v0, 4
+	move	$a0, $t0
+	syscall
 	lw	$t0, joe
 	li $t1, 1
 	and	$t1, $t0, $t1
-	bltu	$t1, $zero, L0
-	la	$t0, anon_10
+	li	$v0, 1
+	move	$a0, $t1
+	syscall
+	li $t0, 10
+	li	$v0, 11
+	move	$a0, $t0
+	syscall
+	lw	$t0, joe
+	li $t1, 1
+	and	$t1, $t0, $t1
+	beq	$t1, $zero, L0
+	la	$t0, anon_11
 	li	$v0, 4
 	move	$a0, $t0
 	syscall
@@ -150,15 +170,6 @@ main:
 	syscall
 	b	L1
 L0:
-	la	$t0, anon_11
-	li	$v0, 4
-	move	$a0, $t0
-	syscall
-	li $t0, 10
-	li	$v0, 11
-	move	$a0, $t0
-	syscall
-L1:
 	la	$t0, anon_12
 	li	$v0, 4
 	move	$a0, $t0
@@ -167,7 +178,16 @@ L1:
 	li	$v0, 11
 	move	$a0, $t0
 	syscall
+L1:
 	la	$t0, anon_13
+	li	$v0, 4
+	move	$a0, $t0
+	syscall
+	li $t0, 10
+	li	$v0, 11
+	move	$a0, $t0
+	syscall
+	la	$t0, anon_14
 	li	$v0, 4
 	move	$a0, $t0
 	syscall
@@ -176,7 +196,7 @@ L1:
 	move	$t0, $v0
 	lw	$t1, joe
 	sw	$t0, joe
-	la	$t0, anon_14
+	la	$t0, anon_15
 	li	$v0, 4
 	move	$a0, $t0
 	syscall
@@ -194,7 +214,7 @@ L1:
 	li	$v0, 11
 	move	$a0, $t0
 	syscall
-	la	$t0, anon_15
+	la	$t0, anon_16
 	li	$v0, 4
 	move	$a0, $t0
 	syscall
@@ -202,7 +222,7 @@ L1:
 	li	$v0, 11
 	move	$a0, $t0
 	syscall
-	la	$t0, anon_16
+	la	$t0, anon_17
 	li	$v0, 4
 	move	$a0, $t0
 	syscall
@@ -211,7 +231,7 @@ L1:
 	move	$t0, $v0
 	lw	$t1, joe
 	sw	$t0, joe
-	la	$t0, anon_17
+	la	$t0, anon_18
 	li	$v0, 4
 	move	$a0, $t0
 	syscall
@@ -241,6 +261,7 @@ L1:
 	bob:	.space 4
 	joe:	.space 4
 	awesome:	.space 4
+	kat:	.space 4
 	anon_0:	.asciiz "Values before: "
 	anon_1:	.asciiz "Bob: "
 	anon_2:	.asciiz " Joe: "
@@ -251,11 +272,12 @@ L1:
 	anon_7:	.asciiz "\n"
 	anon_8:	.asciiz "Lets test if the number is odd or even"
 	anon_9:	.asciiz "Input number: "
-	anon_10:	.asciiz "The number is odd"
-	anon_11:	.asciiz "The number is even"
-	anon_12:	.asciiz "Bitwise OR test"
-	anon_13:	.asciiz "Input number: "
-	anon_14:	.asciiz "output: "
-	anon_15:	.asciiz "Bitwise XOR test"
-	anon_16:	.asciiz "Input number: "
-	anon_17:	.asciiz "output: "
+	anon_10:	.asciiz "AND: "
+	anon_11:	.asciiz "The number is odd"
+	anon_12:	.asciiz "The number is even"
+	anon_13:	.asciiz "Bitwise OR test"
+	anon_14:	.asciiz "Input number: "
+	anon_15:	.asciiz "output: "
+	anon_16:	.asciiz "Bitwise XOR test"
+	anon_17:	.asciiz "Input number: "
+	anon_18:	.asciiz "output: "

@@ -1,0 +1,6 @@
+int joe = 2;
+
+int main() {
+    print("Joe is ", joe);
+    return 0;
+}
