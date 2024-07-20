@@ -64,7 +64,8 @@ void MIPS_ReturnLabel(Compiler this,SymTable st, Context ctx);
 void MIPS_ReturnJump(Compiler this, SymTable st, Context ctx);
 
 void MIPS_Return(Compiler, SymTable st, int r, Context ctx);
-int MIPS_Call(Compiler, SymTable st, int r, int id);
+int MIPS_Call(Compiler, SymTable st, int id, int numArgs);
+void MIPS_ArgCopy(Compiler this, int r, int argPos);
 
 int MIPS_Address(Compiler, SymTable st, int id);
 int MIPS_Deref(Compiler, int r, enum ASTPRIM type);

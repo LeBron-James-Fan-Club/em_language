@@ -22,6 +22,8 @@ typedef struct symTableEntry {
     enum STRUCTTYPE stype;
     enum STORECLASS class;
     
+    int nElems; // params
+
     int size;  // Number of elements in the symbol
     int offset; // offset from stack
 
@@ -51,5 +53,6 @@ int SymTable_Add(SymTable this, Compiler c, Scanner s, enum ASTPRIM type,
                  bool isAnon);
 void SymTable_SetValue(SymTable this, int id, int intvalue);
 void SymTable_SetText(SymTable this, Scanner s, int id);
+void SymTable_ResetLocls(SymTable this);
 
 #endif

@@ -1,24 +1,28 @@
 #include "decl.h"
 
-void var_declare(Compiler c, Scanner s, SymTable st, Token tok, enum ASTPRIM type, bool isLocal) {
+static int param_declare(Compiler c, Scanner s, SymTable st, Token tok);
+
+void var_declare(Compiler c, Scanner s, SymTable st, Token tok,
+                 enum ASTPRIM type, enum STORECLASS store) {
     //* int x[2], a;
     // TODO : Support array initialisation
-    enum STORECLASS store = isLocal ? C_LOCAL : C_GLOBAL;
 
     while (true) {
         if (tok->token == T_LBRACKET) {
             Scanner_Scan(s, tok);
             if (tok->token == T_INTLIT) {
                 SymTable_Add(st, c, s, pointer_to(type), S_ARRAY, store,
-                                 tok->intvalue, false);
+                             tok->intvalue, false);
             } else {
-                SymTable_Add(st, NULL, s, pointer_to(type), S_VAR, store, 1, false);
+                SymTable_Add(st, NULL, s, pointer_to(type), S_VAR, store, 1,
+                             false);
             }
             Scanner_Scan(s, tok);
             match(s, tok, T_RBRACKET, "]");
         } else if (tok->token == T_ASSIGN) {
-            if (isLocal) {
-                fprintf(stderr, "Error: local variables cannot be initialised\n");
+            if (store == C_LOCAL || store == C_PARAM) {
+                fprintf(stderr,
+                        "Error: local variables and parameters cannot be initialised\n");
                 exit(-1);
             }
 
@@ -38,9 +42,14 @@ void var_declare(Compiler c, Scanner s, SymTable st, Token tok, enum ASTPRIM typ
             }
             Scanner_Scan(s, tok);
         } else {
-            SymTable_Add(st,c,  s, type, S_VAR, store, 1, false);
+            SymTable_Add(st, c, s, type, S_VAR, store, 1, false);
         }
-        if (tok->token == T_SEMI) {
+        
+        if (store == C_PARAM && (tok->token == T_COMMA || tok->token == T_RPAREN)) {
+            return;
+        }
+
+        if (tok->token == T_SEMI || tok->token == T_EOF) {
             Scanner_Scan(s, tok);
             return;
         }
@@ -64,13 +73,16 @@ void global_declare(Compiler c, Scanner s, SymTable st, Token tok, Context ctx,
         ident(s, tok);
         if (tok->token == T_LPAREN) {
             tree = function_declare(c, s, st, tok, ctx, type);
+            
             if (f.dumpAST) {
                 ASTnode_Dump(tree, st, NO_LABEL, 0);
             }
             Compiler_Gen(c, st, ctx, tree);
             ASTnode_Free(tree);
+            SymTable_ResetLocls(st);
+
         } else {
-            var_declare(c, s, st, tok, type, false);
+            var_declare(c, s, st, tok, type, C_GLOBAL);
         }
         if (tok->token == T_EOF) break;
     }
@@ -84,10 +96,12 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
 
     ASTnode tree, finalstmt;
 
-    Compiler_ResetLocals(c);
-
     lparen(s, tok);
+    int paramCount = param_declare(c, s, st, tok);
+    st->Gsym[id].nElems = paramCount;
     rparen(s, tok);
+
+    printf("after params\n");
 
     tree = Compound_Statement(c, s, st, tok, ctx);
     printf("the local offset is %d\n", c->localOffset);
@@ -100,6 +114,30 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
     }
 
     return ASTnode_NewUnary(A_FUNCTION, P_VOID, tree, id);
+}
+
+static int param_declare(Compiler c, Scanner s, SymTable st, Token tok) {
+    enum ASTPRIM type;
+    int paramCount = 0;
+
+    while (tok->token != T_RPAREN) {
+        type = parse_type(s, tok);
+        ident(s, tok);
+        var_declare(c, s, st, tok, type, C_PARAM);
+        paramCount++;
+        switch (tok->token) {
+            case T_COMMA:
+                Scanner_Scan(s, tok);
+                break;
+            case T_RPAREN:
+                break;
+            default:
+                fprintf(stderr, "Error: expected comma or right parenthesis\n");
+                exit(-1);
+        }
+        printf("param count %d\n", paramCount);
+    }
+    return paramCount;
 }
 
 enum ASTPRIM parse_type(Scanner s, Token tok) {

@@ -23,7 +23,7 @@ void Compiler_Free(Compiler this) {
 
 void Compiler_ResetLocals(Compiler this) { this->localOffset = 0; }
 
-int Compiler_GetLocalOffset(Compiler this, enum ASTPRIM type, bool isparam) {
+int Compiler_GetLocalOffset(Compiler this, enum ASTPRIM type) {
     this->localOffset += (PrimSize(type) > 4) ? PrimSize(type) : 4;
-    return -this->localOffset;
+    return this->localOffset;
 }

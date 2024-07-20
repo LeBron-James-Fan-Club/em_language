@@ -1,8 +1,8 @@
 #include "asm.h"
 
-static char *reglist[MAX_REG] = {
-    "$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7", "$t8", "$t9",
-};
+static char *reglist[MAX_REG] = {"$t0", "$t1", "$t2", "$t3", "$t4",
+                                 "$t5", "$t6", "$t7", "$t8", "$t9",
+                                 "$a0", "$a1", "$a2", "$a3"};
 
 static int psize[] = {0, 0, 1, 4, 4, 4, 4};
 
@@ -38,9 +38,11 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
 
     // Aligns stack pointer to a multiple of 3 thats less than previous val
     printf("Local offset: %d\n", this->localOffset);
-    
-    this->stackOffset = (this->localOffset + 3) & ~3;
-    this->stackOffset += 8;  // for $ra and $fp
+
+    int paramOffset = 16;
+    int paramReg = FIRST_PARAM_REG;
+
+    Compiler_ResetLocals(this);
 
     printf("Stack offset: %d\n", this->stackOffset);
 
@@ -51,24 +53,48 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
             "\n"
             "%s:\n"
 
-            "\taddi $sp, $sp, %d\n"
-            "\tsw $ra, %d($sp)\n"
-            "\tsw $fp, %d($sp)\n"
+            "\taddi $sp, $sp, -8\n"
+            "\tsw $ra, 4($sp)\n"
+            "\tsw $fp, 8($sp)\n"
             "\tmove $fp, $sp\n",
-            name, name, -this->stackOffset, this->stackOffset - 4,
-            this->stackOffset - 8);
+            name, name);
+
+    int i;
+    for (i = MAX_SYMBOLS - 1; i > st->locls; i--) {
+        if (st->Gsym[i].class != C_PARAM) break;
+
+        // if registers exceed 4 basically
+        if (paramReg > FIRST_PARAM_REG + 3) break;
+
+        st->Gsym[i].offset = Compiler_GetLocalOffset(this, st->Gsym[i].type);
+        MIPS_StoreLocal(this, paramReg++, st, i);
+    }
+
+    for (; i > st->locls; i--) {
+        // for remaining params they get pushed on stack
+        if (st->Gsym[i].class == C_PARAM) {
+            st->Gsym[i].offset = paramOffset;
+            paramOffset += 4;
+        } else {
+            st->Gsym[i].offset =
+                Compiler_GetLocalOffset(this, st->Gsym[i].type);
+        }
+    }
+    // multiples of 4
+    this->stackOffset = (this->localOffset + 3) & ~3;
+    fprintf(this->outfile, "\taddi $sp, $sp, -%d\n", this->stackOffset);
+
     // Initialise variables
 }
 
 void MIPS_PostFunc(Compiler this, SymTable st, Context ctx) {
     MIPS_ReturnLabel(this, st, ctx);
     fprintf(this->outfile,
-        "\tlw\t$fp, %d($sp)\n"
-        "\tlw\t$ra, %d($sp)\n"
-        "\taddi\t$sp, $sp, %d\n"
-        "\tjr\t$ra\n",
-        this->stackOffset - 8, this->stackOffset - 4,
-        this->stackOffset);
+            "\tlw\t$fp, -4($sp)\n"
+            "\tlw\t$ra, -8($sp)\n"
+            "\taddi\t$sp, $sp, %d\n"
+            "\tjr\t$ra\n",
+            this->stackOffset + 8);
 }
 
 int MIPS_Load(Compiler this, int value) {
@@ -222,13 +248,13 @@ int MIPS_LoadLocal(Compiler this, SymTable st, int id, enum ASTOP op) {
     int r2;
     switch (st->Gsym[id].type) {
         case P_INT:
-            fprintf(this->outfile, "\tlw\t%s, %d($sp)\n", reglist[r],
+            fprintf(this->outfile, "\tlw\t%s, -%d($sp)\n", reglist[r],
                     st->Gsym[id].offset);
 
             if (op == A_PREINC || op == A_PREDEC) {
                 fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r],
                         reglist[r], op == A_PREINC ? "1" : "-1");
-                fprintf(this->outfile, "\tsw\t%s, %d($sp)\n", reglist[r],
+                fprintf(this->outfile, "\tsw\t%s, -%d($sp)\n", reglist[r],
                         st->Gsym[id].offset);
             }
 
@@ -238,19 +264,19 @@ int MIPS_LoadLocal(Compiler this, SymTable st, int id, enum ASTOP op) {
                         reglist[r]);
                 fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r2],
                         reglist[r2], op == A_POSTINC ? "1" : "-1");
-                fprintf(this->outfile, "\tsw\t%s, %d($sp)\n", reglist[r2],
+                fprintf(this->outfile, "\tsw\t%s, -%d($sp)\n", reglist[r2],
                         st->Gsym[id].offset);
                 freeReg(this, r2);
             }
 
             break;
         case P_CHAR:
-            fprintf(this->outfile, "\tlbu\t%s, %s\n", reglist[r], reglist[r]);
+            fprintf(this->outfile, "\tlbu\t%s, -%d($sp)\n", reglist[r], st->Gsym[id].offset);
 
             if (op == A_PREINC || op == A_PREDEC) {
                 fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r],
                         reglist[r], op == A_PREINC ? "1" : "-1");
-                fprintf(this->outfile, "\tsb\t%s, %d($sp)\n", reglist[r],
+                fprintf(this->outfile, "\tsb\t%s, -%d($sp)\n", reglist[r],
                         st->Gsym[id].offset);
             }
 
@@ -260,7 +286,7 @@ int MIPS_LoadLocal(Compiler this, SymTable st, int id, enum ASTOP op) {
                         reglist[r]);
                 fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r2],
                         reglist[r2], op == A_POSTINC ? "1" : "-1");
-                fprintf(this->outfile, "\tsb\t%s, %d($sp)\n", reglist[r2],
+                fprintf(this->outfile, "\tsb\t%s, -%d($sp)\n", reglist[r2],
                         st->Gsym[id].offset);
                 freeReg(this, r2);
             }
@@ -268,13 +294,13 @@ int MIPS_LoadLocal(Compiler this, SymTable st, int id, enum ASTOP op) {
             break;
         case P_CHARPTR:
         case P_INTPTR:
-            fprintf(this->outfile, "\tlw\t%s, %d($sp)\n", reglist[r],
+            fprintf(this->outfile, "\tlw\t%s, -%d($sp)\n", reglist[r],
                     st->Gsym[id].offset);
 
             if (op == A_PREINC || op == A_PREDEC) {
                 fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r],
                         reglist[r], op == A_PREINC ? "1" : "-1");
-                fprintf(this->outfile, "\tsw\t%s, %d($sp)\n", reglist[r],
+                fprintf(this->outfile, "\tsw\t%s, -%d($sp)\n", reglist[r],
                         st->Gsym[id].offset);
             }
 
@@ -284,7 +310,7 @@ int MIPS_LoadLocal(Compiler this, SymTable st, int id, enum ASTOP op) {
                         reglist[r]);
                 fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r2],
                         reglist[r2], op == A_POSTINC ? "1" : "-1");
-                fprintf(this->outfile, "\tsw\t%s, %d($sp)\n", reglist[r2],
+                fprintf(this->outfile, "\tsw\t%s, -%d($sp)\n", reglist[r2],
                         st->Gsym[id].offset);
                 freeReg(this, r2);
             }
@@ -332,16 +358,16 @@ int MIPS_StoreLocal(Compiler this, int r1, SymTable st, int id) {
 
     switch (st->Gsym[id].type) {
         case P_INT:
-            fprintf(this->outfile, "\tsw\t%s, %d($fp)\n", reglist[r1],
+            fprintf(this->outfile, "\tsw\t%s, -%d($fp)\n", reglist[r1],
                     st->Gsym[id].offset);
             break;
         case P_CHAR:
-            fprintf(this->outfile, "\tsb\t%s, %d($fp)\n", reglist[r1],
+            fprintf(this->outfile, "\tsb\t%s, -%d($fp)\n", reglist[r1],
                     st->Gsym[id].offset);
             break;
         case P_CHARPTR:
         case P_INTPTR:
-            fprintf(this->outfile, "\tsw\t%s, %d($fp)\n", reglist[r1],
+            fprintf(this->outfile, "\tsw\t%s, -%d($fp)\n", reglist[r1],
                     st->Gsym[id].offset);
             break;
         default:
@@ -351,8 +377,6 @@ int MIPS_StoreLocal(Compiler this, int r1, SymTable st, int id) {
 
     return r1;
 }
-
-
 
 int MIPS_StoreRef(Compiler this, int r1, int r2, enum ASTPRIM type) {
     if (r1 == NO_REG) {
@@ -548,14 +572,26 @@ void MIPS_Return(Compiler this, SymTable st, int r, Context ctx) {
     MIPS_ReturnJump(this, st, ctx);
 }
 
-int MIPS_Call(Compiler this, SymTable st, int r, int id) {
+int MIPS_Call(Compiler this, SymTable st, int id, int numArgs) {
     int outr = allocReg(this);
-    // for future use: params
-    fprintf(this->outfile, "\tmove\t$a0, %s\n", reglist[r]);
     fprintf(this->outfile, "\tjal\t%s\n", st->Gsym[id].name);
+    if (numArgs > 6) {
+        fprintf(this->outfile, "\taddi\t$sp, $sp, %d\n", (numArgs - 6) * 4);
+    }
     fprintf(this->outfile, "\tmove\t%s, $v0\n", reglist[outr]);
-    freeReg(this, r);
     return outr;
+}
+
+void MIPS_ArgCopy(Compiler this, int r, int argPos) {
+    // Basically greater than 4 (+ 1 for index)
+    if (argPos > 4) {
+        // Look back at this - Idk if it works or not
+        fprintf(this->outfile, "\taddi\t$sp, $sp, -4\n");
+        fprintf(this->outfile, "\tsw\t%s, 0($sp)\n", reglist[r]);
+    } else {
+        fprintf(this->outfile, "\tmove\t%s, %s\n",
+               reglist[FIRST_PARAM_REG + argPos - 1], reglist[r]);
+    }
 }
 
 int MIPS_Address(Compiler this, SymTable st, int id) {

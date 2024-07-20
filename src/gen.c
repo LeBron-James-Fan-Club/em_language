@@ -12,6 +12,7 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
                   int parentASTop);
 static int genIFAST(Compiler this, SymTable st, Context ctx, ASTnode n);
 static int genWHILEAST(Compiler this, SymTable st, Context ctx, ASTnode n);
+static int genFUNCCALLAST(Compiler this, SymTable st, Context ctx, ASTnode n);
 
 int Compiler_Gen(Compiler this, SymTable st, Context ctx, ASTnode n) {
     int reg;
@@ -47,6 +48,8 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             genAST(this, st, NO_LABEL, ctx, n->left, n->op);
             MIPS_PostFunc(this, st, ctx);
             return NO_REG;
+        case A_FUNCCALL:
+            return genFUNCCALLAST(this, st, ctx, n);
         default:
             // stfu compiler
             break;
@@ -166,8 +169,6 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             // What if its a number?
             MIPS_Return(this, st, leftReg, ctx);
             return NO_REG;
-        case A_FUNCCALL:
-            return MIPS_Call(this, st, leftReg, n->v.id);
         case A_ADDR:
             return MIPS_Address(this, st, n->v.id);
         case A_DEREF:
@@ -267,4 +268,22 @@ static int genWHILEAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
     MIPS_Label(this, Lend);
 
     return NO_REG;
+}
+
+static int genFUNCCALLAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
+    ASTnode tree = n->left;
+    int reg, numArgs = 0;
+
+    while (tree) {
+        reg = genAST(this, st, NO_LABEL, ctx, tree->right, n->op);
+
+        MIPS_ArgCopy(this, reg, tree->v.size);
+        if (numArgs == 0 ) numArgs = tree->v.size;
+        Compiler_FreeAllReg(this);
+
+        tree = tree->left;
+        numArgs++;
+    }
+
+    return MIPS_Call(this, st, n->v.id, numArgs);
 }

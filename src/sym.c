@@ -2,7 +2,11 @@
 
 static int SymTable_GlobNew(SymTable this);
 static int SymTable_LoclNew(SymTable this);
-static int SymTable_FindSym(SymTable this, Scanner s, enum STRUCTTYPE stype, enum STORECLASS class);
+static int SymTable_FindSym(SymTable this, Scanner s, enum STRUCTTYPE stype,
+                            enum STORECLASS class);
+static void SymTable_Update(SymTable this, int id, char *name,
+                            enum ASTPRIM type, enum STRUCTTYPE stype,
+                            enum STORECLASS class, int size, int offset);
 
 SymTable SymTable_New(void) {
     SymTable g = calloc(1, sizeof(struct symTable));
@@ -15,13 +19,11 @@ SymTable SymTable_New(void) {
 }
 
 void SymTable_Free(SymTable this) {
-    for (int i = 0; i < this->globs; i++) {
-        free(this->Gsym[i].name);
+    for (int i = 0; i < MAX_SYMBOLS; i++) {
+        if (this->Gsym[i].name) free(this->Gsym[i].name);
+        this->Gsym[i].name = NULL;
         if (this->Gsym[i].strValue) free(this->Gsym[i].strValue);
-    }
-    for (int i = this->locls + 1; i < MAX_SYMBOLS; i++) {
-        free(this->Gsym[i].name);
-        if (this->Gsym[i].strValue) free(this->Gsym[i].strValue);
+        this->Gsym[i].strValue = NULL;
     }
     free(this);
 }
@@ -34,11 +36,14 @@ int SymTable_Find(SymTable this, Scanner s, enum STRUCTTYPE stype) {
     return id;
 }
 
-static int SymTable_FindSym(SymTable this, Scanner s, enum STRUCTTYPE stype, enum STORECLASS class) {
+static int SymTable_FindSym(SymTable this, Scanner s, enum STRUCTTYPE stype,
+                            enum STORECLASS class) {
     int min = (class == C_GLOBAL) ? 0 : this->locls + 1;
     int max = (class == C_GLOBAL) ? this->globs : MAX_SYMBOLS;
-    
+
     for (int i = min; i < max; i++) {
+        if (this->Gsym[i].class == C_PARAM && class == C_GLOBAL) continue;
+
         if (*s->text == *this->Gsym[i].name &&
             !strcmp(s->text, this->Gsym[i].name)) {
             if (stype != this->Gsym[i].stype) {
@@ -85,16 +90,29 @@ static int SymTable_LoclNew(SymTable this) {
     return id;
 }
 
+static void SymTable_Update(SymTable this, int id, char *name,
+                            enum ASTPRIM type, enum STRUCTTYPE stype,
+                            enum STORECLASS class, int size, int offset) {
+    if (this->Gsym[id].name) free(this->Gsym[id].name);
+    this->Gsym[id].name = name;
+
+    this->Gsym[id].type = type;
+    this->Gsym[id].stype = stype;
+    this->Gsym[id].class = class;
+    this->Gsym[id].size = size;
+    this->Gsym[id].offset = offset;
+}
+
 int SymTable_Add(SymTable this, Compiler c, Scanner s, enum ASTPRIM type,
                  enum STRUCTTYPE stype, enum STORECLASS class, int size,
                  bool isAnon) {
     int y;
     if ((y = SymTable_FindSym(this, s, stype, class)) != -1) {
         if (type != this->Gsym[y].type) {
-            fprintf(
-                stderr,
-                "Error: Variable %s already declared and wrong type %d != %d\n",
-                s->text, type, this->Gsym[y].type);
+            fprintf(stderr,
+                    "Error: Variable %s already declared and wrong type %d "
+                    "!= %d\n",
+                    s->text, type, this->Gsym[y].type);
             exit(-1);
         }
         return y;
@@ -102,25 +120,30 @@ int SymTable_Add(SymTable this, Compiler c, Scanner s, enum ASTPRIM type,
 
     y = (class == C_GLOBAL) ? SymTable_GlobNew(this) : SymTable_LoclNew(this);
 
+    char *name;
     if (isAnon) {
         // annoymous variable
-        asprintf(&this->Gsym[y].name, "anon_%d", this->anon++);
+        asprintf(&name, "anon_%d", this->anon++);
         printf("Anon %s\n", this->Gsym[y].name);
     } else {
-        this->Gsym[y].name = strdup(s->text);
+        name = strdup(s->text);
     }
 
-    this->Gsym[y].type = type;
-    this->Gsym[y].stype = stype;
-    this->Gsym[y].size = size;
-    this->Gsym[y].class = class;
     if (class == C_LOCAL) {
-        this->Gsym[y].offset = Compiler_GetLocalOffset(c, type, false);
-        printf("Local offset  222 %d\n", this->Gsym[y].offset);
+        // int offset = Compiler_GetLocalOffset(c, type, false);
+        SymTable_Update(this, y, name, type, stype, class, size, 0);
+    } else if (class == C_PARAM) {
+        SymTable_Update(this, y, name, type, stype, class, size, 0);
+        int globalId = SymTable_GlobNew(this);
+        SymTable_Update(this, globalId, strdup(name), type, stype, class, size, 0);
+    } else {
+        SymTable_Update(this, y, name, type, stype, class, size, 0);
     }
 
     return y;
 }
+
+void SymTable_ResetLocls(SymTable this) { this->locls = MAX_SYMBOLS - 1; }
 
 void SymTable_SetValue(SymTable this, int id, int intvalue) {
     this->Gsym[id].value = intvalue;

@@ -174,7 +174,8 @@ enum ASTPRIM {
 
 enum STORECLASS {
     C_GLOBAL = 1,
-    C_LOCAL
+    C_LOCAL,
+    C_PARAM
 };
 
 struct token {

@@ -71,7 +71,7 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
         case T_INT:
             type = parse_type(s, tok);
             ident(s, tok);
-            var_declare(c, s, st, tok, type, true);
+            var_declare(c, s, st, tok, type, C_LOCAL);
             return NULL;
         case T_POKE:
             return poke_statement(s, st, tok);

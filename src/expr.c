@@ -13,15 +13,14 @@ static ASTnode ASTnode_Prefix(Scanner s, SymTable st, Token tok);
 static ASTnode ASTnode_Postfix(Scanner s, SymTable st, Token tok);
 
 static ASTnode peek_statement(Scanner s, SymTable st, Token tok);
+static ASTnode expression_list(Scanner s, SymTable st, Token tok);
+
 
 static enum ASTOP arithOp(Scanner s, enum OPCODES tok) {
     if (tok > T_EOF && tok < T_INTLIT) return (enum ASTOP)tok;
     fprintf(stderr, "Error: Syntax error on line %d token %d\n", s->line, tok);
     exit(-1);
 }
-
-
-
 
 static int precedence(enum ASTOP op) {
     switch (op) {
@@ -228,15 +227,43 @@ static ASTnode ASTnode_FuncCall(Scanner s, SymTable st, Token tok) {
                 s->line);
         exit(-1);
     }
+    
     lparen(s, tok);
 
-    t = ASTnode_Order(s, st, tok);
+    t = expression_list(s, st, tok);
+
     t = ASTnode_NewUnary(A_FUNCCALL, st->Gsym[id].type, t, id);
 
     rparen(s, tok);
 
     Scanner_RejectToken(s, tok);
     return t;
+}
+
+static ASTnode expression_list(Scanner s, SymTable st, Token tok) {
+    ASTnode tree = NULL, child = NULL;
+    int exprCount = 0;
+    while (tok->token != T_RPAREN) {
+        child = ASTnode_Order(s, st, tok);
+        exprCount++;
+
+        tree = ASTnode_New(A_GLUE, P_NONE, tree, NULL, child, exprCount);
+
+        switch (tok->token) {
+            case T_COMMA:
+                Scanner_Scan(s, tok);
+                break;
+            case T_RPAREN:
+                break;
+            default:
+                fprintf(stderr,
+                        "Error: Expected comma or right parenthesis on "
+                        "line %d\n",
+                        s->line);
+                exit(-1);
+        }
+    }
+    return tree;
 }
 
 static ASTnode ASTnode_ArrayRef(Scanner s, SymTable st, Token tok) {
@@ -380,7 +407,6 @@ static ASTnode ASTnode_Postfix(Scanner s, SymTable st, Token tok) {
     }
 }
 
-
 static ASTnode peek_statement(Scanner s, SymTable st, Token tok) {
     ASTnode t;
     match(s, tok, T_PEEK, "peek");
@@ -390,5 +416,4 @@ static ASTnode peek_statement(Scanner s, SymTable st, Token tok) {
     rparen(s, tok);
     Scanner_RejectToken(s, tok);
     return ASTnode_NewUnary(A_PEEK, P_INT, t, 0);
-
 }

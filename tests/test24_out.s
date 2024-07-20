@@ -2,10 +2,11 @@
 	.globl main
 
 main:
-	addi $sp, $sp, -12
-	sw $ra, 8($sp)
-	sw $fp, 4($sp)
+	addi $sp, $sp, -8
+	sw $ra, 4($sp)
+	sw $fp, 8($sp)
 	move $fp, $sp
+	addi $sp, $sp, -4
 	li $t0, 2
 	sw	$t0, -4($fp)
 	la	$t0, anon_0
@@ -42,8 +43,8 @@ main:
 	move	$v0, $t0
 	b	main_end
 main_end:
-	lw	$fp, 4($sp)
-	lw	$ra, 8($sp)
+	lw	$fp, -4($sp)
+	lw	$ra, -8($sp)
 	addi	$sp, $sp, 12
 	jr	$ra
 	li	$v0, 10

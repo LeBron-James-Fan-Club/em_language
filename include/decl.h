@@ -11,8 +11,9 @@
 #include "sym.h"
 
 enum ASTPRIM parse_type(Scanner s, Token tok);
+
 void var_declare(Compiler c, Scanner s, SymTable st, Token tok,
-                 enum ASTPRIM type, bool isLocal);
+                 enum ASTPRIM type, enum STORECLASS store);
 void global_declare(Compiler c, Scanner s, SymTable st, Token tok, Context ctx,
                     Flags f);
 ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
