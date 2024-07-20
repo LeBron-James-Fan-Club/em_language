@@ -40,8 +40,10 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
         case A_GLUE:
             genAST(this, st, NO_LABEL, ctx, n->left, n->op);
             Compiler_FreeAllReg(this);
+            fprintf(this->outfile, "\n");
             genAST(this, st, NO_LABEL, ctx, n->right, n->op);
             Compiler_FreeAllReg(this);
+            fprintf(this->outfile, "\n");
             return NO_REG;
         case A_FUNCTION:
             MIPS_PreFunc(this, st, ctx);
@@ -123,9 +125,11 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             switch (n->right->op) {
                 case A_IDENT:
                     if (st->Gsym[n->right->v.id].class == C_GLOBAL) {
-                        return MIPS_StoreGlob(this, leftReg, st, n->right->v.id);
+                        return MIPS_StoreGlob(this, leftReg, st,
+                                              n->right->v.id);
                     } else {
-                        return MIPS_StoreLocal(this, leftReg, st, n->right->v.id);
+                        return MIPS_StoreLocal(this, leftReg, st,
+                                               n->right->v.id);
                     }
                 case A_DEREF:
                     //! bug: storing wrong type
@@ -273,17 +277,22 @@ static int genWHILEAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
 static int genFUNCCALLAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
     ASTnode tree = n->left;
     int reg, numArgs = 0;
+    int maxArg = tree ? tree->v.size : 0;
+
+    MIPS_SetupArgFrame(this, maxArg);
 
     while (tree) {
         reg = genAST(this, st, NO_LABEL, ctx, tree->right, n->op);
+        
+        MIPS_ArgCopy(this, reg, tree->v.size, maxArg);
+        
 
-        MIPS_ArgCopy(this, reg, tree->v.size);
-        if (numArgs == 0 ) numArgs = tree->v.size;
+        if (numArgs == 0) numArgs = tree->v.size;
         Compiler_FreeAllReg(this);
 
         tree = tree->left;
         numArgs++;
     }
 
-    return MIPS_Call(this, st, n->v.id, numArgs);
+    return MIPS_Call(this, st, n->v.id, maxArg);
 }
