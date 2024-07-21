@@ -7,7 +7,7 @@
  - Gotos/Labels
  - Hexadecimal support
  - Functions
- - Function arguments - currently broken
+ - Function arguments
  - Global/Local variables
  - Arrays (Only supported globally and no multidemensional support)
  - Indexing
