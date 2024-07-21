@@ -5,10 +5,15 @@ static int param_declare(Compiler c, Scanner s, SymTable st, Token tok);
 void var_declare(Compiler c, Scanner s, SymTable st, Token tok,
                  enum ASTPRIM type, enum STORECLASS store) {
     //* int x[2], a;
+
     // TODO : Support array initialisation
+    // TODO : Support multi-dimensional arrays
 
     while (true) {
         if (tok->token == T_LBRACKET) {
+            //! Unsure about this for local variables
+            //! I don't think i calculated the offset for the size yet
+
             Scanner_Scan(s, tok);
             if (tok->token == T_INTLIT) {
                 SymTable_Add(st, c, s, pointer_to(type), S_ARRAY, store,
@@ -34,6 +39,10 @@ void var_declare(Compiler c, Scanner s, SymTable st, Token tok,
             // we stick with singular values
 
             // initialisation weird with local vars - doesnt work as of yet
+            
+            //! implemented initialiation for local vars 
+            //! but disabled for now just in case
+
             if (tok->token == T_INTLIT) {
                 SymTable_SetValue(st, id, tok->intvalue);
             } else {

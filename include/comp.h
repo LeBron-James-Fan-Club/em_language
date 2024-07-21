@@ -23,7 +23,7 @@ struct compiler {
     int label;
 
     int localOffset;
-    int stackOffset;
+    int paramOffset;
 };
 
 typedef struct compiler *Compiler;
@@ -31,7 +31,8 @@ typedef struct compiler *Compiler;
 Compiler Compiler_New(char *outfile);
 void Compiler_Free(Compiler);
 
-void Compiler_ResetLocals(Compiler this);
+void Compiler_ResetOffset(Compiler this);
 int Compiler_GetLocalOffset(Compiler this, enum ASTPRIM type);
+int Compiler_GetParamOffset(Compiler this, enum ASTPRIM type);
 
 #endif

@@ -21,9 +21,23 @@ void Compiler_Free(Compiler this) {
     free(this);
 }
 
-void Compiler_ResetLocals(Compiler this) { this->localOffset = 0; }
+void Compiler_ResetOffset(Compiler this) {
+    // 8 offset for $ra and $fp
+    this->localOffset = 8;
+    // I forgot
+    this->paramOffset = 4;
+}
 
 int Compiler_GetLocalOffset(Compiler this, enum ASTPRIM type) {
+    printf("the local offset is %d\n", this->localOffset);
     this->localOffset += (PrimSize(type) > 4) ? PrimSize(type) : 4;
+    printf("after the local offset is %d\n", this->localOffset);
     return this->localOffset;
+}
+
+int Compiler_GetParamOffset(Compiler this, enum ASTPRIM type) {
+    printf("the param offset is %d\n", this->paramOffset);
+    this->paramOffset += (PrimSize(type) > 4) ? PrimSize(type) : 4;
+    printf("after the param offset is %d\n", this->paramOffset);
+    return this->paramOffset;
 }

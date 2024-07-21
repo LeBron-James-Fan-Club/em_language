@@ -279,8 +279,6 @@ static int genFUNCCALLAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
     int reg, numArgs = 0;
     int maxArg = tree ? tree->v.size : 0;
 
-    MIPS_SetupArgFrame(this, maxArg);
-
     while (tree) {
         reg = genAST(this, st, NO_LABEL, ctx, tree->right, n->op);
         

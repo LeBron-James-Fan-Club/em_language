@@ -475,74 +475,74 @@ deez_nuts:
 	li	$v0, 5
 	syscall
 	move	$t0, $v0
-	lw	$t1, 16($fp)
-	sw	$t0, 16($fp)
+	lw	$t1, -4($fp)
+	sw	$t0, -4($sp)
 
 	li	$v0, 5
 	syscall
 	move	$t0, $v0
-	lw	$t1, 20($fp)
-	sw	$t0, 20($fp)
-
-
-	li	$v0, 5
-	syscall
-	move	$t0, $v0
-	lw	$t1, 24($fp)
-	sw	$t0, 24($fp)
+	lw	$t1, -8($fp)
+	sw	$t0, -8($sp)
 
 
 	li	$v0, 5
 	syscall
 	move	$t0, $v0
-	lw	$t1, 28($fp)
-	sw	$t0, 28($fp)
+	lw	$t1, -12($fp)
+	sw	$t0, -12($sp)
 
 
 	li	$v0, 5
 	syscall
 	move	$t0, $v0
-	lw	$t1, 32($fp)
-	sw	$t0, 32($fp)
+	lw	$t1, -16($fp)
+	sw	$t0, -16($sp)
 
 
 	li	$v0, 5
 	syscall
 	move	$t0, $v0
-	lw	$t1, 36($fp)
-	sw	$t0, 36($fp)
+	lw	$t1, -20($fp)
+	sw	$t0, -20($sp)
 
 
-	lw	$t0, 16($fp)
+	li	$v0, 5
+	syscall
+	move	$t0, $v0
+	lw	$t1, -24($fp)
+	sw	$t0, -24($sp)
+
+
+	lw	$t0, -4($fp)
 	li	$v0, 1
 	move	$a0, $t0
 	syscall
 
-	lw	$t0, 20($fp)
-	li	$v0, 1
-	move	$a0, $t0
-	syscall
-
-
-	lw	$t0, 24($fp)
-	li	$v0, 1
-	move	$a0, $t0
-	syscall
-
-
-	lw	$t0, 28($fp)
+	lw	$t0, -8($fp)
 	li	$v0, 1
 	move	$a0, $t0
 	syscall
 
 
-	lw	$t0, 32($fp)
+	lw	$t0, -12($fp)
 	li	$v0, 1
 	move	$a0, $t0
 	syscall
 
 
-	lw	$t0, 36($fp)
+	lw	$t0, -16($fp)
+	li	$v0, 1
+	move	$a0, $t0
+	syscall
+
+
+	lw	$t0, -20($fp)
+	li	$v0, 1
+	move	$a0, $t0
+	syscall
+
+
+	lw	$t0, -24($fp)
 	li	$v0, 1
 	move	$a0, $t0
 	syscall
@@ -632,32 +632,6 @@ main:
 	li $t0, 1
 	move	$a0, $t0
 	jal	choo_choo
-	move	$t0, $v0
-
-
-	jal	deez_nuts
-	move	$t0, $v0
-
-
-	li $t0, 9
-	push	$t0
-	li $t0, 8
-	push	$t0
-	li $t0, 7
-	push	$t0
-	li $t0, 6
-	push	$t0
-	li $t0, 5
-	push	$t0
-	li $t0, 4
-	move	$a3, $t0
-	li $t0, 3
-	move	$a2, $t0
-	li $t0, 2
-	move	$a1, $t0
-	li $t0, 1
-	move	$a0, $t0
-	jal	joe
 	move	$t0, $v0
 
 

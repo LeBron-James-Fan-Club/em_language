@@ -20,3 +20,6 @@
 - make bad apple in mips
 
 - need to fix variable index
+
+- add a style flag
+
