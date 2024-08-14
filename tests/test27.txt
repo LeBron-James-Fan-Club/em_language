@@ -1,0 +1,14 @@
+int deez_nuts(int lol,
+             int lol2, int lol3, int lol4, int lol5, int lol6);
+
+int main() {
+    deez_nuts(1, 2, 3, 4, 5, 6);
+    return 0;
+}
+
+int deez_nuts(int lol,
+             int lol2, int lol3, int lol4, int lol5, int lol6) {
+    
+    print(lol,' ', lol2,' ', lol3,' ', lol4,' ', lol5,' ', lol6,' ', 10);
+    return 1;
+}

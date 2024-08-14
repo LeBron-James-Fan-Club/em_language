@@ -167,7 +167,7 @@ static ASTnode input_statement(Scanner s, SymTable st, Token tok) {
 
     ASTnode left = ASTnode_NewLeaf(A_INPUT, P_INT, 0);
     ASTnode right = ASTnode_NewLeaf(A_IDENT, st->Gsym[id].type, id);
-    right->rvalue = 1;
+    right->rvalue = 0; // We do not need to load the value of the variable
 
     ASTnode tree = modify_type(right, left->type, A_NONE);
 

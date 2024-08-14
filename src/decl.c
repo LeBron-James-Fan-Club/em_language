@@ -1,6 +1,6 @@
 #include "decl.h"
 
-static int param_declare(Compiler c, Scanner s, SymTable st, Token tok);
+static int param_declare(Compiler c, Scanner s, SymTable st, Token tok, int id);
 
 void var_declare(Compiler c, Scanner s, SymTable st, Token tok,
                  enum ASTPRIM type, enum STORECLASS store) {
@@ -16,6 +16,13 @@ void var_declare(Compiler c, Scanner s, SymTable st, Token tok,
 
             Scanner_Scan(s, tok);
             if (tok->token == T_INTLIT) {
+                // temp til implemented
+                if (store == C_LOCAL) {
+                    fprintf(stderr,
+                            "Error: local variables cannot be arrays\n");
+                    exit(-1);
+                }
+
                 SymTable_Add(st, c, s, pointer_to(type), S_ARRAY, store,
                              tok->intvalue, false);
             } else {
@@ -27,7 +34,8 @@ void var_declare(Compiler c, Scanner s, SymTable st, Token tok,
         } else if (tok->token == T_ASSIGN) {
             if (store == C_LOCAL || store == C_PARAM) {
                 fprintf(stderr,
-                        "Error: local variables and parameters cannot be initialised\n");
+                        "Error: local variables and parameters cannot be "
+                        "initialised\n");
                 exit(-1);
             }
 
@@ -39,8 +47,8 @@ void var_declare(Compiler c, Scanner s, SymTable st, Token tok,
             // we stick with singular values
 
             // initialisation weird with local vars - doesnt work as of yet
-            
-            //! implemented initialiation for local vars 
+
+            //! implemented initialiation for local vars
             //! but disabled for now just in case
 
             if (tok->token == T_INTLIT) {
@@ -51,10 +59,18 @@ void var_declare(Compiler c, Scanner s, SymTable st, Token tok,
             }
             Scanner_Scan(s, tok);
         } else {
-            SymTable_Add(st, c, s, type, S_VAR, store, 1, false);
+            if (store == C_LOCAL) {
+                if (SymTable_Add(st, c, s, type, S_VAR, store, 1, false) == -1) {
+                    fprintf(stderr, "Error: Duplicate local variable %s\n", s->text);
+                    exit(-1);
+                }
+            } else {
+                SymTable_Add(st, c, s, type, S_VAR, store, 1, false);
+            }
         }
-        
-        if (store == C_PARAM && (tok->token == T_COMMA || tok->token == T_RPAREN)) {
+
+        if (store == C_PARAM &&
+            (tok->token == T_COMMA || tok->token == T_RPAREN)) {
             return;
         }
 
@@ -72,6 +88,50 @@ void var_declare(Compiler c, Scanner s, SymTable st, Token tok,
     }
 }
 
+static int param_declare(Compiler c, Scanner s, SymTable st, Token tok,
+                         int id) {
+    int type, paramId;
+    int origParamCnt;
+    int paramCnt = 0;
+
+    paramId = id + 1;
+    if (paramId) origParamCnt = st->Gsym[id].nElems;
+
+    while (tok->token != T_RPAREN) {
+        type = parse_type(s, tok);
+        ident(s, tok);
+
+        if (paramId) {
+            if (type != st->Gsym[id].type) {
+                fprintf(stderr, "Error: parameter type mismatch for proto\n");
+                exit(-1);
+            }
+            paramId++;
+        } else {
+            var_declare(c, s, st, tok, type, C_PARAM);
+        }
+        paramCnt++;
+
+        switch (tok->token) {
+            case T_COMMA:
+                Scanner_Scan(s, tok);
+                break;
+            case T_RPAREN:
+                break;
+            default:
+                fprintf(stderr, "Error: expected comma or right parenthesis\n");
+                exit(-1);
+        }
+    }
+
+    if (id != -1 && paramCnt != origParamCnt) {
+        fprintf(stderr, "Error: parameter count mismatch for proto\n");
+        exit(-1);
+    }
+
+    return paramCnt;
+}
+
 void global_declare(Compiler c, Scanner s, SymTable st, Token tok, Context ctx,
                     Flags f) {
     ASTnode tree;
@@ -82,7 +142,12 @@ void global_declare(Compiler c, Scanner s, SymTable st, Token tok, Context ctx,
         ident(s, tok);
         if (tok->token == T_LPAREN) {
             tree = function_declare(c, s, st, tok, ctx, type);
-            
+
+            // Proto is a no go
+            if (tree == NULL) {
+                continue;
+            }
+
             if (f.dumpAST) {
                 ASTnode_Dump(tree, st, NO_LABEL, 0);
             }
@@ -99,21 +164,48 @@ void global_declare(Compiler c, Scanner s, SymTable st, Token tok, Context ctx,
 
 ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
                          Context ctx, enum ASTPRIM type) {
-    int id = SymTable_Add(st, NULL, s, type, S_FUNC, C_GLOBAL, 1, false);
+    // int id = SymTable_Add(st, NULL, s, type, S_FUNC, C_GLOBAL, 1, false);
 
-    Context_SetFunctionId(ctx, id);
-
+    int id, nameSlot, paramCnt;
     ASTnode tree, finalstmt;
 
+    if ((id = SymTable_Find(st, s, S_FUNC)) != -1) {
+        if (st->Gsym[id].stype != S_FUNC) {
+            id = -1;
+        }
+    }
+
+    if (id == -1) {
+        nameSlot = SymTable_Add(st, NULL, s, type, S_FUNC, C_GLOBAL, 1, false);
+    }
+
     lparen(s, tok);
-    int paramCount = param_declare(c, s, st, tok);
-    st->Gsym[id].nElems = paramCount;
+    // int paramCount =
+    paramCnt = param_declare(c, s, st, tok, id);
+    // st->Gsym[id].nElems = paramCount;
     rparen(s, tok);
 
-    printf("after params\n");
+    if (id == -1) {
+        st->Gsym[nameSlot].nElems = paramCnt;
+    }
+
+    // This is only a proto
+    if (tok->token == T_SEMI) {
+        printf("proto\n");
+        Scanner_Scan(s, tok);
+        return NULL;
+    }
+
+    if (id == -1) {
+        id = nameSlot;
+    }
+
+    SymTable_CopyFuncParams(st, s, id);
+
+    // printf("after params\n");
 
     tree = Compound_Statement(c, s, st, tok, ctx);
-    printf("the local offset is %d\n", c->localOffset);
+    // printf("the local offset is %d\n", c->localOffset);
     if (type != P_VOID) {
         finalstmt = (tree->op == A_GLUE) ? tree->right : tree;
         if (finalstmt == NULL || finalstmt->op != A_RETURN) {
@@ -123,30 +215,6 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
     }
 
     return ASTnode_NewUnary(A_FUNCTION, P_VOID, tree, id);
-}
-
-static int param_declare(Compiler c, Scanner s, SymTable st, Token tok) {
-    enum ASTPRIM type;
-    int paramCount = 0;
-
-    while (tok->token != T_RPAREN) {
-        type = parse_type(s, tok);
-        ident(s, tok);
-        var_declare(c, s, st, tok, type, C_PARAM);
-        paramCount++;
-        switch (tok->token) {
-            case T_COMMA:
-                Scanner_Scan(s, tok);
-                break;
-            case T_RPAREN:
-                break;
-            default:
-                fprintf(stderr, "Error: expected comma or right parenthesis\n");
-                exit(-1);
-        }
-        printf("param count %d\n", paramCount);
-    }
-    return paramCount;
 }
 
 enum ASTPRIM parse_type(Scanner s, Token tok) {

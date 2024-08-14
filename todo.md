@@ -22,4 +22,5 @@
 - need to fix variable index
 
 - add a style flag
+- add error recovery
 

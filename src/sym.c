@@ -143,6 +143,16 @@ int SymTable_Add(SymTable this, Compiler c, Scanner s, enum ASTPRIM type,
     return y;
 }
 
+void SymTable_CopyFuncParams(SymTable this, Scanner s, int slot) {
+    int id = slot + 1;
+    for (int i = 0; i < this->Gsym[slot].nElems; i++, id++) {
+        int newId = SymTable_LoclNew(this);
+        SymTable_Update(this, newId, strdup(this->Gsym[id].name),
+                        this->Gsym[id].type, this->Gsym[id].stype, C_LOCAL,
+                        this->Gsym[id].size, 0);
+    }
+}
+
 void SymTable_ResetLocls(SymTable this) { this->locls = MAX_SYMBOLS - 1; }
 
 void SymTable_SetValue(SymTable this, int id, int intvalue) {
