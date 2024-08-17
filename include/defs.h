@@ -42,6 +42,12 @@ enum OPCODES {
     T_INVERT,
     T_LOGNOT,
 
+    T_ASSIGNADD,
+    T_ASSIGNSUB,
+    T_ASSIGNMUL,
+    T_ASSIGNDIV,
+    T_ASSIGNMOD,
+
     T_INTLIT,  // 13
     T_SEMI,    // 14
     T_IDENT,   // 15
@@ -84,6 +90,14 @@ enum ASTOP {
     A_NONE,
 
     A_ASSIGN,
+
+    /*
+    A_ASSIGNADD,
+    A_ASSIGNSUB,
+    A_ASSIGNMUL,
+    A_ASSIGNDIV,
+    A_ASSIGNMOD,
+    */
 
     // Not supported yet
     A_LOGOR,

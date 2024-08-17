@@ -115,6 +115,7 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
                 if (st->Gsym[n->v.id].class == C_GLOBAL) {
                     return MIPS_LoadGlob(this, st, n->v.id, n->op);
                 } else {
+                    printf("Variable %s %d\n", st->Gsym[n->v.id].name, st->Gsym[n->v.id].offset);
                     return MIPS_LoadLocal(this, st, n->v.id, n->op);
                 }
             } else {

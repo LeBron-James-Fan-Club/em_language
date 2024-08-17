@@ -103,7 +103,7 @@ static void SymTable_Update(SymTable this, int id, char *name,
     this->Gsym[id].offset = offset;
 }
 
-int SymTable_Add(SymTable this, Compiler c, Scanner s, enum ASTPRIM type,
+int SymTable_Add(SymTable this, Scanner s, enum ASTPRIM type,
                  enum STRUCTTYPE stype, enum STORECLASS class, int size,
                  bool isAnon) {
     int y;
@@ -124,13 +124,12 @@ int SymTable_Add(SymTable this, Compiler c, Scanner s, enum ASTPRIM type,
     if (isAnon) {
         // annoymous variable
         asprintf(&name, "anon_%d", this->anon++);
-        printf("Anon %s\n", this->Gsym[y].name);
     } else {
         name = strdup(s->text);
     }
 
+    printf("Adding %s\n", name);
     if (class == C_LOCAL) {
-        // int offset = Compiler_GetLocalOffset(c, type, false);
         SymTable_Update(this, y, name, type, stype, class, size, 0);
     } else if (class == C_PARAM) {
         SymTable_Update(this, y, name, type, stype, class, size, 0);
@@ -147,6 +146,7 @@ void SymTable_CopyFuncParams(SymTable this, Scanner s, int slot) {
     int id = slot + 1;
     for (int i = 0; i < this->Gsym[slot].nElems; i++, id++) {
         int newId = SymTable_LoclNew(this);
+        printf("Copying %s to %s\n", this->Gsym[id].name, this->Gsym[newId].name);
         SymTable_Update(this, newId, strdup(this->Gsym[id].name),
                         this->Gsym[id].type, this->Gsym[id].stype, C_LOCAL,
                         this->Gsym[id].size, 0);

@@ -95,6 +95,8 @@ bool Scanner_Scan(Scanner this, Token t) {
         case '+':
             if ((c = next(this)) == '+') {
                 t->token = T_INC;
+            } else if (c == '=') {
+                t->token = T_ASSIGNADD;
             } else {
                 putback(this, c);
                 t->token = T_PLUS;
@@ -103,19 +105,36 @@ bool Scanner_Scan(Scanner this, Token t) {
         case '-':
             if ((c = next(this)) == '-') {
                 t->token = T_DEC;
+            } else if (c == '=') {
+                t->token = T_ASSIGNSUB;
             } else {
                 putback(this, c);
                 t->token = T_MINUS;
             }
             break;
         case '*':
-            t->token = T_STAR;
+            if ((c = next(this)) == '=') {
+                t->token = T_ASSIGNMUL;
+            } else {
+                putback(this, c);
+                t->token = T_STAR;
+            }
             break;
         case '/':
-            t->token = T_SLASH;
+            if ((c = next(this)) == '=') {
+                t->token = T_ASSIGNDIV;
+            } else {
+                putback(this, c);
+                t->token = T_SLASH;
+            }
             break;
         case '%':
-            t->token = T_MODULO;
+            if ((c = next(this)) == '=') {
+                t->token = T_ASSIGNMOD;
+            } else {
+                putback(this, c);
+                t->token = T_MODULO;
+            }
             break;
         case '=':
             if ((c = next(this)) == '=') {

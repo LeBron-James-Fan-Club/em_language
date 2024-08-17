@@ -23,10 +23,10 @@ void var_declare(Compiler c, Scanner s, SymTable st, Token tok,
                     exit(-1);
                 }
 
-                SymTable_Add(st, c, s, pointer_to(type), S_ARRAY, store,
+                SymTable_Add(st, s, pointer_to(type), S_ARRAY, store,
                              tok->intvalue, false);
             } else {
-                SymTable_Add(st, NULL, s, pointer_to(type), S_VAR, store, 1,
+                SymTable_Add(st, s, pointer_to(type), S_VAR, store, 1,
                              false);
             }
             Scanner_Scan(s, tok);
@@ -42,7 +42,7 @@ void var_declare(Compiler c, Scanner s, SymTable st, Token tok,
             Scanner_Scan(s, tok);
 
             // Only for scalar types
-            int id = SymTable_Add(st, NULL, s, type, S_VAR, store, 1, false);
+            int id = SymTable_Add(st, s, type, S_VAR, store, 1, false);
             // For now until lazy evaluation is implemented
             // we stick with singular values
 
@@ -58,14 +58,21 @@ void var_declare(Compiler c, Scanner s, SymTable st, Token tok,
                 exit(-1);
             }
             Scanner_Scan(s, tok);
+
+            // TODO : check if there is wrong syntax?
+            // TODO: NVM it does it below
         } else {
             if (store == C_LOCAL) {
-                if (SymTable_Add(st, c, s, type, S_VAR, store, 1, false) == -1) {
-                    fprintf(stderr, "Error: Duplicate local variable %s\n", s->text);
+                printf("local variable %s\n", s->text);
+                if (SymTable_Add(st, s, type, S_VAR, store, 1, false) ==
+                    -1) {
+                    fprintf(stderr, "Error: Duplicate local variable %s\n",
+                            s->text);
                     exit(-1);
                 }
             } else {
-                SymTable_Add(st, c, s, type, S_VAR, store, 1, false);
+                printf("global or param variable %s\n", s->text);
+                SymTable_Add(st, s, type, S_VAR, store, 1, false);
             }
         }
 
@@ -106,10 +113,11 @@ static int param_declare(Compiler c, Scanner s, SymTable st, Token tok,
                 fprintf(stderr, "Error: parameter type mismatch for proto\n");
                 exit(-1);
             }
+            printf("Happened AAA\n");
             paramId++;
-        } else {
-            var_declare(c, s, st, tok, type, C_PARAM);
         }
+
+        var_declare(c, s, st, tok, type, C_PARAM);
         paramCnt++;
 
         switch (tok->token) {
@@ -138,6 +146,8 @@ void global_declare(Compiler c, Scanner s, SymTable st, Token tok, Context ctx,
     enum ASTPRIM type;
 
     while (true) {
+        SymTable_ResetLocls(st);
+
         type = parse_type(s, tok);
         ident(s, tok);
         if (tok->token == T_LPAREN) {
@@ -153,7 +163,6 @@ void global_declare(Compiler c, Scanner s, SymTable st, Token tok, Context ctx,
             }
             Compiler_Gen(c, st, ctx, tree);
             ASTnode_Free(tree);
-            SymTable_ResetLocls(st);
 
         } else {
             var_declare(c, s, st, tok, type, C_GLOBAL);
@@ -164,7 +173,6 @@ void global_declare(Compiler c, Scanner s, SymTable st, Token tok, Context ctx,
 
 ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
                          Context ctx, enum ASTPRIM type) {
-    // int id = SymTable_Add(st, NULL, s, type, S_FUNC, C_GLOBAL, 1, false);
 
     int id, nameSlot, paramCnt;
     ASTnode tree, finalstmt;
@@ -176,13 +184,12 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
     }
 
     if (id == -1) {
-        nameSlot = SymTable_Add(st, NULL, s, type, S_FUNC, C_GLOBAL, 1, false);
+        nameSlot = SymTable_Add(st, s, type, S_FUNC, C_GLOBAL, 1, false);
     }
 
     lparen(s, tok);
-    // int paramCount =
     paramCnt = param_declare(c, s, st, tok, id);
-    // st->Gsym[id].nElems = paramCount;
+    printf("param count is %d\n", paramCnt);
     rparen(s, tok);
 
     if (id == -1) {
@@ -191,7 +198,7 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
 
     // This is only a proto
     if (tok->token == T_SEMI) {
-        printf("proto\n");
+//        printf("proto\n");
         Scanner_Scan(s, tok);
         return NULL;
     }
@@ -199,6 +206,8 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
     if (id == -1) {
         id = nameSlot;
     }
+
+    ctx->functionId = id;
 
     SymTable_CopyFuncParams(st, s, id);
 

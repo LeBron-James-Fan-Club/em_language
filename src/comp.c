@@ -25,7 +25,7 @@ void Compiler_ResetOffset(Compiler this) {
     // 8 offset for $ra and $fp
     this->localOffset = 8;
     // I forgot
-    this->paramOffset = 4;
+    this->paramOffset = 0;
 }
 
 int Compiler_GetLocalOffset(Compiler this, enum ASTPRIM type) {

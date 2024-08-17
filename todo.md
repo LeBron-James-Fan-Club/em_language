@@ -24,3 +24,12 @@
 - add a style flag
 - add error recovery
 
+# BUGS:
+- make sure to restore stack pointer afterwards
+    - sp offset by 4 (main) and 8 (deez nuts function)
+    (HORRIBLE FIX BUT IT WORKS)
+
+- parameters with same names collide with other functions :(
+    - need to add a prefix to the parameters
+
+- proto forgets to add the parameters

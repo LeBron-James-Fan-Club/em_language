@@ -15,7 +15,6 @@ static ASTnode ASTnode_Postfix(Scanner s, SymTable st, Token tok);
 static ASTnode peek_statement(Scanner s, SymTable st, Token tok);
 static ASTnode expression_list(Scanner s, SymTable st, Token tok);
 
-
 static enum ASTOP arithOp(Scanner s, enum OPCODES tok) {
     if (tok > T_EOF && tok < T_INTLIT) return (enum ASTOP)tok;
     fprintf(stderr, "Error: Syntax error on line %d token %d\n", s->line, tok);
@@ -53,6 +52,11 @@ static int precedence(enum ASTOP op) {
         case T_OR:
             return 2;
         case T_ASSIGN:
+        case T_ASSIGNADD:
+        case T_ASSIGNSUB:
+        case T_ASSIGNMUL:
+        case T_ASSIGNDIV:
+        case T_ASSIGNMOD:
             return 1;
         default:
             fprintf(stderr, "Error: No proper precedence for operator %d\n",
@@ -61,13 +65,16 @@ static int precedence(enum ASTOP op) {
     }
 }
 
-static bool rightAssoc(enum ASTOP op) { return op == T_ASSIGN; }
+static bool rightAssoc(enum ASTOP op) {
+    return op == T_ASSIGN || op == T_ASSIGNADD || op == T_ASSIGNSUB ||
+           op == T_ASSIGNMOD || op == T_ASSIGNDIV || op == T_ASSIGNMUL;
+}
 
 static ASTnode primary(Scanner s, SymTable st, Token t) {
     int id;
     switch (t->token) {
         case T_STRLIT:
-            id = SymTable_Add(st, NULL, s, P_CHARPTR, S_VAR, C_GLOBAL, 1, true);
+            id = SymTable_Add(st, s, P_CHARPTR, S_VAR, C_GLOBAL, 1, true);
             SymTable_SetText(st, s, id);
             return ASTnode_NewLeaf(A_STRLIT, P_CHARPTR, id);
         case T_INTLIT:
@@ -77,7 +84,7 @@ static ASTnode primary(Scanner s, SymTable st, Token t) {
                 return ASTnode_NewLeaf(A_INTLIT, P_INT, t->intvalue);
             }
         case T_PEEK:
-            printf("PEEK\n");
+            // printf("PEEK\n");
             return peek_statement(s, st, t);
         case T_IDENT:
             return ASTnode_Postfix(s, st, t);
@@ -193,7 +200,48 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t) {
                          precedence(opStack[opTop]) == precedence(curOp)))) {
                     orderOp(s, st, t, stack, opStack, &top, &opTop);
                 }
-                opStack[++opTop] = curOp;
+
+                //! THE 1:1 THING HAPPENS HERE
+
+                // TODO: Handle the other assignment ops
+
+                // The last node added
+                // Should be a identifier
+                // If not, then it's a syntax error
+                if (curOp >= T_ASSIGNADD && curOp <= T_ASSIGNMOD) {
+                    if (stack[top]->op != A_IDENT) {
+                        fprintf(stderr,
+                                "Error: Expected identifier on line %d\n",
+                                s->line);
+                        exit(-1);
+                    }
+
+                    opStack[++opTop] = A_ASSIGN;
+                    int id = stack[top]->v.id;
+                    enum ASTPRIM type = stack[top]->type;
+                    stack[++top] = ASTnode_NewLeaf(A_IDENT, type, id);
+
+                }
+                
+                switch (curOp) {
+                    case T_ASSIGNADD:
+                        opStack[++opTop] = A_ADD;
+                        break;
+                    case T_ASSIGNSUB:
+                        opStack[++opTop] = A_SUBTRACT;
+                        break;
+                    case T_ASSIGNMUL:
+                        opStack[++opTop] = A_MULTIPLY;
+                        break;
+                    case T_ASSIGNDIV:
+                        opStack[++opTop] = A_DIVIDE;
+                        break;
+                    case T_ASSIGNMOD:
+                        opStack[++opTop] = A_MODULO;
+                        break;
+                    default:
+                        opStack[++opTop] = curOp;
+                }
                 expectPreOp = true;
         }
     } while (Scanner_Scan(s, t) || parenCount > 0);
@@ -227,7 +275,7 @@ static ASTnode ASTnode_FuncCall(Scanner s, SymTable st, Token tok) {
                 s->line);
         exit(-1);
     }
-    
+
     lparen(s, tok);
 
     t = expression_list(s, st, tok);
@@ -385,7 +433,7 @@ static ASTnode ASTnode_Postfix(Scanner s, SymTable st, Token tok) {
 
     Scanner_Scan(s, tok);
     if (tok->token == T_LPAREN) return ASTnode_FuncCall(s, st, tok);
-    printf("Checking for array ref\n");
+    // printf("Checking for array ref\n");
     if (tok->token == T_LBRACKET) return ASTnode_ArrayRef(s, st, tok);
     Scanner_RejectToken(s, tok);
 

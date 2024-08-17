@@ -9,7 +9,6 @@
 
 #include "defs.h"
 #include "scan.h"
-#include "comp.h"
 
 #define MAX_SYMBOLS 1024
 
@@ -48,7 +47,7 @@ typedef struct symTable *SymTable;
 SymTable SymTable_New(void);
 void SymTable_Free(SymTable);
 int SymTable_Find(SymTable this, Scanner s, enum STRUCTTYPE stype);
-int SymTable_Add(SymTable this, Compiler c, Scanner s, enum ASTPRIM type,
+int SymTable_Add(SymTable this, Scanner s, enum ASTPRIM type,
                  enum STRUCTTYPE stype, enum STORECLASS class, int size,
                  bool isAnon);
 void SymTable_CopyFuncParams(SymTable this, Scanner s, int slot);
