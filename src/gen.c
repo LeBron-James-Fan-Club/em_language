@@ -115,11 +115,11 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
                 if (st->Gsym[n->v.id].class == C_GLOBAL) {
                     return MIPS_LoadGlob(this, st, n->v.id, n->op);
                 } else {
-                    printf("Variable %s %d\n", st->Gsym[n->v.id].name, st->Gsym[n->v.id].offset);
+                    //printf("Variable %s %d\n", st->Gsym[n->v.id].name, st->Gsym[n->v.id].offset);
                     return MIPS_LoadLocal(this, st, n->v.id, n->op);
                 }
             } else {
-                printf("Variable not right %s\n", st->Gsym[n->v.id].name);
+                //printf("Variable not right %s\n", st->Gsym[n->v.id].name);
                 return NO_REG;
             }
         case A_ASSIGN:
@@ -133,7 +133,7 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
                                                n->right->v.id);
                     }
                 case A_DEREF:
-                    //! bug: storing wrong type
+                    //! bug: storing wrong type - idk if this is fixed yet
                     return MIPS_StoreRef(this, leftReg, rightReg,
                                          n->right->type);
                 default:

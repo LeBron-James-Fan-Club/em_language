@@ -63,7 +63,7 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
             "%s:\n",
             name, name);
 
-    printf("\n\nFunction: %s\n", name);
+    //printf("\n\nFunction: %s\n", name);
 
     int i;
     bool param = false;
@@ -90,7 +90,7 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
 
     paramReg -= FIRST_PARAM_REG;
     for (int j = paramReg - 1; j >= 0; j--) {
-        printf("Pushing param reg %d\n", j + FIRST_PARAM_REG);
+        //printf("Pushing param reg %d\n", j + FIRST_PARAM_REG);
         MIPS_StoreParam(this, j + FIRST_PARAM_REG);
     }
 
@@ -108,11 +108,11 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
         
         if (st->Gsym[i].class == C_LOCAL) {
             if (!foundLocal) {
-                printf("found local\n");
+//                printf("found local\n");
                 foundLocal = true;
                 startLocal = i;
             }
-            printf("Local variable %s\n", st->Gsym[i].name);
+//            printf("Local variable %s\n", st->Gsym[i].name);
             st->Gsym[i].offset =
                 this->paramOffset +
                 Compiler_GetLocalOffset(this, st->Gsym[i].type);

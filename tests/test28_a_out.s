@@ -117,8 +117,12 @@ main:
 
 	lw	$t0, 12($sp)
 	li $t1, 2
-	mul	$t1, $t0, $t1
-	sw	$t1, 12($sp)
+	li $t2, 2
+	add	$t2, $t1, $t2
+	mul	$t2, $t0, $t2
+	li $t0, 2
+	mul	$t0, $t2, $t0
+	sw	$t0, 12($sp)
 
 
 	lw	$t0, 12($sp)

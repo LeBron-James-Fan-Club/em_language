@@ -172,9 +172,6 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t) {
                 expectPreOp = false;
                 break;
             case T_LPAREN:
-#if DEBUG
-                printf("LPAREN\n");
-#endif
                 opStack[++opTop] = A_STARTPAREN;
                 parenCount++;
                 break;

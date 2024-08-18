@@ -63,7 +63,7 @@ void var_declare(Compiler c, Scanner s, SymTable st, Token tok,
             // TODO: NVM it does it below
         } else {
             if (store == C_LOCAL) {
-                printf("local variable %s\n", s->text);
+                //printf("local variable %s\n", s->text);
                 if (SymTable_Add(st, s, type, S_VAR, store, 1, false) ==
                     -1) {
                     fprintf(stderr, "Error: Duplicate local variable %s\n",
@@ -71,7 +71,7 @@ void var_declare(Compiler c, Scanner s, SymTable st, Token tok,
                     exit(-1);
                 }
             } else {
-                printf("global or param variable %s\n", s->text);
+                //printf("global or param variable %s\n", s->text);
                 SymTable_Add(st, s, type, S_VAR, store, 1, false);
             }
         }
@@ -113,7 +113,7 @@ static int param_declare(Compiler c, Scanner s, SymTable st, Token tok,
                 fprintf(stderr, "Error: parameter type mismatch for proto\n");
                 exit(-1);
             }
-            printf("Happened AAA\n");
+            //printf("Happened AAA\n");
             paramId++;
         }
 
@@ -189,7 +189,7 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
 
     lparen(s, tok);
     paramCnt = param_declare(c, s, st, tok, id);
-    printf("param count is %d\n", paramCnt);
+    //printf("param count is %d\n", paramCnt);
     rparen(s, tok);
 
     if (id == -1) {

@@ -128,7 +128,7 @@ int SymTable_Add(SymTable this, Scanner s, enum ASTPRIM type,
         name = strdup(s->text);
     }
 
-    printf("Adding %s\n", name);
+    //printf("Adding %s\n", name);
     if (class == C_LOCAL) {
         SymTable_Update(this, y, name, type, stype, class, size, 0);
     } else if (class == C_PARAM) {
