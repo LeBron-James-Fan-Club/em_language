@@ -252,7 +252,7 @@ static ASTnode label_statement(Scanner s, SymTable st, Token tok) {
     match(s, tok, T_LABEL, "label");
     ident(s, tok);
 
-    int id = SymTable_Add(st, NULL, s, P_NONE, S_LABEL, 0, false, C_GLOBAL);
+    int id = SymTable_Add(st, s, P_NONE, C_GLOBAL, S_LABEL, 0, false);
 
     ASTnode t = ASTnode_NewLeaf(A_LABEL, P_NONE, id);
 
