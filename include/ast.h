@@ -23,7 +23,7 @@ struct astnode {
         int intvalue; // for INTLIT
         int id; // Var lookup
         int size; // for A_SCALE: size to scale
-    } v;
+    };
 };
 
 typedef struct astnode *ASTnode;

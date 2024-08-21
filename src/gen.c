@@ -106,13 +106,13 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             else
                 return MIPS_GreaterThanEqualSet(this, leftReg, rightReg);
         case A_INTLIT:
-            return MIPS_Load(this, n->v.intvalue);
+            return MIPS_Load(this, n->intvalue);
         case A_IDENT:
             if (n->rvalue || parentASTop == A_DEREF) {
-                if (st->Gsym[n->v.id].class == C_GLOBAL) {
-                    return MIPS_LoadGlob(this, st, n->v.id, n->op);
+                if (st->Gsym[n->id].class == C_GLOBAL) {
+                    return MIPS_LoadGlob(this, st, n->id, n->op);
                 } else {
-                    return MIPS_LoadLocal(this, st, n->v.id, n->op);
+                    return MIPS_LoadLocal(this, st, n->id, n->op);
                 }
             } else {
                 return NO_REG;
@@ -123,12 +123,12 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             }
             switch (n->right->op) {
                 case A_IDENT:
-                    if (st->Gsym[n->right->v.id].class == C_GLOBAL) {
+                    if (st->Gsym[n->right->id].class == C_GLOBAL) {
                         return MIPS_StoreGlob(this, leftReg, st,
-                                              n->right->v.id);
+                                              n->right->id);
                     } else {
                         return MIPS_StoreLocal(this, leftReg, st,
-                                               n->right->v.id);
+                                               n->right->id);
                     }
                 case A_DEREF:
                     //! bug: storing wrong type - idk if this is fixed yet
@@ -157,10 +157,10 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
         case A_PEEK:
             return MIPS_Peek(this, leftReg, rightReg);
         case A_LABEL:
-            MIPS_GotoLabel(this, st, n->v.id);
+            MIPS_GotoLabel(this, st, n->id);
             return NO_REG;
         case A_GOTO:
-            MIPS_GotoJump(this, st, n->v.id);
+            MIPS_GotoJump(this, st, n->id);
             return NO_REG;
         case A_WIDEN:
             return MIPS_Widen(this, leftReg, n->type);
@@ -170,7 +170,7 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             MIPS_Return(this, st, leftReg, ctx);
             return NO_REG;
         case A_ADDR:
-            return MIPS_Address(this, st, n->v.id);
+            return MIPS_Address(this, st, n->id);
         case A_DEREF:
             if (n->rvalue) {
                 if (n->left == NULL) {
@@ -181,7 +181,7 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
                 return leftReg;
             }
         case A_SCALE:
-            switch (n->v.size) {
+            switch (n->size) {
                 // optimization if power of 2 shift it
                 case 2:
                     return MIPS_ShiftLeftConstant(this, leftReg, 1);
@@ -190,11 +190,11 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
                 default:
                     // loads reg with size
                     // and multiplies leftreg with size
-                    rightReg = MIPS_Load(this, n->v.size);
+                    rightReg = MIPS_Load(this, n->size);
                     return MIPS_Mul(this, leftReg, rightReg);
             }
         case A_STRLIT:
-            return MIPS_LoadGlobStr(this, st, n->v.id);
+            return MIPS_LoadGlobStr(this, st, n->id);
 
         case A_AND:
             return MIPS_BitAND(this, leftReg, rightReg);
@@ -217,10 +217,10 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             if (n->left == NULL) {
                 fatal("InternalError: Left side of preinc is NULL");
             }
-            return MIPS_LoadGlob(this, st, n->left->v.id, n->op);
+            return MIPS_LoadGlob(this, st, n->left->id, n->op);
         case A_POSTINC:
         case A_POSTDEC:
-            return MIPS_LoadGlob(this, st, n->v.id, n->op);
+            return MIPS_LoadGlob(this, st, n->id, n->op);
         case A_TOBOOL:
             return MIPS_ToBool(this, parentASTop, leftReg, label);
         default:
@@ -278,19 +278,19 @@ static int genWHILEAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
 static int genFUNCCALLAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
     ASTnode tree = n->left;
     int reg, numArgs = 0;
-    int maxArg = tree ? tree->v.size : 0;
+    int maxArg = tree ? tree->size : 0;
 
     while (tree) {
         reg = genAST(this, st, NO_LABEL, ctx, tree->right, n->op);
 
-        MIPS_ArgCopy(this, reg, tree->v.size, maxArg);
+        MIPS_ArgCopy(this, reg, tree->size, maxArg);
 
-        if (numArgs == 0) numArgs = tree->v.size;
+        if (numArgs == 0) numArgs = tree->size;
         Compiler_FreeAllReg(this);
 
         tree = tree->left;
         numArgs++;
     }
 
-    return MIPS_Call(this, st, n->v.id);
+    return MIPS_Call(this, st, n->id);
 }

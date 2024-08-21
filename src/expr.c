@@ -78,9 +78,9 @@ static ASTnode primary(Scanner s, SymTable st, Token t) {
     int id;
     switch (t->token) {
         case T_STRLIT:
-            id = SymTable_Add(st, s, P_CHARPTR, S_VAR, C_GLOBAL, 1, true);
+            id = SymTable_Add(st, s, pointer_to(P_CHAR), S_VAR, C_GLOBAL, 1, true);
             SymTable_SetText(st, s, id);
-            return ASTnode_NewLeaf(A_STRLIT, P_CHARPTR, id);
+            return ASTnode_NewLeaf(A_STRLIT, pointer_to(P_CHAR), id);
         case T_INTLIT:
             if (t->intvalue >= 0 && t->intvalue < 256) {
                 return ASTnode_NewLeaf(A_INTLIT, P_CHAR, t->intvalue);
@@ -208,7 +208,7 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t) {
                     }
 
                     opStack[++opTop] = A_ASSIGN;
-                    int id = stack[top]->v.id;
+                    int id = stack[top]->id;
                     enum ASTPRIM type = stack[top]->type;
                     stack[++top] = ASTnode_NewLeaf(A_IDENT, type, id);
                 }

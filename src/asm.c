@@ -64,7 +64,7 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
             "%s:\n",
             name, name);
 
-    // printf("\n\nFunction: %s\n", name);
+    debug("Function: %s", name);
 
     int i;
     bool param = false;
@@ -660,6 +660,7 @@ int MIPS_Address(Compiler this, SymTable st, int id) {
 
 int MIPS_Deref(Compiler this, int r, enum ASTPRIM type) {
     //! bug: derefing not occuring for b[3]
+    
     switch (type) {
         case P_CHARPTR:
             fprintf(this->outfile, "\tlbu\t%s, 0(%s)\n", reglist[r],

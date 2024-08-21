@@ -6,9 +6,9 @@ deez_nuts:
 	push	$a2
 	push	$a1
 	push	$a0
-	push $ra
 	BEGIN
 
+	push $ra
 	addi	$sp, $sp, -24
 
 	lw	$t0, 32($sp)
@@ -93,17 +93,17 @@ deez_nuts:
 	b	deez_nuts_end
 
 deez_nuts_end:
-	END
 	pop	$ra
+	END
 	jr	$ra
 
 .text
 	.globl main
 
 main:
-	push $ra
 	BEGIN
 
+	push $ra
 	addi	$sp, $sp, -4
 
 	li $t0, 0
@@ -182,8 +182,8 @@ main:
 	b	main_end
 
 main_end:
-	END
 	pop	$ra
+	END
 	jr	$ra
 
 .text
@@ -194,9 +194,9 @@ another:
 	push	$a2
 	push	$a1
 	push	$a0
-	push $ra
 	BEGIN
 
+	push $ra
 	addi	$sp, $sp, -40
 
 	lw	$t0, 48($sp)
@@ -329,8 +329,8 @@ another:
 	b	another_end
 
 another_end:
-	END
 	pop	$ra
+	END
 	jr	$ra
 
 	li	$v0, 10

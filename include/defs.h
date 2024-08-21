@@ -71,6 +71,8 @@ enum OPCODES {
     T_POKE,
 
     T_INT,    // 22
+    T_STRUCT,
+
     T_IF,     // 23
     T_ELSE,   // 24
     T_LABEL,  // 25
@@ -183,13 +185,17 @@ enum ASTPRIM {
 
     P_VOIDPTR,
     P_CHARPTR,
-    P_INTPTR
+    P_INTPTR,
+
+    P_STRUCT
 };
 
 enum STORECLASS {
     C_GLOBAL = 1,
     C_LOCAL,
-    C_PARAM
+    C_PARAM,
+    C_MEMBER,
+    C_STRUCT
 };
 
 struct token {

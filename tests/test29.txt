@@ -1,0 +1,15 @@
+i32 main() {
+    i32 a;
+    i32 b;
+    input(a);
+    input(b);
+    a += b;
+    print(a, 10);
+    if (a == 8) {
+        print("wow it equals to 8", 10);
+    } else {
+        print("else");
+    }
+
+    return 0;
+}

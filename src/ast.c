@@ -13,7 +13,7 @@ ASTnode ASTnode_New(enum ASTOP op, enum ASTPRIM type, ASTnode left, ASTnode mid,
     n->left = left;
     n->mid = mid;
     n->right = right;
-    n->v.intvalue = intvalue;
+    n->intvalue = intvalue;
 
     return n;
 }
@@ -79,7 +79,7 @@ void ASTnode_Dump(ASTnode n, SymTable st, int label, int level) {
             printf("\n\n");
             return;
         case A_FUNCTION:
-            printf("A_FUNCTION %s\n", st->Gsym[n->v.id].name);
+            printf("A_FUNCTION %s\n", st->Gsym[n->id].name);
             return;
         case A_ADD:
             printf("A_ADD\n");
@@ -115,14 +115,14 @@ void ASTnode_Dump(ASTnode n, SymTable st, int label, int level) {
             printf("A_GE\n");
             return;
         case A_INTLIT:
-            printf("A_INTLIT %d\n", n->v.intvalue);
+            printf("A_INTLIT %d\n", n->intvalue);
             return;
         case A_IDENT:
             if (n->rvalue)
-                printf("A_IDENT rval %s type %d\n", st->Gsym[n->v.id].name,
+                printf("A_IDENT rval %s type %d\n", st->Gsym[n->id].name,
                        n->type);
             else
-                printf("A_IDENT %s type %d\n", st->Gsym[n->v.id].name,
+                printf("A_IDENT %s type %d\n", st->Gsym[n->id].name,
                        n->type);
             return;
         case A_ASSIGN:
@@ -135,10 +135,10 @@ void ASTnode_Dump(ASTnode n, SymTable st, int label, int level) {
             printf("A_INPUT\n");
             return;
         case A_LABEL:
-            printf("A_LABEL %s\n", st->Gsym[n->v.id].name);
+            printf("A_LABEL %s\n", st->Gsym[n->id].name);
             return;
         case A_GOTO:
-            printf("A_GOTO %s\n", st->Gsym[n->v.id].name);
+            printf("A_GOTO %s\n", st->Gsym[n->id].name);
             return;
         case A_RETURN:
             printf("A_RETURN type %d\n", n->type);
@@ -147,10 +147,10 @@ void ASTnode_Dump(ASTnode n, SymTable st, int label, int level) {
             printf("A_WIDEN type %d\n", n->type);
             return;
         case A_FUNCCALL:
-            printf("A_FUNCCALL %s\n", st->Gsym[n->v.id].name);
+            printf("A_FUNCCALL %s\n", st->Gsym[n->id].name);
             return;
         case A_ADDR:
-            printf("A_ADDR %s\n", st->Gsym[n->v.id].name);
+            printf("A_ADDR %s\n", st->Gsym[n->id].name);
             return;
         case A_DEREF:
             if (n->rvalue)
@@ -159,10 +159,10 @@ void ASTnode_Dump(ASTnode n, SymTable st, int label, int level) {
                 printf("A_DEREF\n");
             return;
         case A_SCALE:
-            printf("A_SCALE %d\n", n->v.size);
+            printf("A_SCALE %d\n", n->size);
             return;
         case A_STRLIT:
-            printf("A_STRLIT %s\n", st->Gsym[n->v.id].name);
+            printf("A_STRLIT %s\n", st->Gsym[n->id].name);
             return;
         case A_PREINC:
             printf("A_PREINC\n");
