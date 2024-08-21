@@ -50,7 +50,7 @@ int SymTable_Find(SymTable this, Scanner s, enum STRUCTTYPE stype);
 int SymTable_Add(SymTable this, Scanner s, enum ASTPRIM type,
                  enum STRUCTTYPE stype, enum STORECLASS class, int size,
                  bool isAnon);
-void SymTable_CopyFuncParams(SymTable this, Scanner s, int slot);
+void SymTable_CopyFuncParams(SymTable this, int slot);
 void SymTable_SetValue(SymTable this, int id, int intvalue);
 void SymTable_SetText(SymTable this, Scanner s, int id);
 void SymTable_ResetLocls(SymTable this);

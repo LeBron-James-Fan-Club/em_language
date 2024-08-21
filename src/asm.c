@@ -626,7 +626,7 @@ void MIPS_Return(Compiler this, SymTable st, int r, Context ctx) {
     MIPS_ReturnJump(this, st, ctx);
 }
 
-int MIPS_Call(Compiler this, SymTable st, int id, int numArgs) {
+int MIPS_Call(Compiler this, SymTable st, int id) {
     int outr = allocReg(this);
     fprintf(this->outfile, "\tjal\t%s\n", st->Gsym[id].name);
     fprintf(this->outfile, "\tmove\t%s, $v0\n", reglist[outr]);
@@ -645,11 +645,6 @@ void MIPS_ArgCopy(Compiler this, int r, int argPos, int maxArg) {
 
     // Basically greater than 4 (+ 1 for index)
     if (argPos > 4) {
-        // Look back at this - Idk if it works or not
-        // int offset = (maxArg - 4) * 4 - ((maxArg - 4) - (argPos - 4)) * 4 -
-        // 4;
-        // fprintf(this->outfile, "\tsw\t%s, %d($sp)\n", reglist[r], -offset);
-
         fprintf(this->outfile, "\tpush\t%s\n", reglist[r]);
     } else {
         fprintf(this->outfile, "\tmove\t%s, %s\n",

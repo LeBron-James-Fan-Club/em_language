@@ -64,7 +64,7 @@ void MIPS_ReturnLabel(Compiler this,SymTable st, Context ctx);
 void MIPS_ReturnJump(Compiler this, SymTable st, Context ctx);
 
 void MIPS_Return(Compiler, SymTable st, int r, Context ctx);
-int MIPS_Call(Compiler, SymTable st, int id, int numArgs);
+int MIPS_Call(Compiler, SymTable st, int id);
 void MIPS_ArgCopy(Compiler this, int r, int argPos, int maxArg);
 
 void MIPS_StoreParam(Compiler this, int r1);

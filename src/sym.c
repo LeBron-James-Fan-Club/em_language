@@ -118,7 +118,6 @@ int SymTable_Add(SymTable this, Scanner s, enum ASTPRIM type,
         name = strdup(s->text);
     }
 
-    //printf("Adding %s\n", name);
     if (class == C_LOCAL) {
         SymTable_Update(this, y, name, type, stype, class, size, 0);
     } else if (class == C_PARAM) {
@@ -132,7 +131,7 @@ int SymTable_Add(SymTable this, Scanner s, enum ASTPRIM type,
     return y;
 }
 
-void SymTable_CopyFuncParams(SymTable this, Scanner s, int slot) {
+void SymTable_CopyFuncParams(SymTable this, int slot) {
     int id = slot + 1;
     for (int i = 0; i < this->Gsym[slot].nElems; i++, id++) {
         int newId = SymTable_LoclNew(this);

@@ -292,5 +292,5 @@ static int genFUNCCALLAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
         numArgs++;
     }
 
-    return MIPS_Call(this, st, n->v.id, maxArg);
+    return MIPS_Call(this, st, n->v.id);
 }

@@ -3,9 +3,10 @@
 #include "flags.h"
 #include "misc.h"
 
-static int param_declare(Compiler c, Scanner s, SymTable st, Token tok, int id);
 
-void var_declare(Compiler c, Scanner s, SymTable st, Token tok,
+static int param_declare(Scanner s, SymTable st, Token tok, int id);
+
+void var_declare(Scanner s, SymTable st, Token tok,
                  enum ASTPRIM type, enum STORECLASS store) {
     //* int x[2], a;
 
@@ -87,9 +88,10 @@ void var_declare(Compiler c, Scanner s, SymTable st, Token tok,
     }
 }
 
-static int param_declare(Compiler c, Scanner s, SymTable st, Token tok,
+static int param_declare(Scanner s, SymTable st, Token tok,
                          int id) {
-    int type, paramId;
+    enum ASTPRIM type;
+    int paramId;
     int origParamCnt;
     int paramCnt = 0;
 
@@ -107,7 +109,7 @@ static int param_declare(Compiler c, Scanner s, SymTable st, Token tok,
             paramId++;
         }
 
-        var_declare(c, s, st, tok, type, C_PARAM);
+        var_declare(s, st, tok, type, C_PARAM);
         paramCnt++;
 
         switch (tok->token) {
@@ -153,7 +155,7 @@ void global_declare(Compiler c, Scanner s, SymTable st, Token tok, Context ctx) 
             ASTnode_Free(tree);
 
         } else {
-            var_declare(c, s, st, tok, type, C_GLOBAL);
+            var_declare(s, st, tok, type, C_GLOBAL);
         }
         if (tok->token == T_EOF) break;
     }
@@ -176,7 +178,7 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
     }
 
     lparen(s, tok);
-    paramCnt = param_declare(c, s, st, tok, id);
+    paramCnt = param_declare(s, st, tok, id);
     //printf("param count is %d\n", paramCnt);
     rparen(s, tok);
 
@@ -197,7 +199,7 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
 
     ctx->functionId = id;
 
-    SymTable_CopyFuncParams(st, s, id);
+    SymTable_CopyFuncParams(st, id);
 
     // printf("after params\n");
 
