@@ -5,8 +5,11 @@
 
 struct flags {
     bool dumpAST;
+    bool debug;
 };
 
 typedef struct flags Flags;
+
+extern Flags flags;
 
 #endif

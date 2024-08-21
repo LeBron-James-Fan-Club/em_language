@@ -12,6 +12,13 @@
         "ast.h": "c",
         "stdbool.h": "c",
         "asm.h": "c",
-        "comp.h": "c"
+        "comp.h": "c",
+        "stdio.h": "c",
+        "errors.h": "c",
+        "context.h": "c",
+        "defs.h": "c",
+        "misc.h": "c",
+        "expr.h": "c",
+        "flags.h": "c"
     }
 }

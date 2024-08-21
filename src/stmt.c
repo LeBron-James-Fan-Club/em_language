@@ -2,6 +2,8 @@
 
 #include <stdbool.h>
 
+#include "misc.h"
+
 void match(Scanner s, Token t, enum OPCODES op, char *tok);
 void semi(Scanner s, Token t);
 void ident(Scanner s, Token t);
@@ -15,18 +17,23 @@ static ASTnode poke_statement(Scanner s, SymTable st, Token tok);
 static ASTnode print_statement(Scanner s, SymTable st, Token tok);
 // static ASTnode assignment_statement(Scanner s, SymTable st, Token tok);
 static ASTnode input_statement(Scanner s, SymTable st, Token tok);
-static ASTnode if_statement(Compiler c, Scanner s, SymTable st, Token tok, Context ctx);
+static ASTnode if_statement(Compiler c, Scanner s, SymTable st, Token tok,
+                            Context ctx);
 
 static ASTnode label_statement(Scanner s, SymTable st, Token tok);
 static ASTnode goto_statement(Scanner s, SymTable st, Token tok);
-static ASTnode while_statement(Compiler c, Scanner s, SymTable st, Token tok, Context ctx);
+static ASTnode while_statement(Compiler c, Scanner s, SymTable st, Token tok,
+                               Context ctx);
 
-static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok, Context ctx);
+static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok,
+                             Context ctx);
 static ASTnode return_statement(Scanner s, SymTable st, Token tok, Context ctx);
 
-static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok, Context ctx);
+static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
+                                Context ctx);
 
-ASTnode Compound_Statement(Compiler c, Scanner s, SymTable st, Token tok, Context ctx) {
+ASTnode Compound_Statement(Compiler c, Scanner s, SymTable st, Token tok,
+                           Context ctx) {
     // Might combine assignment and declare
     // change syntax to lol : i32 = 2
 
@@ -39,12 +46,10 @@ ASTnode Compound_Statement(Compiler c, Scanner s, SymTable st, Token tok, Contex
         // TODO:  Compiler directive will be checked here
         tree = single_statement(c, s, st, tok, ctx);
 
-        if (tree != NULL && (tree->op == A_INPUT || tree->op == A_RETURN ||
-                             tree->op == A_ASSIGN || tree->op == A_FUNCCALL ||
-                             tree->op == A_LABEL || tree->op == A_GOTO || tree->op == A_POKE) ) {
-#if DEBUG
-            printf("Yum i ate a semicolon\n");
-#endif
+        if (tree != NULL &&
+            (tree->op == A_INPUT || tree->op == A_RETURN ||
+             tree->op == A_ASSIGN || tree->op == A_FUNCCALL ||
+             tree->op == A_LABEL || tree->op == A_GOTO || tree->op == A_POKE)) {
             semi(s, tok);
         }
 
@@ -91,9 +96,7 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
         case T_RETURN:
             return return_statement(s, st, tok, ctx);
         default:
-#if DEBUG
-            printf("tok: %d\n", tok->token);
-#endif
+            debug("tok is %d", tok->token);
             return ASTnode_Order(s, st, tok);
     }
 }
@@ -167,7 +170,7 @@ static ASTnode input_statement(Scanner s, SymTable st, Token tok) {
 
     ASTnode left = ASTnode_NewLeaf(A_INPUT, P_INT, 0);
     ASTnode right = ASTnode_NewLeaf(A_IDENT, st->Gsym[id].type, id);
-    right->rvalue = 0; // We do not need to load the value of the variable
+    right->rvalue = 0;  // We do not need to load the value of the variable
 
     ASTnode tree = modify_type(right, left->type, A_NONE);
 
@@ -177,7 +180,8 @@ static ASTnode input_statement(Scanner s, SymTable st, Token tok) {
     return tree;
 }
 
-static ASTnode if_statement(Compiler c, Scanner s, SymTable st, Token tok, Context ctx) {
+static ASTnode if_statement(Compiler c, Scanner s, SymTable st, Token tok,
+                            Context ctx) {
     ASTnode condAST, trueAST, falseAST = NULL;
 
     match(s, tok, T_IF, "if");
@@ -202,7 +206,8 @@ static ASTnode if_statement(Compiler c, Scanner s, SymTable st, Token tok, Conte
     return ASTnode_New(A_IF, P_NONE, condAST, trueAST, falseAST, 0);
 }
 
-static ASTnode while_statement(Compiler c, Scanner s, SymTable st, Token tok, Context ctx) {
+static ASTnode while_statement(Compiler c, Scanner s, SymTable st, Token tok,
+                               Context ctx) {
     ASTnode condAST, bodyAST;
 
     match(s, tok, T_WHILE, "while");
@@ -220,7 +225,8 @@ static ASTnode while_statement(Compiler c, Scanner s, SymTable st, Token tok, Co
     return ASTnode_New(A_WHILE, P_NONE, condAST, NULL, bodyAST, 0);
 }
 
-static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok, Context ctx) {
+static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok,
+                             Context ctx) {
     ASTnode condAST, bodyAST;
     ASTnode preopAST, postopAST;
     ASTnode t;
@@ -303,4 +309,3 @@ static ASTnode return_statement(Scanner s, SymTable st, Token tok,
     }
     return ASTnode_NewUnary(A_RETURN, P_NONE, t, 0);
 }
-

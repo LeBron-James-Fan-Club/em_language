@@ -1,5 +1,7 @@
 #include "asm.h"
 
+#include "misc.h"
+
 static char *reglist[MAX_REG] = {"$t0", "$t1", "$t2", "$t3", "$t4",
                                  "$t5", "$t6", "$t7", "$t8", "$t9",
                                  "$a0", "$a1", "$a2", "$a3"};
@@ -11,8 +13,7 @@ static void freeReg(Compiler this, int reg1);
 
 int PrimSize(enum ASTPRIM type) {
     if (type < P_NONE || type > P_INTPTR) {
-        fprintf(stderr, "Error: Unknown type %d\n", type);
-        exit(-1);
+        fatala("InternalError: Unknown type %d", type);
     }
     return psize[type];
 }
@@ -63,11 +64,11 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
             "%s:\n",
             name, name);
 
-    //printf("\n\nFunction: %s\n", name);
+    // printf("\n\nFunction: %s\n", name);
 
     int i;
     bool param = false;
-    
+
     // another god damn temp fix until i find the source
     // of the problem
     for (i = MAX_SYMBOLS - 1; i > st->locls; i--) {
@@ -77,7 +78,6 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
             break;
         }
         param = true;
-        
 
         st->Gsym[i].offset = Compiler_GetParamOffset(this, st->Gsym[i].type);
     }
@@ -90,13 +90,12 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
 
     paramReg -= FIRST_PARAM_REG;
     for (int j = paramReg - 1; j >= 0; j--) {
-        //printf("Pushing param reg %d\n", j + FIRST_PARAM_REG);
         MIPS_StoreParam(this, j + FIRST_PARAM_REG);
     }
 
     bool foundLocal = false;
     int startLocal = 0;
-    
+
     // WTF WHY DOES THIS FUCKING WORK
     if (param) {
         this->paramOffset -= 4;
@@ -105,14 +104,12 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
     for (; i > st->locls; i--) {
         // for remaining params they get pushed on stack
         // This also includes local variables
-        
+
         if (st->Gsym[i].class == C_LOCAL) {
             if (!foundLocal) {
-//                printf("found local\n");
                 foundLocal = true;
                 startLocal = i;
             }
-//            printf("Local variable %s\n", st->Gsym[i].name);
             st->Gsym[i].offset =
                 this->paramOffset +
                 Compiler_GetLocalOffset(this, st->Gsym[i].type);
@@ -126,7 +123,8 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
 
     fprintf(this->outfile,
             "\tpush $ra\n"
-            "\tBEGIN\n\n");
+            "\tBEGIN\n\n"
+            );
 
     // Actual offset for locals if have been initialised
     if (foundLocal) {
@@ -147,9 +145,9 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
 void MIPS_PostFunc(Compiler this, SymTable st, Context ctx) {
     MIPS_ReturnLabel(this, st, ctx);
     fprintf(this->outfile,
-            "\tEND\n"
-            "\tpop\t$ra\n"
-            "\tjr\t$ra\n\n");
+              "\tEND\n"
+              "\tpop\t$ra\n"
+              "\tjr\t$ra\n\n");
 }
 
 int MIPS_Load(Compiler this, int value) {
@@ -292,8 +290,7 @@ int MIPS_LoadGlob(Compiler this, SymTable st, int id, enum ASTOP op) {
             }
             break;
         default:
-            fprintf(stderr, "Error!: Unknown type %d\n", st->Gsym[id].type);
-            exit(-1);
+            fatala("InternalError: Unknown type %d", st->Gsym[id].type);
     }
     return r;
 }
@@ -372,16 +369,14 @@ int MIPS_LoadLocal(Compiler this, SymTable st, int id, enum ASTOP op) {
             }
             break;
         default:
-            fprintf(stderr, "Error!: Unknown type %d\n", st->Gsym[id].type);
-            exit(-1);
+            fatala("InternalError: Unknown type %d", st->Gsym[id].type);
     }
     return r;
 }
 
 int MIPS_StoreGlob(Compiler this, int r1, SymTable st, int id) {
     if (r1 == NO_REG) {
-        fprintf(stderr, "Error: Trying to store an empty register\n");
-        exit(-1);
+        fatal("InternalError: Trying to store an empty register");
     }
 
     switch (st->Gsym[id].type) {
@@ -399,8 +394,7 @@ int MIPS_StoreGlob(Compiler this, int r1, SymTable st, int id) {
                     st->Gsym[id].name);
             break;
         default:
-            fprintf(stderr, "Error!!: Unknown type %d\n", st->Gsym[id].type);
-            exit(-1);
+            fatala("InternalError: Unknown type %d", st->Gsym[id].type);
     }
 
     return r1;
@@ -408,8 +402,7 @@ int MIPS_StoreGlob(Compiler this, int r1, SymTable st, int id) {
 
 void MIPS_StoreParam(Compiler this, int r1) {
     if (r1 == NO_REG) {
-        fprintf(stderr, "Error: Trying to store an empty register\n");
-        exit(-1);
+        fatal("InternalError: Trying to store an empty register");
     }
 
     fprintf(this->outfile, "\tpush\t%s\n", reglist[r1]);
@@ -417,8 +410,7 @@ void MIPS_StoreParam(Compiler this, int r1) {
 
 int MIPS_StoreLocal(Compiler this, int r1, SymTable st, int id) {
     if (r1 == NO_REG) {
-        fprintf(stderr, "Error: Trying to store an empty register\n");
-        exit(-1);
+        fatal("InternalError: Trying to store an empty register");
     }
 
     switch (st->Gsym[id].type) {
@@ -445,13 +437,11 @@ int MIPS_StoreLocal(Compiler this, int r1, SymTable st, int id) {
 
 int MIPS_StoreRef(Compiler this, int r1, int r2, enum ASTPRIM type) {
     if (r1 == NO_REG) {
-        fprintf(stderr, "Error: Trying to store an empty register\n");
-        exit(-1);
+        fatal("InternalError: Trying to store an empty register");
     }
 
     if (r2 == NO_REG) {
-        fprintf(stderr, "Error: Trying to store an empty register 2\n");
-        exit(-1);
+        fatal("InternalError: Trying to store an empty register for r2");
     }
 
     switch (type) {
@@ -464,8 +454,7 @@ int MIPS_StoreRef(Compiler this, int r1, int r2, enum ASTPRIM type) {
                     reglist[r2]);
             break;
         default:
-            fprintf(stderr, "Error: Unknown pointer type %d\n", type);
-            exit(-1);
+            fatala("InternalError: Unknown type %d", type);
     }
 
     return r1;
@@ -685,8 +674,7 @@ int MIPS_Deref(Compiler this, int r, enum ASTPRIM type) {
             fprintf(this->outfile, "\tlw\t%s, 0(%s)\n", reglist[r], reglist[r]);
             break;
         default:
-            fprintf(stderr, "Error: Unknown pointer type %d\n", type);
-            exit(-1);
+            fatala("InternalError: Unknown pointer type %d", type);
     }
     return r;
 }
@@ -778,13 +766,12 @@ static int allocReg(Compiler this) {
             return i;
         }
     }
-    fprintf(stderr, "Error: Out of registers\n");
-    exit(-1);
+    fatal("InternalError: Out of registers");
 }
 
 static void freeReg(Compiler this, int reg1) {
     if (!this->regUsed[reg1]) {
-        fprintf(stderr, "Error: Trying to free a free register\n");
+        fatal("InternalError: Trying to free a free register");
     }
     this->regUsed[reg1] = false;
 }

@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "defs.h"
+#include "misc.h"
+
 static char next(Scanner);
 static void putback(Scanner, char c);
 static char skip(Scanner this);
@@ -24,8 +27,7 @@ Scanner Scanner_New(char *name) {
     n->putback = '\n';
     n->infile = fopen(name, "r");
     if (n->infile == NULL) {
-        fprintf(stderr, "Error: Unable to open file %s.\n", name);
-        exit(-1);
+        fatala("OSError: Unable to open file %s", name);
     }
     return n;
 }
@@ -80,9 +82,6 @@ bool Scanner_Scan(Scanner this, Token t) {
 
     c = skip(this);
 
-#if DEBUG
-    printf("Scanning: %c\n", c);
-#endif
     switch (c) {
         case EOF:
             t->token = T_EOF;
@@ -148,9 +147,8 @@ bool Scanner_Scan(Scanner this, Token t) {
             if ((c = next(this)) == '=') {
                 t->token = T_NE;
             } else {
-                fprintf(stderr, "Error: Invalid character %c on line %d\n", c,
-                        this->line);
-                exit(-1);
+                putback(this, c);
+                t->token = T_LOGNOT;
             }
             break;
         case '<':
@@ -191,9 +189,6 @@ bool Scanner_Scan(Scanner this, Token t) {
             t->token = T_LBRACKET;
             break;
         case ']':
-#if DEBUG
-            printf("RBRACKET\n");
-#endif
             t->token = T_RBRACKET;
             return false;
         case ',':
@@ -222,11 +217,7 @@ bool Scanner_Scan(Scanner this, Token t) {
             t->intvalue = scanChr(this);
             t->token = T_INTLIT;
             if (next(this) != '\'') {
-                fprintf(
-                    stderr,
-                    "Error: Expected \' at end of char literal on line %d\n",
-                    this->line);
-                exit(-1);
+                lfatal(this, "SyntaxError: expected ' at end of char literal");
             }
             break;
         case '"':
@@ -262,9 +253,7 @@ bool Scanner_Scan(Scanner this, Token t) {
             }
 
             // occurs only probs when unicode
-            fprintf(stderr, "Error: Invalid character %c on line %d\n", c,
-                    this->line);
-            exit(-1);
+            lfatala(this, "SyntaxError: Invalid character %c", c);
     }
     return true;
 }
@@ -301,10 +290,7 @@ static int keyword(char *s) {
 
 void Scanner_RejectToken(Scanner this, Token t) {
     if (this->rejToken) {
-        fprintf(stderr,
-                "Error: Cannot reject token twice, occured on line %d\n",
-                this->line);
-        exit(-1);
+        lfatal(this, "InternalError: Cannot reject token twice\n");
     }
     this->rejToken = t;
 }
@@ -314,9 +300,7 @@ static int scanIdent(Scanner this, char c) {
 
     while (isalpha(c) || isdigit(c) || c == '_') {
         if (i == TEXTLEN - 1) {
-            fprintf(stderr, "Error: Identifier too long on line %d\n",
-                    this->line);
-            exit(-1);
+            lfatal(this, "UnsupportedError: Identifier too long");
         } else if (i < TEXTLEN - 1) {
             this->text[i++] = c;
         }
@@ -374,10 +358,7 @@ static int scanChr(Scanner this) {
             case '\"':
                 return '\"';
             default:
-                fprintf(stderr,
-                        "Error: Unknown escape sequence %c on line %d\n", c,
-                        this->line);
-                exit(-1);
+                lfatal(this, "SyntaxError: Unknown escape sequence");
         }
     }
     return c;
@@ -388,8 +369,7 @@ static int scanStr(Scanner this) {
     for (int i = 0; i < TEXTLEN - 1; i++) {
         c = next(this);
         if (c == EOF) {
-            fprintf(stderr, "Error: EOF in string on line %d\n", this->line);
-            exit(-1);
+            lfatal(this, "SyntaxError: EOF in string");
         }
         if (c == '"') {
             this->text[i] = '\0';
@@ -397,8 +377,7 @@ static int scanStr(Scanner this) {
         }
         this->text[i] = c;
     }
-    fprintf(stderr, "Error: String too long on line %d\n", this->line);
-    exit(-1);
+    lfatal(this, "UnsupportedError: String too long");
 }
 
 static int chrpos(char *s, int c) {
@@ -412,9 +391,7 @@ void match(Scanner s, Token t, enum OPCODES op, char *tok) {
     if (t->token == op) {
         Scanner_Scan(s, t);
     } else {
-        fprintf(stderr, "Error: %s expected on line %d\n", tok, s->line);
-        fprintf(stderr, "got instead %d\n", t->token);
-        exit(-1);
+        lfatala(s, "SyntaxError: %s expected got instead %d", tok, t->token);
     }
 }
 

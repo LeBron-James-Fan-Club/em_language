@@ -1,5 +1,8 @@
 #include "decl.h"
 
+#include "flags.h"
+#include "misc.h"
+
 static int param_declare(Compiler c, Scanner s, SymTable st, Token tok, int id);
 
 void var_declare(Compiler c, Scanner s, SymTable st, Token tok,
@@ -18,9 +21,7 @@ void var_declare(Compiler c, Scanner s, SymTable st, Token tok,
             if (tok->token == T_INTLIT) {
                 // temp til implemented
                 if (store == C_LOCAL) {
-                    fprintf(stderr,
-                            "Error: local variables cannot be arrays\n");
-                    exit(-1);
+                    lfatal(s, "UnsupportedError: local variables cannot be arrays");
                 }
 
                 SymTable_Add(st, s, pointer_to(type), S_ARRAY, store,
@@ -33,10 +34,7 @@ void var_declare(Compiler c, Scanner s, SymTable st, Token tok,
             match(s, tok, T_RBRACKET, "]");
         } else if (tok->token == T_ASSIGN) {
             if (store == C_LOCAL || store == C_PARAM) {
-                fprintf(stderr,
-                        "Error: local variables and parameters cannot be "
-                        "initialised\n");
-                exit(-1);
+                lfatal(s, "UnsupportedError: local variables and parameters cannot be initialised");
             }
 
             Scanner_Scan(s, tok);
@@ -54,8 +52,7 @@ void var_declare(Compiler c, Scanner s, SymTable st, Token tok,
             if (tok->token == T_INTLIT) {
                 SymTable_SetValue(st, id, tok->intvalue);
             } else {
-                fprintf(stderr, "Error: only integer literals are supported\n");
-                exit(-1);
+                lfatal(s, "UnsupportedError: only integer literals are supported");
             }
             Scanner_Scan(s, tok);
 
@@ -63,15 +60,12 @@ void var_declare(Compiler c, Scanner s, SymTable st, Token tok,
             // TODO: NVM it does it below
         } else {
             if (store == C_LOCAL) {
-                //printf("local variable %s\n", s->text);
+                debug("Adding local variable %s", s->text);
                 if (SymTable_Add(st, s, type, S_VAR, store, 1, false) ==
                     -1) {
-                    fprintf(stderr, "Error: Duplicate local variable %s\n",
-                            s->text);
-                    exit(-1);
+                    lfatala(s, "DuplicateError: Duplicate local variable %s", s->text);
                 }
             } else {
-                //printf("global or param variable %s\n", s->text);
                 SymTable_Add(st, s, type, S_VAR, store, 1, false);
             }
         }
@@ -86,9 +80,7 @@ void var_declare(Compiler c, Scanner s, SymTable st, Token tok,
             return;
         }
         if (tok->token != T_COMMA) {
-            fprintf(stderr, "Error: comma expected on line %d got %d\n",
-                    s->line, tok->token);
-            exit(-1);
+            lfatala(s, "SyntaxError: expected comma got %d", tok->token);
         }
         Scanner_Scan(s, tok);
         ident(s, tok);
@@ -110,10 +102,8 @@ static int param_declare(Compiler c, Scanner s, SymTable st, Token tok,
 
         if (paramId) {
             if (type != st->Gsym[id].type) {
-                fprintf(stderr, "Error: parameter type mismatch for proto\n");
-                exit(-1);
+                lfatal(s, "InvalidParamsError: parameter type mismatch for proto");
             }
-            //printf("Happened AAA\n");
             paramId++;
         }
 
@@ -127,21 +117,18 @@ static int param_declare(Compiler c, Scanner s, SymTable st, Token tok,
             case T_RPAREN:
                 break;
             default:
-                fprintf(stderr, "Error: expected comma or right parenthesis\n");
-                exit(-1);
+                lfatal(s, "SyntaxError: expected comma or right parenthesis");
         }
     }
 
     if (id != -1 && paramCnt != origParamCnt) {
-        fprintf(stderr, "Error: parameter count mismatch for proto\n");
-        exit(-1);
+        lfatal(s, "InvalidParamsError: parameter count mismatch for proto");
     }
 
     return paramCnt;
 }
 
-void global_declare(Compiler c, Scanner s, SymTable st, Token tok, Context ctx,
-                    Flags f) {
+void global_declare(Compiler c, Scanner s, SymTable st, Token tok, Context ctx) {
     ASTnode tree;
     enum ASTPRIM type;
 
@@ -158,9 +145,10 @@ void global_declare(Compiler c, Scanner s, SymTable st, Token tok, Context ctx,
                 continue;
             }
 
-            if (f.dumpAST) {
+            if (flags.dumpAST) {
                 ASTnode_Dump(tree, st, NO_LABEL, 0);
             }
+
             Compiler_Gen(c, st, ctx, tree);
             ASTnode_Free(tree);
 
@@ -218,8 +206,7 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
     if (type != P_VOID) {
         finalstmt = (tree->op == A_GLUE) ? tree->right : tree;
         if (finalstmt == NULL || finalstmt->op != A_RETURN) {
-            fprintf(stderr, "Error: non-void function must return a value\n");
-            exit(-1);
+            fatal("NoReturnError: non-void function must return a value\n");
         }
     }
 
@@ -239,8 +226,7 @@ enum ASTPRIM parse_type(Scanner s, Token tok) {
             type = P_VOID;
             break;
         default:
-            fprintf(stderr, "Error: !! unknown type %d\n", tok->token);
-            exit(-1);
+            fatala("InternalError: unknown type %d", tok->token);
     }
 
     // allows the user to do int ******a

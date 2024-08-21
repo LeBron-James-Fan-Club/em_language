@@ -1,5 +1,7 @@
 #include "sym.h"
 
+#include "misc.h"
+
 static int SymTable_GlobNew(SymTable this);
 static int SymTable_LoclNew(SymTable this);
 static int SymTable_FindSym(SymTable this, Scanner s, enum STRUCTTYPE stype,
@@ -11,8 +13,7 @@ static void SymTable_Update(SymTable this, int id, char *name,
 SymTable SymTable_New(void) {
     SymTable g = calloc(1, sizeof(struct symTable));
     if (g == NULL) {
-        fprintf(stderr, "Error: Unable to initialise global table\n");
-        exit(-1);
+        fatal("InternalError: Unable to allocate memory for SymTable");
     }
     g->locls = MAX_SYMBOLS - 1;
     return g;
@@ -47,11 +48,8 @@ static int SymTable_FindSym(SymTable this, Scanner s, enum STRUCTTYPE stype,
         if (*s->text == *this->Gsym[i].name &&
             !strcmp(s->text, this->Gsym[i].name)) {
             if (stype != this->Gsym[i].stype) {
-                fprintf(stderr,
-                        "Error: Variable %s already declared and wrong "
-                        "structure type %d\n",
-                        s->text, stype);
-                exit(-1);
+                fatala("TypeError: Variable %s already declared and wrong structure type %d",
+                      s->text, stype);
             }
             return i;
         }
@@ -61,8 +59,7 @@ static int SymTable_FindSym(SymTable this, Scanner s, enum STRUCTTYPE stype,
         int y;
 
         if ((y = this->globs++) >= MAX_SYMBOLS) {
-            fprintf(stderr, "Error: Exceeded max symbols %d\n", MAX_SYMBOLS);
-            exit(-1);
+            fatala("UnsupportedError: Exceeded max symbols %d", MAX_SYMBOLS);
         }
         this->Gsym[y].name = strdup(s->text);
         return y;
@@ -73,9 +70,7 @@ static int SymTable_FindSym(SymTable this, Scanner s, enum STRUCTTYPE stype,
 static int SymTable_GlobNew(SymTable this) {
     int id;
     if ((id = this->globs++) >= this->locls) {
-        fprintf(stderr, "Error: Exceeded max symbols %d for globals\n",
-                MAX_SYMBOLS);
-        exit(-1);
+        fatala("UnsupportedError: Exceeded max symbols %d for globals", MAX_SYMBOLS);
     }
     return id;
 }
@@ -83,9 +78,7 @@ static int SymTable_GlobNew(SymTable this) {
 static int SymTable_LoclNew(SymTable this) {
     int id;
     if ((id = this->locls--) <= this->globs) {
-        fprintf(stderr, "Error: Exceeded max symbols %d for locals\n",
-                MAX_SYMBOLS);
-        exit(-1);
+        fatala("UnsupportedError: Exceeded max symbols %d for locals", MAX_SYMBOLS);
     }
     return id;
 }
@@ -109,11 +102,8 @@ int SymTable_Add(SymTable this, Scanner s, enum ASTPRIM type,
     int y;
     if ((y = SymTable_FindSym(this, s, stype, class)) != -1) {
         if (type != this->Gsym[y].type) {
-            fprintf(stderr,
-                    "Error: Variable %s already declared and wrong type %d "
-                    "!= %d\n",
-                    s->text, type, this->Gsym[y].type);
-            exit(-1);
+            lfatala(s, "TypeError: Variable %s already declared and wrong type %d != %d",
+                  s->text, type, this->Gsym[y].type);
         }
         return y;
     }
@@ -146,7 +136,7 @@ void SymTable_CopyFuncParams(SymTable this, Scanner s, int slot) {
     int id = slot + 1;
     for (int i = 0; i < this->Gsym[slot].nElems; i++, id++) {
         int newId = SymTable_LoclNew(this);
-        printf("Copying %s to %s\n", this->Gsym[id].name, this->Gsym[newId].name);
+        debug("Copying %s to %s", this->Gsym[id].name, this->Gsym[newId].name);
         SymTable_Update(this, newId, strdup(this->Gsym[id].name),
                         this->Gsym[id].type, this->Gsym[id].stype, C_LOCAL,
                         this->Gsym[id].size, 0);

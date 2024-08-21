@@ -1,11 +1,11 @@
 #include "ast.h"
+#include "misc.h"
 
 ASTnode ASTnode_New(enum ASTOP op, enum ASTPRIM type, ASTnode left, ASTnode mid,
                     ASTnode right, int intvalue) {
     ASTnode n = calloc(1, sizeof(struct astnode));
     if (n == NULL) {
-        fprintf(stderr, "Error: Unable to initialise ASTnode\n");
-        exit(-1);
+        fatal("InternalError: Unable to allocate memory for ASTnode\n");
     }
 
     n->op = op;
@@ -216,7 +216,6 @@ void ASTnode_Dump(ASTnode n, SymTable st, int label, int level) {
             printf("A_POKE\n");
             return;
         default:
-            fprintf(stderr, "Error: Unknown AST node %d\n", n->op);
-            exit(-1);
+            fatala("InternalError: Unknown AST node %d", n->op);
     }
 }

@@ -1,5 +1,11 @@
 #include "expr.h"
 
+#include "ast.h"
+#include "defs.h"
+#include "misc.h"
+#include "sym.h"
+#include "types.h"
+
 static enum ASTOP arithOp(Scanner s, enum OPCODES tok);
 static int precedence(enum ASTOP op);
 static ASTnode primary(Scanner s, SymTable st, Token t);
@@ -15,10 +21,10 @@ static ASTnode ASTnode_Postfix(Scanner s, SymTable st, Token tok);
 static ASTnode peek_statement(Scanner s, SymTable st, Token tok);
 static ASTnode expression_list(Scanner s, SymTable st, Token tok);
 
+// * 1:1 baby
 static enum ASTOP arithOp(Scanner s, enum OPCODES tok) {
     if (tok > T_EOF && tok < T_INTLIT) return (enum ASTOP)tok;
-    fprintf(stderr, "Error: Syntax error on line %d token %d\n", s->line, tok);
-    exit(-1);
+    lfatala(s, "SyntaxError: %d", tok);
 }
 
 static int precedence(enum ASTOP op) {
@@ -59,9 +65,7 @@ static int precedence(enum ASTOP op) {
         case T_ASSIGNMOD:
             return 1;
         default:
-            fprintf(stderr, "Error: No proper precedence for operator %d\n",
-                    op);
-            exit(-1);
+            fatala("InternalError: No proper precedence for operator %d", op);
     }
 }
 
@@ -98,16 +102,13 @@ static void orderOp(Scanner s, SymTable st, Token t, ASTnode *stack,
                     enum ASTOP *opStack, int *top, int *opTop) {
     ASTnode ltemp, rtemp;
     if (*opTop < 0) {
-        fprintf(stderr, "Error: Syntax error on line (opTop < 0) %d\n",
-                s->line);
-        exit(-1);
+        lfatal(s, "Syntax Error: (opTop < 0)");
     }
 
     enum ASTOP op = opStack[(*opTop)--];
 
     if (*top < 1) {
-        fprintf(stderr, "Error: Syntax error on line %d\n", s->line);
-        exit(-1);
+        lfatal(s, "Syntax Error: (top < 1)");
     }
 
     ASTnode right = stack[(*top)--];
@@ -117,11 +118,7 @@ static void orderOp(Scanner s, SymTable st, Token t, ASTnode *stack,
         right->rvalue = 1;
         right = modify_type(right, left->type, 0);
         if (right == NULL) {
-            fprintf(stderr,
-                    "Error: Syntax error on line %d, "
-                    "incompatible expression\n",
-                    s->line);
-            exit(-1);
+            lfatal(s, "Syntax Error: incompatible types in assignment");
         }
         ltemp = left;
         left = right;
@@ -133,12 +130,9 @@ static void orderOp(Scanner s, SymTable st, Token t, ASTnode *stack,
         rtemp = modify_type(right, left->type, op);
 
         if (ltemp == NULL && rtemp == NULL) {
-            fprintf(stderr,
-                    "Error: Incompatible types in expression on "
-                    "line %d\n",
-                    s->line);
-            exit(-1);
+            lfatal(s, "Syntax Error: Incompatible types in expression");
         }
+
         if (ltemp != NULL) left = ltemp;
         if (rtemp != NULL) right = rtemp;
     }
@@ -155,9 +149,8 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t) {
 
     int top = -1, opTop = -1;
     do {
-#if DEBUG
-        printf("Token: %d\n", t->token);
-#endif
+        debug("Token %d", t->token);
+
         switch (t->token) {
             case T_SEMI:
             case T_EOF:
@@ -206,20 +199,20 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t) {
                 // Should be a identifier
                 // If not, then it's a syntax error
                 if (curOp >= T_ASSIGNADD && curOp <= T_ASSIGNMOD) {
+                    if (stack[top] == NULL) {
+                        fatal("InternalError: stack[top] is NULL");
+                    }
+
                     if (stack[top]->op != A_IDENT) {
-                        fprintf(stderr,
-                                "Error: Expected identifier on line %d\n",
-                                s->line);
-                        exit(-1);
+                        lfatal(s, "SyntaxError: Expected identifier");
                     }
 
                     opStack[++opTop] = A_ASSIGN;
                     int id = stack[top]->v.id;
                     enum ASTPRIM type = stack[top]->type;
                     stack[++top] = ASTnode_NewLeaf(A_IDENT, type, id);
-
                 }
-                
+
                 switch (curOp) {
                     case T_ASSIGNADD:
                         opStack[++opTop] = A_ADD;
@@ -248,16 +241,9 @@ out:
         orderOp(s, st, t, stack, opStack, &top, &opTop);
     }
 
-#if DEBUG
-    printf("Top: %d\n", top);
-#endif
+    debug("Top: %d", top);
 
     ASTnode n = stack[top];
-
-#if DEBUG
-    printf("Dumping AST\n");
-    ASTnode_Dump(n, st, NO_LABEL, 0);
-#endif
 
     free(stack);
     free(opStack);
@@ -268,9 +254,7 @@ static ASTnode ASTnode_FuncCall(Scanner s, SymTable st, Token tok) {
     ASTnode t;
     int id;
     if ((id = SymTable_Find(st, s, S_FUNC)) == -1) {
-        fprintf(stderr, "Error: Undefined function %s on line %d\n", s->text,
-                s->line);
-        exit(-1);
+        lfatala(s, "UndefinedError: Undefined function %s", s->text);
     }
 
     lparen(s, tok);
@@ -301,11 +285,7 @@ static ASTnode expression_list(Scanner s, SymTable st, Token tok) {
             case T_RPAREN:
                 break;
             default:
-                fprintf(stderr,
-                        "Error: Expected comma or right parenthesis on "
-                        "line %d\n",
-                        s->line);
-                exit(-1);
+                lfatal(s, "SyntaxError: Expected comma or right parenthesis");
         }
     }
     return tree;
@@ -317,9 +297,7 @@ static ASTnode ASTnode_ArrayRef(Scanner s, SymTable st, Token tok) {
     ASTnode left, right;
     int id;
     if ((id = SymTable_Find(st, s, S_ARRAY)) == -1) {
-        fprintf(stderr, "Error: Undeclared array %s on line %d\n", s->text,
-                s->line);
-        exit(-1);
+        fatala("UndefinedError: Undefined array %s", s->text);
     }
     left = ASTnode_NewLeaf(A_ADDR, st->Gsym[id].type, id);
     Scanner_Scan(s, tok);
@@ -327,13 +305,9 @@ static ASTnode ASTnode_ArrayRef(Scanner s, SymTable st, Token tok) {
     right->rvalue = 1;
 
     match(s, tok, T_RBRACKET, "]");
-#if DEBUG
-    printf("Consumed right bracket\n");
-#endif
+
     if (!inttype(right->type)) {
-        fprintf(stderr, "Error: Array index must be an integer on line %d\n",
-                s->line);
-        exit(-1);
+        fatal("TypeError: Array index must be an integer");
     }
     right = modify_type(right, left->type, A_ADD);
 
@@ -350,9 +324,7 @@ static ASTnode ASTnode_Prefix(Scanner s, SymTable st, Token tok) {
             Scanner_Scan(s, tok);
             t = ASTnode_Prefix(s, st, tok);
             if (t->op != A_IDENT) {
-                fprintf(stderr, "Error: Expected identifier on line %d\n",
-                        s->line);
-                exit(-1);
+                lfatal(s, "SyntaxError: Expected identifier");
             }
             t->op = A_ADDR;
             t->type = pointer_to(t->type);
@@ -361,30 +333,18 @@ static ASTnode ASTnode_Prefix(Scanner s, SymTable st, Token tok) {
             Scanner_Scan(s, tok);
             t = ASTnode_Prefix(s, st, tok);
             if (t->op != A_IDENT && t->op != A_DEREF) {
-                fprintf(stderr,
-                        "Error: * Operator must be followed by an identifier "
-                        "or *, occurred on line %d\n",
-                        s->line);
-                exit(-1);
+                lfatal(s, "SyntaxError: * Operator must be followed by an identifier "
+                           "or *");
             }
             t = ASTnode_NewUnary(A_DEREF, value_at(t->type), t, 0);
             break;
         case T_INC:
             Scanner_Scan(s, tok);
-#if DEBUG
-            printf("INC\n");
-#endif
             t = ASTnode_Postfix(s, st, tok);
-#if DEBUG
-            printf("%p\n", t);
-#endif
-            // temp check - cause inc also sets the rvalue
+
+            // * temp check - cause inc also sets the rvalue
             if (t->op != A_IDENT) {
-                fprintf(
-                    stderr,
-                    "Error: ++ must be followed by an identifier on line %d\n",
-                    s->line);
-                exit(-1);
+                lfatal(s, "SyntaxError: ++ must be followed by an identifier");
             }
             t = ASTnode_NewUnary(A_PREINC, t->type, t, 0);
             break;
@@ -411,11 +371,7 @@ static ASTnode ASTnode_Prefix(Scanner s, SymTable st, Token tok) {
             Scanner_Scan(s, tok);
             t = ASTnode_Postfix(s, st, tok);
             if (t->op != A_IDENT) {
-                fprintf(
-                    stderr,
-                    "Error: -- must be followed by an identifier on line %d\n",
-                    s->line);
-                exit(-1);
+                lfatal(s, "SyntaxError: -- must be followed by an identifier");
             }
             t = ASTnode_NewUnary(A_PREDEC, t->type, t, 0);
             break;
@@ -430,14 +386,11 @@ static ASTnode ASTnode_Postfix(Scanner s, SymTable st, Token tok) {
 
     Scanner_Scan(s, tok);
     if (tok->token == T_LPAREN) return ASTnode_FuncCall(s, st, tok);
-    // printf("Checking for array ref\n");
     if (tok->token == T_LBRACKET) return ASTnode_ArrayRef(s, st, tok);
     Scanner_RejectToken(s, tok);
 
     if ((id = SymTable_Find(st, s, S_VAR)) == -1) {
-        fprintf(stderr, "Error: Unknown variable %s on line %d\n", s->text,
-                s->line);
-        exit(-1);
+        lfatala(s, "UndefinedError: Undefined variable %s", s->text);
     }
 
     switch (tok->token) {

@@ -1,8 +1,10 @@
 #include "gen.h"
 
 #include <stdbool.h>
+#include <stdio.h>
 
 #include "ast.h"
+#include "misc.h"
 #include "scan.h"
 #include "sym.h"
 
@@ -27,8 +29,6 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
     // May use stack system to prevent stack overflow
 
     if (n == NULL) {
-        // fprintf(stderr, "Error: ASTnode is NULL\n");
-        // exit(-1);
         return NO_REG;
     }
 
@@ -43,7 +43,7 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             fprintf(this->outfile, "\n");
             genAST(this, st, NO_LABEL, ctx, n->right, n->op);
             Compiler_FreeAllReg(this);
-            fprintf(this->outfile, "\n");
+            if (n->right != NULL) fprintf(this->outfile, "\n");
             return NO_REG;
         case A_FUNCTION:
             MIPS_PreFunc(this, st, ctx);
@@ -57,14 +57,11 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             break;
     }
 
-    // if this doesnt work swap -1 to reg and vice versa
-
-    if (n->left) {
-        leftReg = genAST(this, st, NO_LABEL, ctx, n->left, n->op);
-    }
-    if (n->right) {
-        rightReg = genAST(this, st, NO_LABEL, ctx, n->right, n->op);
-    }
+    // Mr compiler could you stfu
+    leftReg =
+        n->left ? genAST(this, st, NO_LABEL, ctx, n->left, n->op) : NO_REG;
+    rightReg =
+        n->right ? genAST(this, st, NO_LABEL, ctx, n->right, n->op) : NO_REG;
 
     switch (n->op) {
         case A_ADD:
@@ -115,14 +112,15 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
                 if (st->Gsym[n->v.id].class == C_GLOBAL) {
                     return MIPS_LoadGlob(this, st, n->v.id, n->op);
                 } else {
-                    //printf("Variable %s %d\n", st->Gsym[n->v.id].name, st->Gsym[n->v.id].offset);
                     return MIPS_LoadLocal(this, st, n->v.id, n->op);
                 }
             } else {
-                //printf("Variable not right %s\n", st->Gsym[n->v.id].name);
                 return NO_REG;
             }
         case A_ASSIGN:
+            if (n->right == NULL) {
+                fatal("InternalError: Right side of assignment is NULL");
+            }
             switch (n->right->op) {
                 case A_IDENT:
                     if (st->Gsym[n->right->v.id].class == C_GLOBAL) {
@@ -137,12 +135,9 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
                     return MIPS_StoreRef(this, leftReg, rightReg,
                                          n->right->type);
                 default:
-                    fprintf(stderr,
-                            "Error: Unknown AST operator for assign %d\n",
-                            n->right->op);
-                    exit(-1);
+                    fatala("InternalError: Unknown AST operator for assign %d",
+                          n->right->op);
             }
-            // return rightReg;
         case A_PRINT:
             if (n->type == P_CHAR) {
                 MIPS_PrintChar(this, leftReg);
@@ -178,6 +173,9 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             return MIPS_Address(this, st, n->v.id);
         case A_DEREF:
             if (n->rvalue) {
+                if (n->left == NULL) {
+                    fatal("InternalError: Left side of deref is NULL");
+                }
                 return MIPS_Deref(this, leftReg, n->left->type);
             } else {
                 return leftReg;
@@ -216,6 +214,9 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             return MIPS_LogNOT(this, leftReg);
         case A_PREINC:
         case A_PREDEC:
+            if (n->left == NULL) {
+                fatal("InternalError: Left side of preinc is NULL");
+            }
             return MIPS_LoadGlob(this, st, n->left->v.id, n->op);
         case A_POSTINC:
         case A_POSTDEC:
@@ -223,8 +224,7 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
         case A_TOBOOL:
             return MIPS_ToBool(this, parentASTop, leftReg, label);
         default:
-            fprintf(stderr, "Error: Unknown AST operator %d\n", n->op);
-            exit(-1);
+            fatala("InternalError: Unknown AST operator %d", n->op);
     }
     // so the compiler will stop complaining
     return 0;
@@ -282,9 +282,8 @@ static int genFUNCCALLAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
 
     while (tree) {
         reg = genAST(this, st, NO_LABEL, ctx, tree->right, n->op);
-        
+
         MIPS_ArgCopy(this, reg, tree->v.size, maxArg);
-        
 
         if (numArgs == 0) numArgs = tree->v.size;
         Compiler_FreeAllReg(this);

@@ -1,16 +1,15 @@
 #include "comp.h"
+#include "misc.h"
 
 Compiler Compiler_New(char *outfile) {
     Compiler c = calloc(1, sizeof(struct compiler));
     if (c == NULL) {
-        fprintf(stderr, "Error: Unable to initialise compiler\n");
-        exit(-1);
+        fatal("InternalError: Unable to allocate memory for compiler");
     }
 
     c->outfile = fopen(outfile, "w");
     if (c->outfile == NULL) {
-        fprintf(stderr, "Error: Unable to open file %s\n", outfile);
-        exit(-1);
+        fatala("OSError: Unable to open file %s", outfile);
     }
 
     return c;
@@ -29,15 +28,15 @@ void Compiler_ResetOffset(Compiler this) {
 }
 
 int Compiler_GetLocalOffset(Compiler this, enum ASTPRIM type) {
-    printf("the local offset is %d\n", this->localOffset);
+    debug("the local offset is %d", this->localOffset);
     this->localOffset += (PrimSize(type) > 4) ? PrimSize(type) : 4;
-    printf("after the local offset is %d\n", this->localOffset);
+    debug("after the local offset is %d", this->localOffset);
     return this->localOffset;
 }
 
 int Compiler_GetParamOffset(Compiler this, enum ASTPRIM type) {
-    printf("the param offset is %d\n", this->paramOffset);
+    debug("the param offset is %d", this->paramOffset);
     this->paramOffset += (PrimSize(type) > 4) ? PrimSize(type) : 4;
-    printf("after the param offset is %d\n", this->paramOffset);
+    debug("after the param offset is %d", this->paramOffset);
     return this->paramOffset;
 }

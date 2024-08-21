@@ -8,8 +8,8 @@ SRCDIR = src
 OBJDIR = obj
 INCDIR = include
 
-# Add context.o and expr.o to the list of object files
-OBJS = $(OBJDIR)/main.o $(OBJDIR)/scan.o $(OBJDIR)/ast.o $(OBJDIR)/gen.o $(OBJDIR)/stmt.o $(OBJDIR)/sym.o $(OBJDIR)/decl.o $(OBJDIR)/comp.o $(OBJDIR)/asm.o $(OBJDIR)/types.o $(OBJDIR)/context.o $(OBJDIR)/expr.o
+# Add context.o, expr.o, and misc.o to the list of object files
+OBJS = $(OBJDIR)/main.o $(OBJDIR)/scan.o $(OBJDIR)/ast.o $(OBJDIR)/gen.o $(OBJDIR)/stmt.o $(OBJDIR)/sym.o $(OBJDIR)/decl.o $(OBJDIR)/comp.o $(OBJDIR)/asm.o $(OBJDIR)/types.o $(OBJDIR)/context.o $(OBJDIR)/expr.o $(OBJDIR)/misc.o
 
 # Default target
 all: $(TARGET)
@@ -78,6 +78,11 @@ $(OBJDIR)/context.o: $(SRCDIR)/context.c $(INCDIR)/context.h $(INCDIR)/flags.h
 $(OBJDIR)/expr.o: $(SRCDIR)/expr.c $(INCDIR)/expr.h $(INCDIR)/flags.h
 	mkdir -p $(OBJDIR)
 	$(CC) $(CFLAGS) -c $(SRCDIR)/expr.c -o $@
+
+# Rule to compile misc.c
+$(OBJDIR)/misc.o: $(SRCDIR)/misc.c $(INCDIR)/defs.h $(INCDIR)/misc.h
+	mkdir -p $(OBJDIR)
+	$(CC) $(CFLAGS) -c $(SRCDIR)/misc.c -o $@
 
 # Clean up generated files
 clean:

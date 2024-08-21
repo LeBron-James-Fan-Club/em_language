@@ -7,37 +7,38 @@
 #include "defs.h"
 #include "flags.h"
 #include "gen.h"
+#include "misc.h"
 #include "scan.h"
 #include "stmt.h"
 #include "sym.h"
+
+Flags flags;
 
 static void usage(char *path) {
     printf("Usage: %s [file] [outfile]\n", path);
     exit(-1);
 }
 
-int main(int argc, char *argv[]) {
+static int argParse(int argc, char *argv[]) {
     if (argc < 3) {
         usage(argv[0]);
     }
 
-    Flags f = {
-        .dumpAST = false,
-    };
+    flags = (Flags){.dumpAST = false, .debug = false};
 
     int i;
 
     for (i = 1; i < argc; i++) {
-#if DEBUG
-        printf("argv[%d] = %s\n", i, argv[i]);
-#endif
         if (*argv[i] != '-') {
             break;
         }
         for (int j = 1; argv[i][j] != '\0'; j++) {
             switch (argv[i][j]) {
                 case 'T':
-                    f.dumpAST = true;
+                    flags.dumpAST = true;
+                    break;
+                case 'd':
+                    flags.debug = true;
                     break;
                 default:
                     usage(argv[0]);
@@ -45,10 +46,21 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    return i;
+}
+
+int main(int argc, char *argv[]) {
+    if (argc < 3) {
+        usage(argv[0]);
+    }
+
+    argParse(argc, argv);
+
+    int i = argParse(argc, argv);
+
     Scanner s = Scanner_New(argv[i]);
     if (s == NULL) {
-        fprintf(stderr, "Error: unable to initialise scanner\n");
-        exit(-1);
+        fatal("InternalError: unable to initialise scanner\n");
     }
 
     Compiler c = Compiler_New(argv[i + 1]);
@@ -57,7 +69,7 @@ int main(int argc, char *argv[]) {
     Context ctx = Context_New();
 
     Scanner_Scan(s, tok);
-    global_declare(c, s, st, tok, ctx, f);
+    global_declare(c, s, st, tok, ctx);
     MIPS_Post(c);
 
     Compiler_GenData(c, st);
@@ -68,7 +80,10 @@ int main(int argc, char *argv[]) {
     free(tok);
     Context_Free(ctx);
 
-    printf("Success!\n");
+    printf(
+        "\033[32m"
+        "Success!"
+        "\033[0m\n");
 
     exit(0);
 }

@@ -2,6 +2,10 @@
 
 #include <stdio.h>
 
+#include "ast.h"
+#include "defs.h"
+#include "misc.h"
+
 bool inttype(enum ASTPRIM type) { return type == P_INT || type == P_CHAR; }
 
 bool ptrtype(enum ASTPRIM type) {
@@ -59,8 +63,7 @@ enum ASTPRIM pointer_to(enum ASTPRIM type) {
         case P_CHAR:
             return P_CHARPTR;
         default:
-            fprintf(stderr, "Error: Unknown type %d for pointer\n", type);
-            exit(-1);
+            fatala("InternalError: Unknown type %d for pointer", type);
     }
 }
 
@@ -73,7 +76,6 @@ enum ASTPRIM value_at(enum ASTPRIM type) {
         case P_CHARPTR:
             return P_CHAR;
         default:
-            fprintf(stderr, "Error: Unknown type %d for pointer\n", type);
-            exit(-1);
+            fatala("InternalError: Unknown type %d for pointer", type);
     }
 }
