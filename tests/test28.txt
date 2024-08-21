@@ -1,14 +1,14 @@
-int another(int a, int b, int c, int d, int e, int f, int g, int h, int i, int j);
+i32 another(i32 a, i32 b, i32 c, i32 d, i32 e, i32 f, i32 g, i32 h, i32 i, i32 j);
 
-int deez_nuts(int lol,
-             int lol2, int lol3, int lol4, int lol5, int lol6) {
+i32 deez_nuts(i32 lol,
+             i32 lol2, i32 lol3, i32 lol4, i32 lol5, i32 lol6) {
     
     print(lol,' ', lol2,' ', lol3,' ', lol4,' ', lol5,' ', lol6,' ', 10);
     return 1;
 }
 
-int main() {
-    int a;
+i32 main() {
+    i32 a;
     a = 0;
     a += 2;
     a *= (2 + 2) * 2;
@@ -19,7 +19,7 @@ int main() {
 }
 
 
-int another(int a, int b, int c, int d, int e, int f, int g, int h, int i, int j) {
+i32 another(i32 a, i32 b, i32 c, i32 d, i32 e, i32 f, i32 g, i32 h, i32 i, i32 j) {
     
     print(a,' ', b,' ', c,' ', d,' ', e,' ', f,' ', g,' ', h,' ', i,' ', j,' ', 10);
     return 1;

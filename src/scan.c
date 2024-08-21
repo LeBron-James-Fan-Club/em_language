@@ -260,8 +260,6 @@ bool Scanner_Scan(Scanner this, Token t) {
 
 static int keyword(char *s) {
     switch (*s) {
-        case 'c':
-            if (!strcmp(s, "char")) return T_CHAR;
         case 'f':
             if (!strcmp(s, "for")) return T_FOR;
         case 'e':
@@ -270,7 +268,8 @@ static int keyword(char *s) {
             if (!strcmp(s, "goto")) return T_GOTO;
         case 'i':
             if (!strcmp(s, "input")) return T_INPUT;
-            if (!strcmp(s, "int")) return T_INT;
+            if (!strcmp(s, "i32")) return T_INT;
+            if (!strcmp(s, "i8")) return T_CHAR;
             if (!strcmp(s, "if")) return T_IF;
         case 'l':
             if (!strcmp(s, "label")) return T_LABEL;

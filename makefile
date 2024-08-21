@@ -5,9 +5,8 @@ LDFLAGS = -fsanitize=address,undefined
 
 # Directories
 SRC_DIR = src
-BUILD_DIR = build
-OBJ_DIR = $(BUILD_DIR)/obj
-TARGET = $(BUILD_DIR)/em
+OBJ_DIR = obj
+TARGET = bin/a
 
 # Source files
 SRC_FILES = $(wildcard $(SRC_DIR)/**/*.c $(SRC_DIR)/*.c)

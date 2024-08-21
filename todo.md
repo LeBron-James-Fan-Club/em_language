@@ -6,8 +6,10 @@
     - Will need to use a tmp txt file to cache assembly beforehand
      to write the reg uses
 - Add structure comment
-- all int is explicit
+- all int is explicit - done
     - u8, i8, u16, i16, u32, i32
+
+- implement 16 bit integers
 
 - vars declaration is b : i32 = 2 * 4;
 - need to have directives that define constants in the assembly files
