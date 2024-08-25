@@ -9,6 +9,7 @@
 
 #include "defs.h"
 #include "scan.h"
+#include "context.h"
 
 #define MAX_SYMBOLS 1024
 
@@ -57,20 +58,25 @@ typedef struct symTable *SymTable;
 
 SymTable SymTable_New(void);
 void SymTable_Free(SymTable);
-int SymTable_Find(SymTable this, Scanner s, enum STRUCTTYPE stype);
-SymTableEntry addGlob(SymTable this, char *name, enum ASTPRIM type,
+SymTableEntry SymTable_AddGlob(SymTable this, Scanner s, enum ASTPRIM type,
                       SymTableEntry ctype, enum STRUCTTYPE stype, int size);
-SymTableEntry addLocl(SymTable this, char *name, enum ASTPRIM type,
+SymTableEntry SymTable_AddLocl(SymTable this, Scanner s, enum ASTPRIM type,
                       SymTableEntry ctype, enum STRUCTTYPE stype, int size);
-SymTableEntry addParam(SymTable this, char *name, enum ASTPRIM type,
+SymTableEntry SymTable_AddParam(SymTable this, Scanner s, enum ASTPRIM type,
                        SymTableEntry ctype, enum STRUCTTYPE stype, int size);
-SymTableEntry addMemb(SymTable this, char *name, enum ASTPRIM type,
+SymTableEntry SymTable_AddMemb(SymTable this, Scanner s, enum ASTPRIM type,
                       SymTableEntry ctype, enum STRUCTTYPE stype, int size);
-SymTableEntry addStruct(SymTable this, char *name, enum ASTPRIM type,
+SymTableEntry SymTable_AddStruct(SymTable this, Scanner s, enum ASTPRIM type,
                         SymTableEntry ctype, enum STRUCTTYPE stype, int size);
-SymTableEntry findSymInList(char *name, SymTableEntry head);
-void SymTable_SetValue(SymTable this, int id, int intvalue);
-void SymTable_SetText(SymTable this, Scanner s, int id);
+
+SymTableEntry SymTable_FindGlob(SymTable this, Scanner s);
+SymTableEntry SymTable_FindLocl(SymTable this, Scanner s);
+SymTableEntry SymTable_FindMember(SymTable this, Scanner s);
+SymTableEntry SymTable_FindStruct(SymTable this, Scanner s);
+SymTableEntry SymTable_FindSymInList(Scanner s, SymTableEntry head);
+SymTableEntry SymTable_FindSymbol(SymTable this, Scanner s, Context c);
+void SymTable_SetValue(SymTable this, SymTableEntry e, int intvalue);
+void SymTable_SetText(SymTable this, Scanner s, SymTableEntry e);
 void SymTable_ResetLocls(SymTable this);
 
 #endif

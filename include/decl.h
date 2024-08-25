@@ -12,8 +12,8 @@
 
 enum ASTPRIM parse_type(Scanner s, Token tok);
 
-void var_declare(Scanner s, SymTable st, Token tok,
-                 enum ASTPRIM type, enum STORECLASS store);
+void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
+                 SymTableEntry ctype, enum STORECLASS store);
 void global_declare(Compiler c, Scanner s, SymTable st, Token tok, Context ctx);
 ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
                          Context ctx, enum ASTPRIM type);

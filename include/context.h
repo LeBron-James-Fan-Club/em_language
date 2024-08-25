@@ -2,9 +2,10 @@
 #define CONTEXT_H
 
 #include <stdlib.h>
+#include "sym.h"
 
 struct context {
-    int functionId;
+    SymTableEntry functionId;
 };
 
 typedef struct context *Context;

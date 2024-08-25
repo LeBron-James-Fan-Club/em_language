@@ -8,7 +8,7 @@ static int var_declare_list(Scanner s, SymTable st, Token tok,
                             enum OPCODES sep, enum OPCODES end);
 
 void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
-                 enum STORECLASS store) {
+                 SymTableEntry ctype, enum STORECLASS store) {
     //* int x[2], a;
 
     // TODO : Support array initialisation
@@ -20,32 +20,29 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
             //! I don't think i calculated the offset for the size yet
 
             Scanner_Scan(s, tok);
-            if (tok->token == T_INTLIT) {
-                // temp til implemented
-                if (store == C_LOCAL) {
-                    lfatal(
-                        s,
-                        "UnsupportedError: local variables cannot be arrays");
-                }
-
-                SymTable_Add(st, s, pointer_to(type), S_ARRAY, store,
-                             tok->intvalue, false);
-            } else {
-                SymTable_Add(st, s, pointer_to(type), S_VAR, store, 1, false);
+            if (store == C_LOCAL || store == C_PARAM || store == C_MEMBER) {
+                lfatal(s,
+                       "UnsupportedError: local, params or member variables "
+                       "cannot be arrays");
             }
+            SymTable_AddGlob(st, s, pointer_to(type), S_ARRAY, ctype,
+                             (tok->token == T_INTLIT) ? tok->intvalue : 1,
+                             false);
             Scanner_Scan(s, tok);
             match(s, tok, T_RBRACKET, "]");
         } else if (tok->token == T_ASSIGN) {
-            if (store == C_LOCAL || store == C_PARAM) {
+            if (store == C_LOCAL || store == C_PARAM || store == C_MEMBER) {
                 lfatal(s,
-                       "UnsupportedError: local variables and parameters "
+                       "UnsupportedError: local variables, parameters and "
+                       "member variables "
                        "cannot be initialised");
             }
 
             Scanner_Scan(s, tok);
 
             // Only for scalar types
-            int id = SymTable_Add(st, s, type, S_VAR, store, 1, false);
+            SymTableEntry e =
+                SymTable_AddGlob(st, s, type, S_VAR, ctype, 1, false);
             // For now until lazy evaluation is implemented
             // we stick with singular values
 
@@ -55,7 +52,7 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
             //! but disabled for now just in case
 
             if (tok->token == T_INTLIT) {
-                SymTable_SetValue(st, id, tok->intvalue);
+                SymTable_SetValue(st, e, tok->intvalue);
             } else {
                 lfatal(s,
                        "UnsupportedError: only integer literals are supported");
@@ -67,12 +64,32 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
         } else {
             if (store == C_LOCAL) {
                 debug("Adding local variable %s", s->text);
-                if (SymTable_Add(st, s, type, S_VAR, store, 1, false) == -1) {
+                if (SymTable_FindLocl(st, s) != NULL) {
                     lfatala(s, "DuplicateError: Duplicate local variable %s",
                             s->text);
                 }
+                SymTable_AddLocl(st, s, type, S_VAR, ctype, 1, false);
+            } else if (store == C_MEMBER) {
+                debug("Adding member variable %s", s->text);
+                if (SymTable_FindMember(st, s) != NULL) {
+                    lfatala(s, "DuplicateError: Duplicate member variable %s",
+                            s->text);
+                }
+                SymTable_AddMemb(st, s, type, S_VAR, ctype, 1, false);
+            } else if (store == C_PARAM) {
+                debug("Adding parameter %s", s->text);
+                if (SymTable_FindParam(st, s) != NULL) {
+                    lfatala(s, "DuplicateError: Duplicate parameter %s",
+                            s->text);
+                }
+                SymTable_AddParam(st, s, type, S_VAR, ctype, 1, false);
             } else {
-                SymTable_Add(st, s, type, S_VAR, store, 1, false);
+                debug("Adding global variable %s", s->text);
+                if (SymTable_FindGlob(st, s) != NULL) {
+                    lfatala(s, "DuplicateError: Duplicate global variable %s",
+                            s->text);
+                }
+                SymTable_AddGlob(st, s, type, S_VAR, ctype, 1, false);
             }
         }
 
@@ -120,18 +137,17 @@ static int var_declare_list(Scanner s, SymTable st, Token tok,
             protoPtr = protoPtr->next;
         }
 
-        var_declare(s, st, tok, type, store);
+        var_declare(s, st, tok, type, cType, store);
         paramCnt++;
 
-
         if (tok->token != sep && tok->token != end) {
-            lfatala(s, "SyntaxError: expected comma or right parenthesis got %d",
+            lfatala(s,
+                    "SyntaxError: expected comma or right parenthesis got %d",
                     tok->token);
         }
         if (tok->token == sep) {
             Scanner_Scan(s, tok);
         }
-
     }
 
     if (funcSym != NULL && paramCnt != funcSym->nElems) {
@@ -144,12 +160,13 @@ static int var_declare_list(Scanner s, SymTable st, Token tok,
 void global_declare(Compiler c, Scanner s, SymTable st, Token tok,
                     Context ctx) {
     ASTnode tree;
+    SymTableEntry cType;
     enum ASTPRIM type;
 
     while (true) {
         SymTable_ResetLocls(st);
 
-        type = parse_type(s, tok, NULL);
+        type = parse_type(s, tok, &cType);
         ident(s, tok);
         if (tok->token == T_LPAREN) {
             tree = function_declare(c, s, st, tok, ctx, type);
@@ -165,9 +182,8 @@ void global_declare(Compiler c, Scanner s, SymTable st, Token tok,
 
             Compiler_Gen(c, st, ctx, tree);
             ASTnode_Free(tree);
-
         } else {
-            var_declare(s, st, tok, type, C_GLOBAL);
+            var_declare(s, st, tok, type, cType, C_GLOBAL);
         }
         if (tok->token == T_EOF) break;
     }
@@ -181,14 +197,14 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
 
     ASTnode tree, finalstmt;
 
-    if ((oldFuncSym = SymTable_Find(st, s, S_FUNC)) != NULL) {
+    if ((oldFuncSym = SymTable_FindSymbol(st, s, ctx)) != NULL) {
         if (oldFuncSym->stype != S_FUNC) {
-            id = -1;
+            oldFuncSym = NULL;
         }
     }
 
-    if (id == -1) {
-        nameSlot = SymTable_Add(st, s, type, S_FUNC, C_GLOBAL, 1, false);
+    if (oldFuncSym == NULL) {
+        newFuncSym = SymTable_AddGlob(st, s, type, S_FUNC, NULL, 1);
     }
 
     lparen(s, tok);
@@ -196,9 +212,13 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
     // printf("param count is %d\n", paramCnt);
     rparen(s, tok);
 
-    if (id == -1) {
-        st->Gsym[nameSlot].nElems = paramCnt;
+    if (newFuncSym) {
+        newFuncSym->nElems = paramCnt;
+        newFuncSym->member = st->paramHead;
+        oldFuncSym = newFuncSym;
     }
+
+    st->paramHead = st->paramTail = NULL;
 
     // This is only a proto
     if (tok->token == T_SEMI) {
@@ -207,13 +227,7 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
         return NULL;
     }
 
-    if (id == -1) {
-        id = nameSlot;
-    }
-
-    ctx->functionId = id;
-
-    SymTable_CopyFuncParams(st, id);
+    ctx->functionId = oldFuncSym;
 
     // printf("after params\n");
 
@@ -226,7 +240,7 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
         }
     }
 
-    return ASTnode_NewUnary(A_FUNCTION, P_VOID, tree, id);
+    return ASTnode_NewUnary(A_FUNCTION, P_VOID, tree, oldFuncSym);
 }
 
 enum ASTPRIM parse_type(Scanner s, Token tok, SymTableEntry *ctype) {

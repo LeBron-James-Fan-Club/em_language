@@ -1,6 +1,8 @@
 #include "sym.h"
 
 #include "misc.h"
+#include "scan.h"
+#include "context.h"
 
 
 static void freeList(SymTableEntry head);
@@ -22,7 +24,7 @@ static SymTableEntry SymTableEntryNew(char *name, enum ASTPRIM type,
         fatal("InternalError: Unable to allocate memory for SymTableEntry");
     }
 
-    e->name = name;
+    e->name = strdup(name);
     e->type = type;
     e->ctype = ctype;
 
@@ -50,79 +52,92 @@ static void pushSym(SymTableEntry *head, SymTableEntry *tail, SymTableEntry e) {
     e->next = NULL;
 }
 
-SymTableEntry SymTable_addGlob(SymTable this, char *name, enum ASTPRIM type,
+SymTableEntry SymTable_AddGlob(SymTable this, Scanner s, enum ASTPRIM type,
                              SymTableEntry ctype, enum STRUCTTYPE stype,
                              int size) {
     SymTableEntry e =
-        SymTableEntryNew(name, type, ctype, stype, C_GLOBAL, size, 0);
+        SymTableEntryNew(s->text, type, ctype, stype, C_GLOBAL, size, 0);
 
     pushSym(&this->globHead, &this->globTail, e);
     return e;
 }
 
-SymTableEntry SymTable_addLocl(SymTable this, char *name, enum ASTPRIM type,
+SymTableEntry SymTable_AddLocl(SymTable this, Scanner s, enum ASTPRIM type,
                              SymTableEntry ctype, enum STRUCTTYPE stype,
                              int size) {
     SymTableEntry e =
-        SymTableEntryNew(name, type, ctype, stype, C_LOCAL, size, 0);
+        SymTableEntryNew(s->text, type, ctype, stype, C_LOCAL, size, 0);
 
     pushSym(&this->loclHead, &this->loclTail, e);
     return e;
 }
 
-SymTableEntry SymTable_addParam(SymTable this, char *name, enum ASTPRIM type,
+SymTableEntry SymTable_AddParam(SymTable this, Scanner s, enum ASTPRIM type,
                               SymTableEntry ctype, enum STRUCTTYPE stype,
                               int size) {
     SymTableEntry e =
-        SymTableEntryNew(name, type, ctype, stype, C_PARAM, size, 0);
+        SymTableEntryNew(s->text, type, ctype, stype, C_PARAM, size, 0);
 
     pushSym(&this->paramHead, &this->paramTail, e);
     return e;
 }
 
-SymTableEntry SymTable_addMemb(SymTable this, char *name, enum ASTPRIM type,
+SymTableEntry SymTable_AddMemb(SymTable this, Scanner s, enum ASTPRIM type,
                              SymTableEntry ctype, enum STRUCTTYPE stype,
                              int size) {
     SymTableEntry e =
-        SymTableEntryNew(name, type, ctype, stype, C_MEMBER, size, 0);
+        SymTableEntryNew(s->text, type, ctype, stype, C_MEMBER, size, 0);
 
     pushSym(&this->membHead, &this->membTail, e);
     return e;
 }
 
-SymTableEntry SymTable_addStruct(SymTable this, char *name, enum ASTPRIM type,
+SymTableEntry SymTable_AddStruct(SymTable this, Scanner s, enum ASTPRIM type,
                                SymTableEntry ctype, enum STRUCTTYPE stype,
                                int size) {
     SymTableEntry e =
-        SymTableEntryNew(name, type, ctype, stype, C_STRUCT, size, 0);
+        SymTableEntryNew(s->text, type, ctype, stype, C_STRUCT, size, 0);
 
     pushSym(&this->structHead, &this->structTail, e);
     return e;
 }
 
-SymTableEntry SymTable_findSymInList(char *name, SymTableEntry head) {
+SymTableEntry SymTable_FindSymInList(Scanner s, SymTableEntry head) {
     for (; head != NULL; head = head->next) {
-        if (head->name != NULL && !strcmp(name, head->name)) {
+        if (head->name != NULL && !strcmp(s->text, head->name)) {
             return head;
         }
     }
     return NULL;
 }
 
-SymTableEntry SymTable_findGlob(SymTable this, char *s) {
-    return findSymInList(s, this->globHead);
+SymTableEntry SymTable_FindGlob(SymTable this, Scanner s) {
+    return SymTable_FindSymInList(s, this->globHead);
 }
 
-SymTableEntry SymTable_findLocl(SymTable this, char *s) {
-    return findSymInList(s, this->loclHead);
+SymTableEntry SymTable_FindLocl(SymTable this, Scanner s) {
+    return SymTable_FindSymInList(s, this->loclHead);
 }
 
-SymTableEntry SymTable_findMember(SymTable this, char *s) {
-    return findSymInList(s, this->membHead);
+SymTableEntry SymTable_FindMember(SymTable this, Scanner s) {
+    return SymTable_FindSymInList(s, this->membHead);
 }
 
-SymTableEntry SymTable_findStruct(SymTable this, char *s) {
-    return findSymInList(s, this->structHead);
+SymTableEntry SymTable_FindStruct(SymTable this, Scanner s) {
+    return SymTable_FindSymInList(s, this->structHead);
+}
+
+SymTableEntry SymTable_FindSymbol(SymTable this, Scanner s, Context c) {
+
+    SymTableEntry e;
+    if (c->functionId) {
+        e = SymTable_FindSymInList(s, c->functionId->member);
+        if (e) return e;
+    }
+    e = SymTable_FindLocl(this, s);
+    if (e) return e;
+
+    return SymTable_FindGlob(this, s);
 }
 
 SymTable SymTable_New(void) {
@@ -153,15 +168,10 @@ void SymTable_Free(SymTable this) {
     free(this);
 }
 
-/*
-void SymTable_CopyFuncParams(SymTable this, int slot) {
-    int id = slot + 1;
-    for (int i = 0; i < this->Gsym[slot].nElems; i++, id++) {
-        int newId = SymTable_LoclNew(this);
-        debug("Copying %s to %s", this->Gsym[id].name, this->Gsym[newId].name);
-        SymTable_Update(this, newId, strdup(this->Gsym[id].name),
-                        this->Gsym[id].type, this->Gsym[id].stype, C_LOCAL,
-                        this->Gsym[id].size, 0);
-    }
+void SymTable_SetValue(SymTable this, SymTableEntry e, int intvalue) {
+    e->value = intvalue;
 }
-*/
+
+void SymTable_SetText(SymTable this, Scanner s, SymTableEntry e) {
+    e->strValue = strdup(s->text);
+}
