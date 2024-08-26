@@ -7,8 +7,50 @@ static int var_declare_list(Scanner s, SymTable st, Token tok,
                             SymTableEntry funcSym, enum STORECLASS store,
                             enum OPCODES sep, enum OPCODES end);
 
+static SymTableEntry struct_declare(Scanner s, SymTable st, Token tok) {
+    SymTableEntry cType = NULL;
+    SymTableEntry memb;
+
+    int offset;
+    Scanner_Scan(s, tok);
+
+    if (tok->token == T_IDENT) {
+        cType = SymTable_FindStruct(st, s);
+        Scanner_Scan(s, tok);
+    }
+
+    if (tok->token != T_LBRACE) {
+        if (cType == NULL) {
+            lfatala(s, "UndefinedError: struct %s is not defined", s->text);
+        }
+        return cType;
+    }
+
+    if (cType) {
+        lfatal(s, "DuplicateError: struct already defined");
+    }
+
+    cType = SymTable_AddStruct(st, s, P_STRUCT, NULL, S_VAR, 0);
+    Scanner_Scan(s, tok);
+
+    var_declare_list(s, st, tok, NULL, C_MEMBER, T_SEMI, T_RBRACE);
+    rbrace(s, tok);
+
+    cType->member = st->membHead;
+    st->membHead = st->membTail = NULL;
+
+    memb = cType->member;
+    memb->offset = 0;
+    offset = type_size(memb->type, memb->ctype);
+
+    for (memb = memb->next; memb != NULL; memb = memb->next) {
+        memb->offset = MIPS_Align(offset, offset, 1);
+        offset += type_size(memb->type, memb->ctype);
+    }
+}
+
 void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
-                 SymTableEntry ctype, enum STORECLASS store) {
+                 SymTableEntry cType, enum STORECLASS store) {
     //* int x[2], a;
 
     // TODO : Support array initialisation
@@ -21,28 +63,25 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
 
             Scanner_Scan(s, tok);
             if (store == C_LOCAL || store == C_PARAM || store == C_MEMBER) {
-                lfatal(s,
-                       "UnsupportedError: local, params or member variables "
-                       "cannot be arrays");
+                lfatal(s, "UnsupportedError: only globals can be arrays");
             }
-            SymTable_AddGlob(st, s, pointer_to(type), S_ARRAY, ctype,
-                             (tok->token == T_INTLIT) ? tok->intvalue : 1,
-                             false);
+
+            SymTable_AddGlob(st, s, pointer_to(type), cType, S_ARRAY,
+                             tok->token == T_INTLIT ? tok->intvalue : 1);
             Scanner_Scan(s, tok);
             match(s, tok, T_RBRACKET, "]");
         } else if (tok->token == T_ASSIGN) {
             if (store == C_LOCAL || store == C_PARAM || store == C_MEMBER) {
                 lfatal(s,
-                       "UnsupportedError: local variables, parameters and "
-                       "member variables "
-                       "cannot be initialised");
+                       "UnsupportedError: only globals can"
+                       "be initialised");
             }
 
             Scanner_Scan(s, tok);
 
             // Only for scalar types
-            SymTableEntry e =
-                SymTable_AddGlob(st, s, type, S_VAR, ctype, 1, false);
+            SymTableEntry sym = SymTable_AddGlob(st, s, type, cType, S_VAR, 0);
+
             // For now until lazy evaluation is implemented
             // we stick with singular values
 
@@ -52,7 +91,7 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
             //! but disabled for now just in case
 
             if (tok->token == T_INTLIT) {
-                SymTable_SetValue(st, e, tok->intvalue);
+                SymTable_SetValue(st, sym, tok->intvalue);
             } else {
                 lfatal(s,
                        "UnsupportedError: only integer literals are supported");
@@ -62,34 +101,37 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
             // TODO : check if there is wrong syntax?
             // TODO: NVM it does it below
         } else {
-            if (store == C_LOCAL) {
-                debug("Adding local variable %s", s->text);
-                if (SymTable_FindLocl(st, s) != NULL) {
-                    lfatala(s, "DuplicateError: Duplicate local variable %s",
-                            s->text);
-                }
-                SymTable_AddLocl(st, s, type, S_VAR, ctype, 1, false);
-            } else if (store == C_MEMBER) {
-                debug("Adding member variable %s", s->text);
-                if (SymTable_FindMember(st, s) != NULL) {
-                    lfatala(s, "DuplicateError: Duplicate member variable %s",
-                            s->text);
-                }
-                SymTable_AddMemb(st, s, type, S_VAR, ctype, 1, false);
-            } else if (store == C_PARAM) {
-                debug("Adding parameter %s", s->text);
-                if (SymTable_FindParam(st, s) != NULL) {
-                    lfatala(s, "DuplicateError: Duplicate parameter %s",
-                            s->text);
-                }
-                SymTable_AddParam(st, s, type, S_VAR, ctype, 1, false);
-            } else {
-                debug("Adding global variable %s", s->text);
-                if (SymTable_FindGlob(st, s) != NULL) {
-                    lfatala(s, "DuplicateError: Duplicate global variable %s",
-                            s->text);
-                }
-                SymTable_AddGlob(st, s, type, S_VAR, ctype, 1, false);
+            switch (store) {
+                case C_GLOBAL:
+                    debug("Adding global variable %s", s->text);
+                    if (SymTable_AddGlob(st, s, type, cType, S_VAR, 1) == -1) {
+                        lfatala(s,
+                                "DuplicateError: Duplicate global variable %s",
+                                s->text);
+                    }
+                    break;
+                case C_PARAM:
+                    debug("Adding parameter %s", s->text);
+                    if (SymTable_AddParam(st, s, type, cType, S_VAR, 1) == -1) {
+                        lfatala(s, "DuplicateError: Duplicate parameter %s",
+                                s->text);
+                    }
+                    break;
+                case C_MEMBER:
+                    debug("Adding member %s", s->text);
+                    if (SymTable_AddMemb(st, s, type, cType, S_VAR, 1) == -1) {
+                        lfatala(s, "DuplicateError: Duplicate member %s",
+                                s->text);
+                    }
+                    break;
+                case C_LOCAL:
+                    debug("Adding local variable %s", s->text);
+                    if (SymTable_AddLocl(st, s, type, cType, S_VAR, 1) == -1) {
+                        lfatala(s,
+                                "DuplicateError: Duplicate local variable %s",
+                                s->text);
+                    }
+                    break;
             }
         }
 
@@ -110,6 +152,7 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
     }
 }
 
+
 static int var_declare_list(Scanner s, SymTable st, Token tok,
                             SymTableEntry funcSym, enum STORECLASS store,
                             enum OPCODES sep, enum OPCODES end) {
@@ -126,7 +169,7 @@ static int var_declare_list(Scanner s, SymTable st, Token tok,
     }
 
     while (tok->token != end) {
-        type = parse_type(s, tok, &cType);
+        type = parse_type(s, st, tok, &cType);
         ident(s, tok);
 
         if (protoPtr != NULL) {
@@ -160,13 +203,13 @@ static int var_declare_list(Scanner s, SymTable st, Token tok,
 void global_declare(Compiler c, Scanner s, SymTable st, Token tok,
                     Context ctx) {
     ASTnode tree;
-    SymTableEntry cType;
     enum ASTPRIM type;
+    SymTableEntry cType;
 
     while (true) {
-        SymTable_ResetLocls(st);
+        // SymTable_ResetLocls(st);
 
-        type = parse_type(s, tok, &cType);
+        type = parse_type(s, st, tok, &cType);
         ident(s, tok);
         if (tok->token == T_LPAREN) {
             tree = function_declare(c, s, st, tok, ctx, type);
@@ -182,6 +225,10 @@ void global_declare(Compiler c, Scanner s, SymTable st, Token tok,
 
             Compiler_Gen(c, st, ctx, tree);
             ASTnode_Free(tree);
+
+            SymTable_FreeLocls(st);
+            Context_SetFunctionId(ctx, NULL);
+
         } else {
             var_declare(s, st, tok, type, cType, C_GLOBAL);
         }
@@ -204,11 +251,12 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
     }
 
     if (oldFuncSym == NULL) {
-        newFuncSym = SymTable_AddGlob(st, s, type, S_FUNC, NULL, 1);
+        oldFuncSym = SymTable_AddGlob(st, s, type, NULL, S_FUNC, 1);
     }
 
     lparen(s, tok);
-    paramCnt = var_declare_list(s, st, tok, C_PARAM, T_COMMA, T_RPAREN);
+    paramCnt =
+        var_declare_list(s, st, tok, oldFuncSym, C_PARAM, T_COMMA, T_RPAREN);
     // printf("param count is %d\n", paramCnt);
     rparen(s, tok);
 
@@ -222,28 +270,25 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
 
     // This is only a proto
     if (tok->token == T_SEMI) {
-        //        printf("proto\n");
+        debug("proto");
         Scanner_Scan(s, tok);
         return NULL;
     }
 
     ctx->functionId = oldFuncSym;
 
-    // printf("after params\n");
-
     tree = Compound_Statement(c, s, st, tok, ctx);
-    // printf("the local offset is %d\n", c->localOffset);
     if (type != P_VOID) {
-        finalstmt = (tree->op == A_GLUE) ? tree->right : tree;
+        finalstmt = tree->op == A_GLUE ? tree->right : tree;
         if (finalstmt == NULL || finalstmt->op != A_RETURN) {
             fatal("NoReturnError: non-void function must return a value\n");
         }
     }
 
-    return ASTnode_NewUnary(A_FUNCTION, P_VOID, tree, oldFuncSym);
+    return ASTnode_NewUnary(A_FUNCTION, P_VOID, tree, NULL, 0);
 }
 
-enum ASTPRIM parse_type(Scanner s, Token tok, SymTableEntry *ctype) {
+enum ASTPRIM parse_type(Scanner s, SymTable st, Token tok, SymTableEntry *ctype) {
     enum ASTPRIM type;
     switch (tok->token) {
         case T_INT:
@@ -257,7 +302,7 @@ enum ASTPRIM parse_type(Scanner s, Token tok, SymTableEntry *ctype) {
             break;
         case T_STRUCT:
             type = P_STRUCT;
-            *ctype = struct_declare(s, tok);
+            *ctype = struct_declare(s, st, tok);
             break;
         default:
             fatala("InternalError: unknown type %d", tok->token);

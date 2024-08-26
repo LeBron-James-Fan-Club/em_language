@@ -2,7 +2,7 @@
 ### This converts c-like code into MIPS (32 bit)
 
 ## !!! IMPORTANT !!!
-## Local/Parameters are broken now cause of a code edit
+## Local/Parameters are broken now cause of a code edit - fixed (maybe)
 
 ## Features
  - If statements

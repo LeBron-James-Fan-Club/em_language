@@ -9,7 +9,10 @@
 
 #include "defs.h"
 #include "scan.h"
-#include "context.h"
+
+
+// forward declaration
+typedef struct context *Context;
 
 #define MAX_SYMBOLS 1024
 
@@ -77,6 +80,6 @@ SymTableEntry SymTable_FindSymInList(Scanner s, SymTableEntry head);
 SymTableEntry SymTable_FindSymbol(SymTable this, Scanner s, Context c);
 void SymTable_SetValue(SymTable this, SymTableEntry e, int intvalue);
 void SymTable_SetText(SymTable this, Scanner s, SymTableEntry e);
-void SymTable_ResetLocls(SymTable this);
+void SymTable_FreeLocls(SymTable this);
 
 #endif

@@ -4,17 +4,17 @@
 #include <stdlib.h>
 #include "sym.h"
 
+typedef struct context *Context;
+
 struct context {
     SymTableEntry functionId;
 };
-
-typedef struct context *Context;
 
 Context Context_New(void);
 
 void Context_Free(Context this);
 
 void Context_SetFunctionId(Context this, int id);
-int Context_GetFunctionId(Context this);
+SymTableEntry Context_GetFunctionId(Context this);
 
 #endif

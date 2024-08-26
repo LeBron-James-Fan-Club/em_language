@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 
+#include "asm.h"
 #include "ast.h"
 #include "defs.h"
 #include "misc.h"
@@ -12,11 +13,16 @@ bool ptrtype(enum ASTPRIM type) {
     return type == P_VOIDPTR || type == P_INTPTR || type == P_CHARPTR;
 }
 
+int type_size(enum ASTPRIM type, SymTableEntry cType) {
+    if (type == P_STRUCT) return cType->size;
+    return PrimSize(type);
+}
+
 ASTnode modify_type(ASTnode tree, enum ASTPRIM rtype, enum ASTOP op) {
     enum ASTPRIM ltype;
     int lsize, rsize;
     ltype = tree->type;
-    
+
     if ((inttype(ltype) && inttype(rtype)) ||
         // For assignment operator
         (ptrtype(ltype) && ptrtype(rtype))) {
@@ -26,7 +32,7 @@ ASTnode modify_type(ASTnode tree, enum ASTPRIM rtype, enum ASTOP op) {
         if (lsize > rsize) {
             return NULL;
         } else if (lsize < rsize) {
-            return ASTnode_NewUnary(A_WIDEN, ltype, tree, 0);
+            return ASTnode_NewUnary(A_WIDEN, ltype, tree, NULL, 0);
         }
     }
 
@@ -43,7 +49,7 @@ ASTnode modify_type(ASTnode tree, enum ASTPRIM rtype, enum ASTOP op) {
         if (inttype(ltype) && ptrtype(rtype)) {
             rsize = PrimSize(value_at(rtype));
             if (rsize > 1) {
-                return ASTnode_NewUnary(A_SCALE, rtype, tree, rsize);
+                return ASTnode_NewUnary(A_SCALE, rtype, tree, NULL, rsize);
             } else {
                 return tree;
             }

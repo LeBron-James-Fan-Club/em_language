@@ -48,7 +48,7 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
         case A_FUNCTION:
             MIPS_PreFunc(this, st, ctx);
             genAST(this, st, NO_LABEL, ctx, n->left, n->op);
-            MIPS_PostFunc(this, st, ctx);
+            MIPS_PostFunc(this, ctx);
             return NO_REG;
         case A_FUNCCALL:
             return genFUNCCALLAST(this, st, ctx, n);
@@ -109,10 +109,10 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             return MIPS_Load(this, n->intvalue);
         case A_IDENT:
             if (n->rvalue || parentASTop == A_DEREF) {
-                if (st->Gsym[n->id].class == C_GLOBAL) {
-                    return MIPS_LoadGlob(this, st, n->id, n->op);
+                if (n->sym->class == C_GLOBAL) {
+                    return MIPS_LoadGlob(this, n->sym, n->op);
                 } else {
-                    return MIPS_LoadLocal(this, st, n->id, n->op);
+                    return MIPS_LoadLocal(this, n->sym, n->op);
                 }
             } else {
                 return NO_REG;
@@ -123,12 +123,12 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             }
             switch (n->right->op) {
                 case A_IDENT:
-                    if (st->Gsym[n->right->id].class == C_GLOBAL) {
-                        return MIPS_StoreGlob(this, leftReg, st,
-                                              n->right->id);
+                    if (n->sym->class == C_GLOBAL) {
+                        return MIPS_StoreGlob(this, leftReg,
+                                              n->right->sym);
                     } else {
-                        return MIPS_StoreLocal(this, leftReg, st,
-                                               n->right->id);
+                        return MIPS_StoreLocal(this, leftReg,
+                                               n->right->sym);
                     }
                 case A_DEREF:
                     //! bug: storing wrong type - idk if this is fixed yet
@@ -157,20 +157,18 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
         case A_PEEK:
             return MIPS_Peek(this, leftReg, rightReg);
         case A_LABEL:
-            MIPS_GotoLabel(this, st, n->id);
+            MIPS_GotoLabel(this, n->sym);
             return NO_REG;
         case A_GOTO:
-            MIPS_GotoJump(this, st, n->id);
+            MIPS_GotoJump(this, n->sym);
             return NO_REG;
         case A_WIDEN:
             return MIPS_Widen(this, leftReg, n->type);
         case A_RETURN:
-            // TODO: Why am I returning id only?
-            // What if its a number?
-            MIPS_Return(this, st, leftReg, ctx);
+            MIPS_Return(this, leftReg, ctx);
             return NO_REG;
         case A_ADDR:
-            return MIPS_Address(this, st, n->id);
+            return MIPS_Address(this, n->sym);
         case A_DEREF:
             if (n->rvalue) {
                 if (n->left == NULL) {
@@ -194,7 +192,7 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
                     return MIPS_Mul(this, leftReg, rightReg);
             }
         case A_STRLIT:
-            return MIPS_LoadGlobStr(this, st, n->id);
+            return MIPS_LoadGlobStr(this, n->sym);
 
         case A_AND:
             return MIPS_BitAND(this, leftReg, rightReg);
@@ -217,10 +215,10 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             if (n->left == NULL) {
                 fatal("InternalError: Left side of preinc is NULL");
             }
-            return MIPS_LoadGlob(this, st, n->left->id, n->op);
+            return MIPS_LoadGlob(this, n->left->sym, n->op);
         case A_POSTINC:
         case A_POSTDEC:
-            return MIPS_LoadGlob(this, st, n->id, n->op);
+            return MIPS_LoadGlob(this, n->sym, n->op);
         case A_TOBOOL:
             return MIPS_ToBool(this, parentASTop, leftReg, label);
         default:
@@ -292,5 +290,5 @@ static int genFUNCCALLAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
         numArgs++;
     }
 
-    return MIPS_Call(this, st, n->id);
+    return MIPS_Call(this, n->sym);
 }

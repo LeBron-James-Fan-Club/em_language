@@ -17,11 +17,11 @@ struct astnode {
     struct astnode *left;
     struct astnode *mid;
     struct astnode *right;
+    SymTableEntry sym;
     // Boolean but will be used as a bitfield later on
     int rvalue;
     union {
         int intvalue; // for INTLIT
-        int id; // Var lookup
         int size; // for A_SCALE: size to scale
     };
 };
@@ -30,10 +30,11 @@ typedef struct astnode *ASTnode;
 
 
 ASTnode ASTnode_New(enum ASTOP op, enum ASTPRIM type, ASTnode left, ASTnode mid,
-                    ASTnode right, int intvalue);
+                    ASTnode right, SymTableEntry sym, int intvalue);
 void ASTnode_Free(ASTnode this);
-ASTnode ASTnode_NewLeaf(enum ASTOP op, enum ASTPRIM type, int intvalue);
+ASTnode ASTnode_NewLeaf(enum ASTOP op, enum ASTPRIM type, SymTableEntry sym,
+                        int intvalue);
 ASTnode ASTnode_NewUnary(enum ASTOP op, enum ASTPRIM type, ASTnode left,
-                         int intvalue);
+                         SymTableEntry sym, int intvalue);
 void ASTnode_Dump(ASTnode n, SymTable st, int label, int level);
 #endif

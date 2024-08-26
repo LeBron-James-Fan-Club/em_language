@@ -168,6 +168,13 @@ void SymTable_Free(SymTable this) {
     free(this);
 }
 
+void SymTable_FreeLocls(SymTable this) { 
+
+    // TODO: Clean up the memory later
+    this->loclHead = this->loclTail = NULL;
+    this->paramHead = this->paramTail = NULL;
+ }
+
 void SymTable_SetValue(SymTable this, SymTableEntry e, int intvalue) {
     e->value = intvalue;
 }

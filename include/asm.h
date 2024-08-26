@@ -2,15 +2,15 @@
 #define ASM_H
 
 #include "comp.h"
-#include "defs.h"
 #include "context.h"
+#include "defs.h"
 #include "sym.h"
 
 void MIPS_Pre(Compiler);
 void MIPS_Post(Compiler);
 
 void MIPS_PreFunc(Compiler this, SymTable st, Context ctx);
-void MIPS_PostFunc(Compiler this, SymTable st, Context ctx);
+void MIPS_PostFunc(Compiler this, Context ctx);
 
 int MIPS_Load(Compiler, int value);
 int MIPS_Add(Compiler, int r1, int r2);
@@ -23,17 +23,18 @@ void MIPS_PrintInt(Compiler, int r);
 void MIPS_PrintChar(Compiler, int r);
 void MIPS_PrintStr(Compiler this, int r);
 
-int MIPS_LoadGlobStr(Compiler this, SymTable st, int id);
-int MIPS_LoadGlob(Compiler this, SymTable st, int id, enum ASTOP op);
+int MIPS_LoadGlobStr(Compiler this, SymTableEntry sym);
+int MIPS_LoadGlob(Compiler this, SymTableEntry sym, enum ASTOP op);
 
-void MIPS_GlobSym(Compiler this, SymTable st, int id);
-int MIPS_StoreGlob(Compiler, int r1, SymTable st, int id);
+void MIPS_GlobSym(Compiler this, SymTableEntry sym);
+int MIPS_StoreGlob(Compiler, int r1, SymTableEntry sym);
 int MIPS_StoreRef(Compiler this, int r1, int r2, enum ASTPRIM type);
 
-int MIPS_LoadLocal(Compiler this, SymTable st, int id, enum ASTOP op);
-int MIPS_StoreLocal(Compiler this, int r1, SymTable st, int id);
+int MIPS_LoadLocal(Compiler this, SymTableEntry sym, enum ASTOP op);
+int MIPS_StoreLocal(Compiler this, int r1, SymTableEntry sym);
 
 int MIPS_Widen(Compiler this, int r1, enum ASTPRIM newType);
+int MIPS_Align( enum ASTPRIM type, int offset, int dir);
 
 int MIPS_EqualSet(Compiler, int r1, int r2);
 int MIPS_EqualJump(Compiler, int r1, int r2, int l);
@@ -58,18 +59,18 @@ int MIPS_InputInt(Compiler);
 void MIPS_Label(Compiler, int l);
 void MIPS_Jump(Compiler, int l);
 
-void MIPS_GotoLabel(Compiler, SymTable st, int id);
-void MIPS_GotoJump(Compiler, SymTable st, int id);
-void MIPS_ReturnLabel(Compiler this,SymTable st, Context ctx);
-void MIPS_ReturnJump(Compiler this, SymTable st, Context ctx);
+void MIPS_GotoLabel(Compiler, SymTableEntry sym);
+void MIPS_GotoJump(Compiler, SymTableEntry sym);
+void MIPS_ReturnLabel(Compiler this, Context ctx);
+void MIPS_ReturnJump(Compiler this, Context ctx);
 
-void MIPS_Return(Compiler, SymTable st, int r, Context ctx);
-int MIPS_Call(Compiler, SymTable st, int id);
+void MIPS_Return(Compiler, int r, Context ctx);
+int MIPS_Call(Compiler, SymTableEntry sym);
 void MIPS_ArgCopy(Compiler this, int r, int argPos, int maxArg);
 
 void MIPS_StoreParam(Compiler this, int r1);
 
-int MIPS_Address(Compiler, SymTable st, int id);
+int MIPS_Address(Compiler, SymTableEntry sym);
 int MIPS_Deref(Compiler, int r, enum ASTPRIM type);
 int MIPS_ShiftLeftConstant(Compiler, int r, int c);
 
