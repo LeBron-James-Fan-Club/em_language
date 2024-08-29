@@ -77,7 +77,7 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
         case T_INT:
             type = parse_type(s, st, tok, &cType);
             ident(s, tok);
-            var_declare(s, st, tok, type, cType, C_LOCAL);
+            var_declare(s, st, tok, type, cType, C_LOCAL, false);
             return NULL;
         case T_POKE:
             return poke_statement(s, st, tok, ctx);
@@ -303,6 +303,8 @@ static ASTnode return_statement(Scanner s, SymTable st, Token tok,
 
     t = ASTnode_Order(s, st, tok, ctx);
     t->rvalue = 1;
+
+    debug("func type %d, t type %d", func->type, t->type);
 
     t = modify_type(t, func->type, A_NONE);
     if (t == NULL) {

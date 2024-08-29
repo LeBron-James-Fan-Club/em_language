@@ -31,10 +31,13 @@ static SymTableEntry struct_declare(Scanner s, SymTable st, Token tok) {
     }
 
     cType = SymTable_AddStruct(st, s, P_STRUCT, NULL, S_VAR, 0);
+    debug("Declaring a struct: %s", s->text);
+
     Scanner_Scan(s, tok);
 
     var_declare_list(s, st, tok, NULL, C_MEMBER, T_SEMI, T_RBRACE);
     rbrace(s, tok);
+    semi(s, tok);
 
     cType->member = st->membHead;
     st->membHead = st->membTail = NULL;
@@ -44,13 +47,14 @@ static SymTableEntry struct_declare(Scanner s, SymTable st, Token tok) {
     offset = type_size(memb->type, memb->ctype);
 
     for (memb = memb->next; memb != NULL; memb = memb->next) {
-        memb->offset = MIPS_Align(offset, offset, 1);
+        memb->offset = MIPS_Align(memb->type, offset, 1);
         offset += type_size(memb->type, memb->ctype);
     }
+    return cType;
 }
 
 void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
-                 SymTableEntry cType, enum STORECLASS store) {
+                 SymTableEntry cType, enum STORECLASS store, bool ignoreEnd) {
     //* int x[2], a;
 
     // TODO : Support array initialisation
@@ -102,9 +106,11 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
             // TODO: NVM it does it below
         } else {
             switch (store) {
+                case C_STRUCT:
+                    fatala("InternalError: C_STRUCT shouldn't be here");
                 case C_GLOBAL:
                     debug("Adding global variable %s", s->text);
-                    if (SymTable_AddGlob(st, s, type, cType, S_VAR, 1) == -1) {
+                    if (SymTable_AddGlob(st, s, type, cType, S_VAR, 1) == NULL) {
                         lfatala(s,
                                 "DuplicateError: Duplicate global variable %s",
                                 s->text);
@@ -112,21 +118,21 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
                     break;
                 case C_PARAM:
                     debug("Adding parameter %s", s->text);
-                    if (SymTable_AddParam(st, s, type, cType, S_VAR, 1) == -1) {
+                    if (SymTable_AddParam(st, s, type, cType, S_VAR, 1) == NULL) {
                         lfatala(s, "DuplicateError: Duplicate parameter %s",
                                 s->text);
                     }
                     break;
                 case C_MEMBER:
                     debug("Adding member %s", s->text);
-                    if (SymTable_AddMemb(st, s, type, cType, S_VAR, 1) == -1) {
+                    if (SymTable_AddMemb(st, s, type, cType, S_VAR, 1) == NULL) {
                         lfatala(s, "DuplicateError: Duplicate member %s",
                                 s->text);
                     }
                     break;
                 case C_LOCAL:
                     debug("Adding local variable %s", s->text);
-                    if (SymTable_AddLocl(st, s, type, cType, S_VAR, 1) == -1) {
+                    if (SymTable_AddLocl(st, s, type, cType, S_VAR, 1) == NULL) {
                         lfatala(s,
                                 "DuplicateError: Duplicate local variable %s",
                                 s->text);
@@ -141,9 +147,10 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
         }
 
         if (tok->token == T_SEMI || tok->token == T_EOF) {
-            Scanner_Scan(s, tok);
+            if (!ignoreEnd) Scanner_Scan(s, tok);
             return;
         }
+
         if (tok->token != T_COMMA) {
             lfatala(s, "SyntaxError: expected comma got %d", tok->token);
         }
@@ -180,8 +187,10 @@ static int var_declare_list(Scanner s, SymTable st, Token tok,
             protoPtr = protoPtr->next;
         }
 
-        var_declare(s, st, tok, type, cType, store);
+        var_declare(s, st, tok, type, cType, store, true);
         paramCnt++;
+
+        debug("token %d", tok->token);
 
         if (tok->token != sep && tok->token != end) {
             lfatala(s,
@@ -189,9 +198,13 @@ static int var_declare_list(Scanner s, SymTable st, Token tok,
                     tok->token);
         }
         if (tok->token == sep) {
+            debug("sep met");
             Scanner_Scan(s, tok);
         }
     }
+
+    // Swallow end?
+    //Scanner_Scan(s, tok);
 
     if (funcSym != NULL && paramCnt != funcSym->nElems) {
         lfatal(s, "InvalidParamsError: parameter count mismatch for proto");
@@ -230,7 +243,7 @@ void global_declare(Compiler c, Scanner s, SymTable st, Token tok,
             Context_SetFunctionId(ctx, NULL);
 
         } else {
-            var_declare(s, st, tok, type, cType, C_GLOBAL);
+            var_declare(s, st, tok, type, cType, C_GLOBAL, false);
         }
         if (tok->token == T_EOF) break;
     }

@@ -12,5 +12,6 @@ bool ptrtype(enum ASTPRIM type);
 enum ASTPRIM pointer_to(enum ASTPRIM type);
 enum ASTPRIM value_at(enum ASTPRIM type);
 ASTnode modify_type(ASTnode tree, enum ASTPRIM rtype, enum ASTOP op);
+int type_size(enum ASTPRIM type, SymTableEntry cType);
 
 #endif

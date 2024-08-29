@@ -13,6 +13,7 @@ static void freeReg(Compiler this, int reg1);
 
 int PrimSize(enum ASTPRIM type) {
     if (type < P_NONE || type > P_INTPTR) {
+        debug("prim size error");
         fatala("InternalError: Unknown type %d", type);
     }
     return psize[type];
@@ -126,7 +127,7 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
             "\tBEGIN\n\n");
 
     // Actual offset for locals if have been initialised
-    if (foundLocal != NULL) {
+    if (foundLocal) {
         fprintf(this->outfile, "\taddi\t$sp, $sp, %d\n",
                 -(this->localOffset - 8));
         for (curr = startLocal; curr != NULL; curr = curr->next) {
@@ -285,6 +286,7 @@ int MIPS_LoadGlob(Compiler this, SymTableEntry sym, enum ASTOP op) {
             }
             break;
         default:
+            debug("load glob error");
             fatala("InternalError: Unknown type %d", sym->type);
     }
     return r;
@@ -364,6 +366,7 @@ int MIPS_LoadLocal(Compiler this, SymTableEntry sym, enum ASTOP op) {
             }
             break;
         default:
+            debug("load local error");
             fatala("InternalError: Unknown type %d", sym->type);
     }
     return r;
@@ -386,6 +389,7 @@ int MIPS_StoreGlob(Compiler this, int r1, SymTableEntry sym) {
             fprintf(this->outfile, "\tsw\t%s, %s\n", reglist[r1], sym->name);
             break;
         default:
+            debug("store glob error");
             fatala("InternalError: Unknown type %d", sym->type);
     }
 
@@ -420,6 +424,7 @@ int MIPS_StoreLocal(Compiler this, int r1, SymTableEntry sym) {
                     sym->offset);
             break;
         default:
+            debug("store local error");
             fprintf(stderr, "Error!!: Unknown type %d\n", sym->type);
             exit(-1);
     }
@@ -446,6 +451,7 @@ int MIPS_StoreRef(Compiler this, int r1, int r2, enum ASTPRIM type) {
                     reglist[r2]);
             break;
         default:
+            debug("store ref error");
             fatala("InternalError: Unknown type %d", type);
     }
 
@@ -460,16 +466,22 @@ int MIPS_Widen(Compiler this, int r1, enum ASTPRIM newType) {
 int MIPS_Align(enum ASTPRIM type, int offset, int dir) {
     int align;
 
+    debug("type %d", type);
+
     switch (type) {
-        case P_CHAR: return offset;
-        case P_INT: break;
+        case P_CHAR:
+            return offset;
+        case P_INT:
+            break;
         default:
+            debug("align error");
             fatala("InternalError: Unknown type %d", type);
     }
 
     align = 4;
     // aligns shit??
     offset = (offset + dir * (align - 1)) & ~(align - 1);
+    debug("offset struct rn: %d", offset);
     return offset;
 }
 
@@ -628,6 +640,7 @@ void MIPS_Return(Compiler this, int r, Context ctx) {
         // I dont think we need the below
         // fprintf(this->outfile, "\tandi\t$v0, %s, 0xFF\n", reglist[r]);
     } else {
+        debug("crazy return");
         fatala("InternalError: Unknown type %d", ctx->functionId->type);
     }
     MIPS_ReturnJump(this, ctx);

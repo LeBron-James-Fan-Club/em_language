@@ -42,7 +42,8 @@ static void pushSym(SymTableEntry *head, SymTableEntry *tail, SymTableEntry e) {
         fatal("InternalError: head, tail or e is NULL");
     }
 
-    if (tail != NULL) {
+
+    if (*tail != NULL) {
         (*tail)->next = e;
         *tail = e;
     } else {
@@ -170,8 +171,9 @@ void SymTable_Free(SymTable this) {
 
 void SymTable_FreeLocls(SymTable this) { 
 
-    // TODO: Clean up the memory later
+    freeList(this->loclHead);
     this->loclHead = this->loclTail = NULL;
+    freeList(this->paramHead);
     this->paramHead = this->paramTail = NULL;
  }
 

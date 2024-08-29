@@ -30,7 +30,7 @@ noreturn void lfatala(Scanner s, char *msg, ...) {
     va_end(args);
 
     start_red();
-    fprintf(stderr, "%s on line %d\n", msg, s->line);
+    fprintf(stderr, " on line %d\n", s->line);
     end_red();
 
     exit(EXIT_FAILURE);
@@ -53,7 +53,7 @@ noreturn void fatala(char *msg, ...) {
     va_end(args);
 
     start_red();
-    fprintf(stderr, "%s\n", msg);
+    fprintf(stderr, "\n");
     end_red();
 
     exit(EXIT_FAILURE);

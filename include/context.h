@@ -14,7 +14,7 @@ Context Context_New(void);
 
 void Context_Free(Context this);
 
-void Context_SetFunctionId(Context this, int id);
+void Context_SetFunctionId(Context this, SymTableEntry sym);
 SymTableEntry Context_GetFunctionId(Context this);
 
 #endif

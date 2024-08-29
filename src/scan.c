@@ -273,6 +273,8 @@ static int keyword(char *s) {
             if (!strcmp(s, "if")) return T_IF;
         case 'l':
             if (!strcmp(s, "label")) return T_LABEL;
+        case 's':
+            if (!strcmp(s, "struct")) return T_STRUCT;
         case 'p':
             if (!strcmp(s, "print")) return T_PRINT;
             if (!strcmp(s, "poke")) return T_POKE;
