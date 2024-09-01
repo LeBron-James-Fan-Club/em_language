@@ -82,6 +82,8 @@ bool Scanner_Scan(Scanner this, Token t) {
 
     c = skip(this);
 
+    debug("scanning %c", c);
+
     switch (c) {
         case EOF:
             t->token = T_EOF;
@@ -259,6 +261,7 @@ bool Scanner_Scan(Scanner this, Token t) {
 }
 
 static int keyword(char *s) {
+    printf("keyword %s\n", s);
     switch (*s) {
         case 'f':
             if (!strcmp(s, "for")) return T_FOR;
@@ -286,6 +289,7 @@ static int keyword(char *s) {
         case 'w':
             if (!strcmp(s, "while")) return T_WHILE;
     }
+    debug("not keyword %s", s);
     return 0;
 }
 

@@ -55,7 +55,7 @@ static void pushSym(SymTableEntry *head, SymTableEntry *tail, SymTableEntry e) {
 
 SymTableEntry SymTable_AddGlob(SymTable this, Scanner s, enum ASTPRIM type,
                              SymTableEntry ctype, enum STRUCTTYPE stype,
-                             int size) {
+                             int size, bool isAnon) {
     SymTableEntry e =
         SymTableEntryNew(s->text, type, ctype, stype, C_GLOBAL, size, 0);
 
@@ -154,6 +154,15 @@ static void freeList(SymTableEntry head) {
     SymTableEntry tmp;
     while (head != NULL) {
         tmp = head;
+        if (head->name) {
+            free(head->name);
+        }
+        if (head->member) {
+            freeList(head->member);
+        }
+        if (head->strValue) {
+            free(head->strValue);
+        }
         head = head->next;
         free(tmp);
     }
@@ -182,5 +191,8 @@ void SymTable_SetValue(SymTable this, SymTableEntry e, int intvalue) {
 }
 
 void SymTable_SetText(SymTable this, Scanner s, SymTableEntry e) {
+    if (e->strValue) {
+        free(e->strValue);
+    }
     e->strValue = strdup(s->text);
 }

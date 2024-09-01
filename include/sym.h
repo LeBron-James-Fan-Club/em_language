@@ -10,7 +10,6 @@
 #include "defs.h"
 #include "scan.h"
 
-
 // forward declaration
 typedef struct context *Context;
 
@@ -62,15 +61,20 @@ typedef struct symTable *SymTable;
 SymTable SymTable_New(void);
 void SymTable_Free(SymTable);
 SymTableEntry SymTable_AddGlob(SymTable this, Scanner s, enum ASTPRIM type,
-                      SymTableEntry ctype, enum STRUCTTYPE stype, int size);
+                               SymTableEntry ctype, enum STRUCTTYPE stype,
+                               int size, bool isAnon);
 SymTableEntry SymTable_AddLocl(SymTable this, Scanner s, enum ASTPRIM type,
-                      SymTableEntry ctype, enum STRUCTTYPE stype, int size);
+                               SymTableEntry ctype, enum STRUCTTYPE stype,
+                               int size);
 SymTableEntry SymTable_AddParam(SymTable this, Scanner s, enum ASTPRIM type,
-                       SymTableEntry ctype, enum STRUCTTYPE stype, int size);
+                                SymTableEntry ctype, enum STRUCTTYPE stype,
+                                int size);
 SymTableEntry SymTable_AddMemb(SymTable this, Scanner s, enum ASTPRIM type,
-                      SymTableEntry ctype, enum STRUCTTYPE stype, int size);
+                               SymTableEntry ctype, enum STRUCTTYPE stype,
+                               int size);
 SymTableEntry SymTable_AddStruct(SymTable this, Scanner s, enum ASTPRIM type,
-                        SymTableEntry ctype, enum STRUCTTYPE stype, int size);
+                                 SymTableEntry ctype, enum STRUCTTYPE stype,
+                                 int size);
 
 SymTableEntry SymTable_FindGlob(SymTable this, Scanner s);
 SymTableEntry SymTable_FindLocl(SymTable this, Scanner s);

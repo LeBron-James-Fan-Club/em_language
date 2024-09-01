@@ -37,7 +37,7 @@ static SymTableEntry struct_declare(Scanner s, SymTable st, Token tok) {
 
     var_declare_list(s, st, tok, NULL, C_MEMBER, T_SEMI, T_RBRACE);
     rbrace(s, tok);
-    semi(s, tok);
+    // semi(s, tok);
 
     cType->member = st->membHead;
     st->membHead = st->membTail = NULL;
@@ -110,7 +110,8 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
                     fatala("InternalError: C_STRUCT shouldn't be here");
                 case C_GLOBAL:
                     debug("Adding global variable %s", s->text);
-                    if (SymTable_AddGlob(st, s, type, cType, S_VAR, 1) == NULL) {
+                    if (SymTable_AddGlob(st, s, type, cType, S_VAR, 1) ==
+                        NULL) {
                         lfatala(s,
                                 "DuplicateError: Duplicate global variable %s",
                                 s->text);
@@ -118,21 +119,24 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
                     break;
                 case C_PARAM:
                     debug("Adding parameter %s", s->text);
-                    if (SymTable_AddParam(st, s, type, cType, S_VAR, 1) == NULL) {
+                    if (SymTable_AddParam(st, s, type, cType, S_VAR, 1) ==
+                        NULL) {
                         lfatala(s, "DuplicateError: Duplicate parameter %s",
                                 s->text);
                     }
                     break;
                 case C_MEMBER:
                     debug("Adding member %s", s->text);
-                    if (SymTable_AddMemb(st, s, type, cType, S_VAR, 1) == NULL) {
+                    if (SymTable_AddMemb(st, s, type, cType, S_VAR, 1) ==
+                        NULL) {
                         lfatala(s, "DuplicateError: Duplicate member %s",
                                 s->text);
                     }
                     break;
                 case C_LOCAL:
                     debug("Adding local variable %s", s->text);
-                    if (SymTable_AddLocl(st, s, type, cType, S_VAR, 1) == NULL) {
+                    if (SymTable_AddLocl(st, s, type, cType, S_VAR, 1) ==
+                        NULL) {
                         lfatala(s,
                                 "DuplicateError: Duplicate local variable %s",
                                 s->text);
@@ -159,7 +163,6 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
     }
 }
 
-
 static int var_declare_list(Scanner s, SymTable st, Token tok,
                             SymTableEntry funcSym, enum STORECLASS store,
                             enum OPCODES sep, enum OPCODES end) {
@@ -176,8 +179,13 @@ static int var_declare_list(Scanner s, SymTable st, Token tok,
     }
 
     while (tok->token != end) {
+        debug("before type check");
         type = parse_type(s, st, tok, &cType);
+        debug("after type check");
+
+        debug("before ident check");
         ident(s, tok);
+        debug("after ident check");
 
         if (protoPtr != NULL) {
             if (type != protoPtr->type) {
@@ -203,8 +211,10 @@ static int var_declare_list(Scanner s, SymTable st, Token tok,
         }
     }
 
+    debug("end %d", tok->token);
+
     // Swallow end?
-    //Scanner_Scan(s, tok);
+    // Scanner_Scan(s, tok);
 
     if (funcSym != NULL && paramCnt != funcSym->nElems) {
         lfatal(s, "InvalidParamsError: parameter count mismatch for proto");
@@ -222,9 +232,22 @@ void global_declare(Compiler c, Scanner s, SymTable st, Token tok,
     while (true) {
         // SymTable_ResetLocls(st);
 
+        debug("token 1 %d", tok->token);
+
         type = parse_type(s, st, tok, &cType);
+
+        if (type == P_STRUCT && tok->token == T_SEMI) {
+            Scanner_Scan(s, tok);
+            continue;
+        }
+
+        debug("is ident? %d", tok->token == T_IDENT);
         ident(s, tok);
+
+        debug("token 2 %d", tok->token);
+
         if (tok->token == T_LPAREN) {
+            debug("type is %d", type);
             tree = function_declare(c, s, st, tok, ctx, type);
 
             // Proto is a no go
@@ -301,19 +324,30 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
     return ASTnode_NewUnary(A_FUNCTION, P_VOID, tree, NULL, 0);
 }
 
-enum ASTPRIM parse_type(Scanner s, SymTable st, Token tok, SymTableEntry *ctype) {
+enum ASTPRIM parse_type(Scanner s, SymTable st, Token tok,
+                        SymTableEntry *ctype) {
+    debug("parse_type");
     enum ASTPRIM type;
     switch (tok->token) {
         case T_INT:
+            debug("type is int");
             type = P_INT;
+            debug("before scan");
+            Scanner_Scan(s, tok);
+            debug("after scan");
             break;
         case T_CHAR:
+            debug("type is char");
             type = P_CHAR;
+            Scanner_Scan(s, tok);
             break;
         case T_VOID:
+            debug("type is void");
             type = P_VOID;
+            Scanner_Scan(s, tok);
             break;
         case T_STRUCT:
+            debug("type is struct");
             type = P_STRUCT;
             *ctype = struct_declare(s, st, tok);
             break;
@@ -323,9 +357,9 @@ enum ASTPRIM parse_type(Scanner s, SymTable st, Token tok, SymTableEntry *ctype)
 
     // allows the user to do int ******a
     while (true) {
-        Scanner_Scan(s, tok);
         if (tok->token != T_STAR) break;
         type = pointer_to(type);
+        Scanner_Scan(s, tok);
     }
 
     return type;
