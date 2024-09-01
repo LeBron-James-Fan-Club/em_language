@@ -71,7 +71,7 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
             }
 
             SymTable_AddGlob(st, s, pointer_to(type), cType, S_ARRAY,
-                             tok->token == T_INTLIT ? tok->intvalue : 1);
+                             tok->token == T_INTLIT ? tok->intvalue : 1, false);
             Scanner_Scan(s, tok);
             match(s, tok, T_RBRACKET, "]");
         } else if (tok->token == T_ASSIGN) {
@@ -84,7 +84,8 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
             Scanner_Scan(s, tok);
 
             // Only for scalar types
-            SymTableEntry sym = SymTable_AddGlob(st, s, type, cType, S_VAR, 0);
+            SymTableEntry sym =
+                SymTable_AddGlob(st, s, type, cType, S_VAR, 0, false);
 
             // For now until lazy evaluation is implemented
             // we stick with singular values
@@ -110,7 +111,7 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
                     fatala("InternalError: C_STRUCT shouldn't be here");
                 case C_GLOBAL:
                     debug("Adding global variable %s", s->text);
-                    if (SymTable_AddGlob(st, s, type, cType, S_VAR, 1) ==
+                    if (SymTable_AddGlob(st, s, type, cType, S_VAR, 1, false) ==
                         NULL) {
                         lfatala(s,
                                 "DuplicateError: Duplicate global variable %s",
@@ -287,7 +288,7 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
     }
 
     if (oldFuncSym == NULL) {
-        oldFuncSym = SymTable_AddGlob(st, s, type, NULL, S_FUNC, 1);
+        oldFuncSym = SymTable_AddGlob(st, s, type, NULL, S_FUNC, 1, false);
     }
 
     lparen(s, tok);

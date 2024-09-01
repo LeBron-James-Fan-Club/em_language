@@ -78,7 +78,7 @@ static ASTnode primary(Scanner s, SymTable st, Token t, Context ctx) {
     SymTableEntry var;
     switch (t->token) {
         case T_STRLIT:
-            var = SymTable_AddGlob(st, s, pointer_to(P_CHAR), NULL, S_VAR, 1);
+            var = SymTable_AddGlob(st, s, pointer_to(P_CHAR), NULL, S_VAR, 1, true);
             SymTable_SetText(st, s, var);
             return ASTnode_NewLeaf(A_STRLIT, pointer_to(P_CHAR), var, 0);
         case T_INTLIT:

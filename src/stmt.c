@@ -260,7 +260,7 @@ static ASTnode label_statement(Scanner s, SymTable st, Token tok) {
     match(s, tok, T_LABEL, "label");
     ident(s, tok);
 
-    SymTableEntry var = SymTable_AddGlob(st, s, P_NONE, NULL, S_LABEL, 0);
+    SymTableEntry var = SymTable_AddGlob(st, s, P_NONE, NULL, S_LABEL, 0, false);
 
     ASTnode t = ASTnode_NewLeaf(A_LABEL, P_NONE, var, 0);
 

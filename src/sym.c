@@ -1,5 +1,11 @@
 #include "sym.h"
 
+// TODO: cross-compatability for windows
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
 #include "misc.h"
 #include "scan.h"
 #include "context.h"
@@ -56,10 +62,19 @@ static void pushSym(SymTableEntry *head, SymTableEntry *tail, SymTableEntry e) {
 SymTableEntry SymTable_AddGlob(SymTable this, Scanner s, enum ASTPRIM type,
                              SymTableEntry ctype, enum STRUCTTYPE stype,
                              int size, bool isAnon) {
+    char *name;
+    if (isAnon) {
+        asprintf(&name, "anon_%d", this->anon++);
+    } else {
+        name = s->text;
+    }
+
     SymTableEntry e =
-        SymTableEntryNew(s->text, type, ctype, stype, C_GLOBAL, size, 0);
+        SymTableEntryNew(name, type, ctype, stype, C_GLOBAL, size, 0);
 
     pushSym(&this->globHead, &this->globTail, e);
+    
+    if (isAnon) free(name);
     return e;
 }
 
@@ -187,6 +202,7 @@ void SymTable_FreeLocls(SymTable this) {
  }
 
 void SymTable_SetValue(SymTable this, SymTableEntry e, int intvalue) {
+    e->hasValue = true;
     e->value = intvalue;
 }
 
@@ -194,5 +210,6 @@ void SymTable_SetText(SymTable this, Scanner s, SymTableEntry e) {
     if (e->strValue) {
         free(e->strValue);
     }
+    e->hasValue = true;
     e->strValue = strdup(s->text);
 }
