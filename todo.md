@@ -34,6 +34,8 @@
     - compile into mips using compiler
     - test that executable with output of mipsy (diff)
 
+- add comments
+
 # BUGS:
 - make sure to restore stack pointer afterwards
     - sp offset by 4 (main) and 8 (deez nuts function)
@@ -49,4 +51,4 @@
     - parameters are now probs fucked tho
 
 - need somewhere to store the register $a0 before its used for a syscall
-    - will need to push then pop
+    - will need to push then pop - fixed

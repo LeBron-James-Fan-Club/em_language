@@ -58,10 +58,41 @@ void Scanner_Putback(Scanner this, char c) { putback(this, c); }
 static char skip(Scanner this) {
     char c;
     c = next(this);
-    while (c == ' ' || c == '\t' || c == '\n' || c == '\r' ||
-           // \f not really used much anymore
-           c == '\f') {
-        c = next(this);
+    // please work
+    while (true) {
+        while (c == ' ' || c == '\t' || c == '\n' || c == '\r' ||
+               // \f not really used much anymore
+               c == '\f') {
+            c = next(this);
+            debug("fuck before");
+        }
+
+        if (c == '/') {
+            if ((c = next(this)) == '/') {
+                debug("first before");
+                while (c != '\n' && c != EOF) {
+                    c = next(this);
+                    debug("fuck 1");
+                }
+            } else if (c == '*') {
+                debug("second before");
+                while (true) {
+                    c = next(this);
+                    if (c == '*' && (c = next(this)) == '/') {
+                        c = next(this);
+                        break;
+                    } else if (c == EOF) {
+                        lfatal(this, "SyntaxError: EOF in comment");
+                    }
+                    debug("fuck 2");
+                }
+            } else {
+                putback(this, c);
+            }
+        } else {
+            debug("fred fucks");
+            break;
+        }
     }
     return c;
 }
