@@ -193,11 +193,16 @@ void SymTable_Free(SymTable this) {
     free(this);
 }
 
+void SymTable_FreeParams(SymTable this) { 
+    freeList(this->paramHead);
+    // Its set to null somewhere else
+}
+
 void SymTable_FreeLocls(SymTable this) { 
 
     freeList(this->loclHead);
     this->loclHead = this->loclTail = NULL;
-    freeList(this->paramHead);
+    //freeList(this->paramHead);
     this->paramHead = this->paramTail = NULL;
  }
 

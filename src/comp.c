@@ -21,10 +21,11 @@ void Compiler_Free(Compiler this) {
 }
 
 void Compiler_ResetOffset(Compiler this) {
-    // 8 offset for $ra and $fp
+    // 8 for $ra and $fp (begin)
     this->localOffset = 8;
-    // I forgot
-    this->paramOffset = 0;
+    // 4 for $ra (but i dont know why yet - trial and error)
+    this->paramOffset = 4;
+    this->paramRegCount = 0;
 }
 
 int Compiler_GetLocalOffset(Compiler this, enum ASTPRIM type) {

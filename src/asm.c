@@ -67,73 +67,46 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
 
     debug("Function: %s", name);
 
-    bool param = false;
+    SymTableEntry paramCurr = ctx->functionId->member;
 
-    // another god damn temp fix until i find the source
-    // of the problem
-    SymTableEntry curr = st->loclHead;
-
-    for (; curr != NULL; curr = curr->next) {
-        // TODO: Comment this out and see if anything breaks
-        if (curr->class != C_PARAM) break;
-
-        if (paramReg++ > FIRST_PARAM_REG + 3) {
+    for (; paramCurr != NULL; paramCurr = paramCurr->next) {
+        if (paramReg > FIRST_PARAM_REG + 3) {
             break;
         }
-        param = true;
-
-        curr->offset = Compiler_GetParamOffset(this, curr->type);
+        
+        paramCurr->isFirstFour = true;
+        debug("paramReg: %d", paramReg);
+        paramCurr->paramReg = paramReg++;
+        this->paramRegCount++;
     }
 
-    // temp fix
-
-    if (paramReg > FIRST_PARAM_REG + 3) {
-        paramReg--;
-    }
-
-    paramReg -= FIRST_PARAM_REG;
-    for (int j = paramReg - 1; j >= 0; j--) {
-        MIPS_StoreParam(this, j + FIRST_PARAM_REG);
-    }
-
-    bool foundLocal = false;
-    SymTableEntry startLocal = NULL;
-
-    // WTF WHY DOES THIS FUCKING WORK
-    if (param) {
-        this->paramOffset -= 4;
-    }
-
-    for (; curr != NULL; curr = curr->next) {
+    for (; paramCurr != NULL; paramCurr = paramCurr->next) {
         // for remaining params they get pushed on stack
-        // This also includes local variables
+        paramCurr->offset = Compiler_GetParamOffset(this, paramCurr->type);
+    }
 
-        if (curr->class == C_LOCAL) {
-            if (!foundLocal) {
-                foundLocal = true;
-                startLocal = curr;
-            }
-            curr->offset =
-                this->paramOffset + Compiler_GetLocalOffset(this, curr->type);
-        } else {
-            curr->offset = Compiler_GetParamOffset(this, curr->type);
-        }
+    SymTableEntry loclCurr = st->loclHead;
+
+    for (; loclCurr != NULL; loclCurr = loclCurr->next) {
+        // same thing but for local
+        loclCurr->offset = Compiler_GetLocalOffset(this, loclCurr->type);
     }
 
     // need to add local offset to all offsets somehow
 
     fprintf(this->outfile,
-            "\tpush $ra\n"
-            "\tBEGIN\n\n");
+            "\tbegin\n\n"
+            "\tpush $ra\n");
 
     // Actual offset for locals if have been initialised
-    if (foundLocal) {
-        fprintf(this->outfile, "\taddi\t$sp, $sp, %d\n",
+    if (st->loclHead) {
+        fprintf(this->outfile, "\taddiu\t$sp, $sp, %d\n",
                 -(this->localOffset - 8));
-        for (curr = startLocal; curr != NULL; curr = curr->next) {
-            if (curr->class == C_LOCAL && curr->hasValue) {
-                int r = MIPS_Load(this, curr->value);
-                MIPS_StoreLocal(this, r, curr);
+        for (loclCurr = st->loclHead; loclCurr != NULL;
+             loclCurr = loclCurr->next) {
+            if (loclCurr->hasValue) {
+                int r = MIPS_Load(this, loclCurr->value);
+                MIPS_StoreLocal(this, r, loclCurr);
                 freeReg(this, r);
             }
         }
@@ -143,16 +116,20 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
 }
 
 void MIPS_PostFunc(Compiler this, Context ctx) {
+    // TODO: if there are no early returns
+    // TODO: we don't add return label
     MIPS_ReturnLabel(this, ctx);
     fprintf(this->outfile,
-            "\tEND\n"
+            "\taddiu\t$sp, $sp, %d\n"
             "\tpop\t$ra\n"
-            "\tjr\t$ra\n\n");
+            "\tend\n"
+            "\tjr\t$ra\n\n",
+            this->localOffset - 8);
 }
 
 int MIPS_Load(Compiler this, int value) {
     int r = allocReg(this);
-    fprintf(this->outfile, "\tli %s, %d\n", reglist[r], value);
+    fprintf(this->outfile, "\tli\t%s, %d\n", reglist[r], value);
     return r;
 }
 
@@ -295,11 +272,35 @@ int MIPS_LoadGlob(Compiler this, SymTableEntry sym, enum ASTOP op) {
 int MIPS_LoadLocal(Compiler this, SymTableEntry sym, enum ASTOP op) {
     int r = allocReg(this);
     int r2;
+
+    if (sym->isFirstFour) {
+        debug("paramReg: %d", sym->paramReg);
+        fprintf(this->outfile, "\tmove\t%s, %s\n", reglist[r],
+                reglist[sym->paramReg]);
+
+        if (op == A_PREINC || op == A_PREDEC) {
+            fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r],
+                    reglist[r], op == A_PREINC ? "1" : "-1");
+            fprintf(this->outfile, "\tmove\t%s, %s\n", reglist[r],
+                    reglist[sym->paramReg]);
+        }
+
+        if (op == A_POSTINC || op == A_POSTDEC) {
+            r2 = allocReg(this);
+            fprintf(this->outfile, "\tmove\t%s, %s\n", reglist[r2], reglist[r]);
+            fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r2],
+                    reglist[r2], op == A_POSTINC ? "1" : "-1");
+            fprintf(this->outfile, "\tmove\t%s, %s\n", reglist[r],
+                    reglist[sym->paramReg]);
+            freeReg(this, r2);
+        }
+        return r;
+    }
+
     switch (sym->type) {
         case P_INT:
             fprintf(this->outfile, "\tlw\t%s, %d($sp)\n", reglist[r],
                     sym->offset);
-
             if (op == A_PREINC || op == A_PREDEC) {
                 fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r],
                         reglist[r], op == A_PREINC ? "1" : "-1");
@@ -366,7 +367,6 @@ int MIPS_LoadLocal(Compiler this, SymTableEntry sym, enum ASTOP op) {
             }
             break;
         default:
-            debug("load local error");
             fatala("InternalError: Unknown type %d", sym->type);
     }
     return r;
@@ -389,7 +389,6 @@ int MIPS_StoreGlob(Compiler this, int r1, SymTableEntry sym) {
             fprintf(this->outfile, "\tsw\t%s, %s\n", reglist[r1], sym->name);
             break;
         default:
-            debug("store glob error");
             fatala("InternalError: Unknown type %d", sym->type);
     }
 
@@ -409,6 +408,12 @@ int MIPS_StoreLocal(Compiler this, int r1, SymTableEntry sym) {
         fatal("InternalError: Trying to store an empty register");
     }
 
+    if (sym->isFirstFour) {
+        fprintf(this->outfile, "\tmove\t%s, %s\n", reglist[sym->paramReg],
+                reglist[r1]);
+        return r1;
+    }
+
     switch (sym->type) {
         case P_INT:
             fprintf(this->outfile, "\tsw\t%s, %d($sp)\n", reglist[r1],
@@ -425,8 +430,7 @@ int MIPS_StoreLocal(Compiler this, int r1, SymTableEntry sym) {
             break;
         default:
             debug("store local error");
-            fprintf(stderr, "Error!!: Unknown type %d\n", sym->type);
-            exit(-1);
+            fatala("InternalError: Unknown type %d", sym->type);
     }
 
     return r1;
@@ -640,7 +644,6 @@ void MIPS_Return(Compiler this, int r, Context ctx) {
         // I dont think we need the below
         // fprintf(this->outfile, "\tandi\t$v0, %s, 0xFF\n", reglist[r]);
     } else {
-        debug("crazy return");
         fatala("InternalError: Unknown type %d", ctx->functionId->type);
     }
     MIPS_ReturnJump(this, ctx);
@@ -650,6 +653,24 @@ int MIPS_Call(Compiler this, SymTableEntry sym) {
     int outr = allocReg(this);
     fprintf(this->outfile, "\tjal\t%s\n", sym->name);
     fprintf(this->outfile, "\tmove\t%s, $v0\n", reglist[outr]);
+    // Calculates the length of parameters
+    int offset = 0;
+
+    // If $a0-a3 are used
+    for (int i = 0; i < this->paramRegCount; i++) {
+        fprintf(this->outfile, "\tpush\t%s\n", reglist[FIRST_PARAM_REG + i]);
+    }
+    
+    for (SymTableEntry curr = sym->member; curr != NULL; curr = curr->next) {
+        offset += PrimSize(curr->type);
+    }
+    if (offset > 16) fprintf(this->outfile, "\taddiu\t$sp, $sp, %d\n", offset - 16);
+
+    for (int i = 0; i < this->paramRegCount; i++) {
+        fprintf(this->outfile, "\tpop\t%s\n", reglist[FIRST_PARAM_REG + i]);
+    }
+
+    offset = 0;
     return outr;
 }
 
@@ -658,8 +679,8 @@ void MIPS_ArgCopy(Compiler this, int r, int argPos, int maxArg) {
     Stack:
     (params)
 
-    (return address)
     (old frame pointer)
+    (return address)
     (local variables)
     */
 
@@ -670,6 +691,14 @@ void MIPS_ArgCopy(Compiler this, int r, int argPos, int maxArg) {
         fprintf(this->outfile, "\tmove\t%s, %s\n",
                 reglist[FIRST_PARAM_REG + argPos - 1], reglist[r]);
     }
+}
+
+void MIPS_RegPush(Compiler this, int r) {
+    fprintf(this->outfile, "\tpush\t%s\n", reglist[r]);
+}
+
+void MIPS_RegPop(Compiler this, int r) {
+    fprintf(this->outfile, "\tpop\t%s\n", reglist[r]);
 }
 
 int MIPS_Address(Compiler this, SymTableEntry sym) {

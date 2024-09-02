@@ -19,8 +19,12 @@
 
 struct compiler {
     bool regUsed[MAX_REG];
+
+    int paramRegCount;
+
     FILE *outfile;
     int label;
+    
 
     int localOffset;
     int paramOffset;

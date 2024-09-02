@@ -123,12 +123,10 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             }
             switch (n->right->op) {
                 case A_IDENT:
-                    if (n->sym->class == C_GLOBAL) {
-                        return MIPS_StoreGlob(this, leftReg,
-                                              n->right->sym);
+                    if (n->right->sym->class == C_GLOBAL) {
+                        return MIPS_StoreGlob(this, leftReg, n->right->sym);
                     } else {
-                        return MIPS_StoreLocal(this, leftReg,
-                                               n->right->sym);
+                        return MIPS_StoreLocal(this, leftReg, n->right->sym);
                     }
                 case A_DEREF:
                     //! bug: storing wrong type - idk if this is fixed yet
@@ -136,9 +134,14 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
                                          n->right->type);
                 default:
                     fatala("InternalError: Unknown AST operator for assign %d",
-                          n->right->op);
+                           n->right->op);
             }
         case A_PRINT:
+            // If $a0 is used then we need to push it
+            
+            if (this->paramRegCount > 0) {
+                MIPS_RegPush(this, FIRST_PARAM_REG);
+            }
             if (n->type == P_CHAR) {
                 MIPS_PrintChar(this, leftReg);
             } else if (n->type == P_CHARPTR) {
@@ -146,10 +149,23 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             } else {
                 MIPS_PrintInt(this, leftReg);
             }
+            if (this->paramRegCount > 0) {
+                MIPS_RegPop(this, FIRST_PARAM_REG);
+            }
+
             Compiler_FreeAllReg(this);
             return NO_REG;
         case A_INPUT:
-            return MIPS_InputInt(this);
+            
+            if (this->paramRegCount > 0) {
+                MIPS_RegPush(this, FIRST_PARAM_REG);
+            }
+            int reg = MIPS_InputInt(this);
+            if (this->paramRegCount > 0) {
+                MIPS_RegPop(this, FIRST_PARAM_REG);
+            }
+
+            return reg;
         case A_POKE:
             MIPS_Poke(this, leftReg, rightReg);
             Compiler_FreeAllReg(this);
@@ -193,7 +209,6 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             }
         case A_STRLIT:
             return MIPS_LoadGlobStr(this, n->sym);
-
         case A_AND:
             return MIPS_BitAND(this, leftReg, rightReg);
         case A_OR:

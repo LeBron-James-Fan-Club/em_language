@@ -261,7 +261,7 @@ bool Scanner_Scan(Scanner this, Token t) {
 }
 
 static int keyword(char *s) {
-    printf("keyword %s\n", s);
+    debug("keyword %s", s);
     switch (*s) {
         case 'f':
             if (!strcmp(s, "for")) return T_FOR;

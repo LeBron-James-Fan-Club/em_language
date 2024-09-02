@@ -209,6 +209,7 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t, Context ctx) {
 
                     opStack[++opTop] = A_ASSIGN;
                     SymTableEntry sym = stack[top]->sym;
+                    debug("Sym %p", sym);
                     enum ASTPRIM type = stack[top]->type;
                     stack[++top] = ASTnode_NewLeaf(A_IDENT, type, sym, 0);
                 }
@@ -396,6 +397,8 @@ static ASTnode ASTnode_Postfix(Scanner s, SymTable st, Token tok, Context ctx) {
     if ((var = SymTable_FindSymbol(st, s, ctx)) == NULL) {
         lfatala(s, "UndefinedError: Undefined variable %s", s->text);
     }
+
+    debug("Variable %p", var);
 
     switch (tok->token) {
         case T_INC:

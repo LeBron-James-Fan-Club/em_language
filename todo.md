@@ -26,12 +26,27 @@
 - add a style flag
 - add error recovery
 
+- maybe instead make a pseudo stack and push
+ and pop from the stack instead of calculating offsets
+ (inefficient but it would go with style)
+
+- for unit tests:
+    - compile into mips using compiler
+    - test that executable with output of mipsy (diff)
+
 # BUGS:
 - make sure to restore stack pointer afterwards
     - sp offset by 4 (main) and 8 (deez nuts function)
     (HORRIBLE FIX BUT IT WORKS)
 
 - parameters with same names collide with other functions :(
-    - need to add a prefix to the parameters
+    - need to add a prefix to the parameters - fixed? (idk)
 
-- proto forgets to add the parameters
+- doesn't check for parameter count
+
+- proto forgets to add the parameters - fixed?
+- input fucks up stack frame - fixed
+    - parameters are now probs fucked tho
+
+- need somewhere to store the register $a0 before its used for a syscall
+    - will need to push then pop

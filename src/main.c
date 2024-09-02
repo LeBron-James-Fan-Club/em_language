@@ -24,7 +24,7 @@ static int argParse(int argc, char *argv[]) {
         usage(argv[0]);
     }
 
-    flags = (Flags){.dumpAST = false, .debug = false};
+    flags = (Flags){.dumpAST = false, .debug = false, .paramFix = false};
 
     int i;
 
@@ -39,6 +39,9 @@ static int argParse(int argc, char *argv[]) {
                     break;
                 case 'd':
                     flags.debug = true;
+                    break;
+                case 'p':
+                    flags.paramFix = true;
                     break;
                 default:
                     usage(argv[0]);

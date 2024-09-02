@@ -180,15 +180,16 @@ static int var_declare_list(Scanner s, SymTable st, Token tok,
     }
 
     while (tok->token != end) {
-        debug("before type check");
+        // debug("before type check");
         type = parse_type(s, st, tok, &cType);
-        debug("after type check");
+        // debug("after type check");
 
-        debug("before ident check");
+        // debug("before ident check");
         ident(s, tok);
-        debug("after ident check");
+        // debug("after ident check");
 
         if (protoPtr != NULL) {
+            debug("1:%d 2:%d", protoPtr->type, type);
             if (type != protoPtr->type) {
                 lfatal(s,
                        "InvalidParamsError: parameter type mismatch for proto");
@@ -216,8 +217,9 @@ static int var_declare_list(Scanner s, SymTable st, Token tok,
 
     // Swallow end?
     // Scanner_Scan(s, tok);
-
     if (funcSym != NULL && paramCnt != funcSym->nElems) {
+        debug("param count is %d", paramCnt);
+        debug("funcSym is %d", funcSym->nElems);
         lfatal(s, "InvalidParamsError: parameter count mismatch for proto");
     }
 
@@ -288,19 +290,20 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
     }
 
     if (oldFuncSym == NULL) {
-        oldFuncSym = SymTable_AddGlob(st, s, type, NULL, S_FUNC, 1, false);
+        newFuncSym = SymTable_AddGlob(st, s, type, NULL, S_FUNC, 1, false);
     }
 
     lparen(s, tok);
     paramCnt =
         var_declare_list(s, st, tok, oldFuncSym, C_PARAM, T_COMMA, T_RPAREN);
-    // printf("param count is %d\n", paramCnt);
     rparen(s, tok);
 
     if (newFuncSym) {
         newFuncSym->nElems = paramCnt;
         newFuncSym->member = st->paramHead;
         oldFuncSym = newFuncSym;
+    } else {
+        SymTable_FreeParams(st);
     }
 
     st->paramHead = st->paramTail = NULL;

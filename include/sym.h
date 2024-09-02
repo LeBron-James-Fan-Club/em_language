@@ -28,7 +28,10 @@ struct symTableEntry {
     union {
         int nElems;  // params
         int offset;  // offset from stack
+        int paramReg; // param register if first 4
     };
+
+    bool isFirstFour;
 
     int size;  // Number of elements in the symbol
 
@@ -85,5 +88,6 @@ SymTableEntry SymTable_FindSymbol(SymTable this, Scanner s, Context c);
 void SymTable_SetValue(SymTable this, SymTableEntry e, int intvalue);
 void SymTable_SetText(SymTable this, Scanner s, SymTableEntry e);
 void SymTable_FreeLocls(SymTable this);
+void SymTable_FreeParams(SymTable this);
 
 #endif

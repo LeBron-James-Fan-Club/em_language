@@ -68,6 +68,9 @@ void MIPS_Return(Compiler, int r, Context ctx);
 int MIPS_Call(Compiler, SymTableEntry sym);
 void MIPS_ArgCopy(Compiler this, int r, int argPos, int maxArg);
 
+void MIPS_RegPush(Compiler this, int r);
+void MIPS_RegPop(Compiler this, int r);
+
 void MIPS_StoreParam(Compiler this, int r1);
 
 int MIPS_Address(Compiler, SymTableEntry sym);

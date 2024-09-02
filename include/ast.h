@@ -17,6 +17,7 @@ struct astnode {
     struct astnode *left;
     struct astnode *mid;
     struct astnode *right;
+    // Points to id in symtable
     SymTableEntry sym;
     // Boolean but will be used as a bitfield later on
     int rvalue;
