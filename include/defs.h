@@ -85,6 +85,8 @@ enum OPCODES {
     T_DOT,
     T_ARROW,
     T_UNION,
+    T_ENUM,
+    T_TYPEDEF,
     T_RETURN,
     T_STRLIT
 
@@ -198,7 +200,18 @@ enum ASTPRIM {
     P_UNION = 1 << 8
 };
 
-enum STORECLASS { C_GLOBAL = 1, C_LOCAL, C_PARAM, C_MEMBER, C_STRUCT, C_UNION };
+enum STORECLASS {
+    C_NONE,
+    C_GLOBAL,
+    C_LOCAL,
+    C_PARAM,
+    C_MEMBER,
+    C_STRUCT,
+    C_UNION,
+    C_ENUMTYPE,
+    C_ENUMVAL,
+    C_TYPEDEF
+};
 
 struct token {
     enum OPCODES token;

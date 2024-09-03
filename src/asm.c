@@ -226,7 +226,7 @@ int MIPS_LoadGlob(Compiler this, SymTableEntry sym, enum ASTOP op) {
 
             break;
         case P_CHAR:
-            fprintf(this->outfile, "\tlbu\t%s, %s\n", reglist[r], reglist[r]);
+            fprintf(this->outfile, "\tlbu\t%s, %s\n", reglist[r], sym->name);
 
             if (op == A_PREINC || op == A_PREDEC) {
                 fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r],

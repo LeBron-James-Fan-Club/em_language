@@ -11,87 +11,12 @@ static int var_declare_list(Scanner s, SymTable st, Token tok,
 static SymTableEntry composite_declare(Scanner s, SymTable st, Token tok,
                                        enum ASTPRIM type);
 
-static SymTableEntry composite_declare(Scanner s, SymTable st, Token tok,
-                                       enum ASTPRIM type) {
-    SymTableEntry cType = NULL;
-    SymTableEntry memb;
+static void enum_declare(Scanner s, SymTable st, Token tok);
 
-    int offset;
-    Scanner_Scan(s, tok);
+static enum ASTPRIM typedef_declare(Scanner s, SymTable st, Token tok,
+                             SymTableEntry *cType);
 
-    if (tok->token == T_IDENT) {
-        if (type == P_STRUCT) {
-            cType = SymTable_FindStruct(st, s);
-        } else if (type == P_UNION) {
-            cType = SymTable_FindUnion(st, s);
-        } else {
-            fatal("InternalError: Unknown composite type");
-        }
-        Scanner_Scan(s, tok);
-    }
-
-    if (tok->token != T_LBRACE) {
-        if (cType == NULL) {
-            lfatala(s, "UndefinedError: struct/union %s is not defined",
-                    s->text);
-        }
-        return cType;
-    }
-
-    if (cType) {
-        lfatal(s, "DuplicateError: struct/union already defined");
-    }
-
-    if (type == P_STRUCT) {
-        cType = SymTable_AddStruct(st, s, P_STRUCT, NULL, S_VAR, 0);
-    } else if (type == P_UNION) {
-        cType = SymTable_AddUnion(st, s, P_UNION, NULL, S_VAR, 0);
-    } else {
-        fatal("InternalError: Unknown composite type");
-    }
-
-    debug("Declaring a struct: %s", s->text);
-
-    Scanner_Scan(s, tok);
-
-    var_declare_list(s, st, tok, NULL, C_MEMBER, T_SEMI, T_RBRACE);
-    rbrace(s, tok);
-    // semi(s, tok);
-
-    cType->member = st->membHead;
-    st->membHead = st->membTail = NULL;
-
-    memb = cType->member;
-    memb->offset = 0;
-    offset = type_size(memb->type, memb->ctype);
-
-    // for union
-    int maxSize = 0;
-
-    for (memb = memb->next; memb != NULL; memb = memb->next) {
-        if (type == P_STRUCT) {
-            memb->offset = MIPS_Align(memb->type, offset, 1);
-            offset += type_size(memb->type, memb->ctype);
-        } else {
-            memb->offset = 0;
-            int size = type_size(memb->type, memb->ctype);
-            debug("Size of %s: %d", memb->name,
-                   size);
-            if (size > maxSize) {
-                maxSize = size;
-            }
-        }
-
-        // Calculates offset of next free byte
-        
-    }
-
-    debug ("Size of struct %d", offset);
-
-    cType->size = type == P_STRUCT ? offset : maxSize;
-
-    return cType;
-}
+static enum ASTPRIM typedef_type(Scanner s, SymTable st, Token tok, SymTableEntry *cType);
 
 void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
                  SymTableEntry cType, enum STORECLASS store, bool ignoreEnd) {
@@ -110,7 +35,7 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
                 lfatal(s, "UnsupportedError: only globals can be arrays");
             }
 
-            SymTable_AddGlob(st, s, pointer_to(type), cType, S_ARRAY,
+            SymTable_AddGlob(st, s->text, pointer_to(type), cType, S_ARRAY,
                              tok->token == T_INTLIT ? tok->intvalue : 1, false);
             Scanner_Scan(s, tok);
             match(s, tok, T_RBRACKET, "]");
@@ -125,7 +50,7 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
 
             // Only for scalar types
             SymTableEntry sym =
-                SymTable_AddGlob(st, s, type, cType, S_VAR, 0, false);
+                SymTable_AddGlob(st, s->text, type, cType, S_VAR, 0, false);
 
             // For now until lazy evaluation is implemented
             // we stick with singular values
@@ -151,9 +76,19 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
                     fatala("InternalError: C_STRUCT shouldn't be here");
                 case C_UNION:
                     fatala("InternalError: C_UNION shouldn't be here");
+                case C_NONE:
+                    fatala("InternalError: C_NONE shouldn't be here");
+                case C_ENUMTYPE:
+                    fatala("InternalError: C_ENUMTYPE shouldn't be here");
+                case C_TYPEDEF:
+                    fatala("InternalError: C_TYPEDEF shouldn't be here");
+                case C_ENUMVAL:
+                    fatala("InternalError: C_ENUMVAL shouldn't be here");
+
+                
                 case C_GLOBAL:
                     debug("Adding global variable %s", s->text);
-                    if (SymTable_AddGlob(st, s, type, cType, S_VAR, 1, false) ==
+                    if (SymTable_AddGlob(st, s->text, type, cType, S_VAR, 1, false) ==
                         NULL) {
                         lfatala(s,
                                 "DuplicateError: Duplicate global variable %s",
@@ -162,7 +97,7 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
                     break;
                 case C_PARAM:
                     debug("Adding parameter %s", s->text);
-                    if (SymTable_AddParam(st, s, type, cType, S_VAR, 1) ==
+                    if (SymTable_AddParam(st, s->text, type, cType, S_VAR, 1) ==
                         NULL) {
                         lfatala(s, "DuplicateError: Duplicate parameter %s",
                                 s->text);
@@ -170,7 +105,7 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
                     break;
                 case C_MEMBER:
                     debug("Adding member %s", s->text);
-                    if (SymTable_AddMemb(st, s, type, cType, S_VAR, 1) ==
+                    if (SymTable_AddMemb(st, s->text, type, cType, S_VAR, 1) ==
                         NULL) {
                         lfatala(s, "DuplicateError: Duplicate member %s",
                                 s->text);
@@ -178,7 +113,7 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
                     break;
                 case C_LOCAL:
                     debug("Adding local variable %s", s->text);
-                    if (SymTable_AddLocl(st, s, type, cType, S_VAR, 1) ==
+                    if (SymTable_AddLocl(st, s->text, type, cType, S_VAR, 1) ==
                         NULL) {
                         lfatala(s,
                                 "DuplicateError: Duplicate local variable %s",
@@ -281,8 +216,8 @@ void global_declare(Compiler c, Scanner s, SymTable st, Token tok,
 
         type = parse_type(s, st, tok, &cType);
 
-        if ((type == P_STRUCT || type == P_UNION) && tok->token == T_SEMI) {
-            Scanner_Scan(s, tok);
+        if (type == -1) {
+            semi(s, tok);
             continue;
         }
 
@@ -332,7 +267,7 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
     }
 
     if (oldFuncSym == NULL) {
-        newFuncSym = SymTable_AddGlob(st, s, type, NULL, S_FUNC, 1, false);
+        newFuncSym = SymTable_AddGlob(st, s->text, type, NULL, S_FUNC, 1, false);
     }
 
     lparen(s, tok);
@@ -402,6 +337,21 @@ enum ASTPRIM parse_type(Scanner s, SymTable st, Token tok,
             type = P_UNION;
             *ctype = composite_declare(s, st, tok, P_UNION);
             break;
+        case T_ENUM:
+            type = P_INT;
+            enum_declare(s, st, tok);
+            // if after ;, theres no type
+            if (tok->token == T_SEMI) type = -1;
+            break;
+        case T_TYPEDEF:
+            debug("type is typedef");
+            type = typedef_declare(s, st, tok, ctype);
+            if (tok->token == T_SEMI) type = -1;
+            break;
+        case T_IDENT: // typedef
+            debug("type is ident (maybe a typedef)");
+            type = typedef_type(s, st, tok, ctype);
+            break;  
         default:
             fatala("InternalError: unknown type %d", tok->token);
     }
@@ -414,4 +364,179 @@ enum ASTPRIM parse_type(Scanner s, SymTable st, Token tok,
     }
 
     return type;
+}
+
+static SymTableEntry composite_declare(Scanner s, SymTable st, Token tok,
+                                       enum ASTPRIM type) {
+    SymTableEntry cType = NULL;
+    SymTableEntry memb;
+
+    int offset;
+    Scanner_Scan(s, tok);
+
+    if (tok->token == T_IDENT) {
+        if (type == P_STRUCT) {
+            cType = SymTable_FindStruct(st, s);
+        } else if (type == P_UNION) {
+            cType = SymTable_FindUnion(st, s);
+        } else {
+            fatal("InternalError: Unknown composite type");
+        }
+        Scanner_Scan(s, tok);
+    }
+
+    if (tok->token != T_LBRACE) {
+        if (cType == NULL) {
+            lfatala(s, "UndefinedError: struct/union %s is not defined",
+                    s->text);
+        }
+        return cType;
+    }
+
+    if (cType) {
+        lfatal(s, "DuplicateError: struct/union already defined");
+    }
+
+    if (type == P_STRUCT) {
+        cType = SymTable_AddStruct(st, s->text, P_STRUCT, NULL, S_VAR, 0);
+    } else if (type == P_UNION) {
+        cType = SymTable_AddUnion(st, s->text, P_UNION, NULL, S_VAR, 0);
+    } else {
+        fatal("InternalError: Unknown composite type");
+    }
+
+    debug("Declaring a struct: %s", s->text);
+
+    Scanner_Scan(s, tok);
+
+    var_declare_list(s, st, tok, NULL, C_MEMBER, T_SEMI, T_RBRACE);
+    rbrace(s, tok);
+    // semi(s, tok);
+
+    cType->member = st->membHead;
+    st->membHead = st->membTail = NULL;
+
+    memb = cType->member;
+    memb->offset = 0;
+    offset = type_size(memb->type, memb->ctype);
+
+    // for union
+    int maxSize = 0;
+
+    for (memb = memb->next; memb != NULL; memb = memb->next) {
+        if (type == P_STRUCT) {
+            memb->offset = MIPS_Align(memb->type, offset, 1);
+            // Calculates offset of next free byte
+            offset += type_size(memb->type, memb->ctype);
+        } else {
+            memb->offset = 0;
+            int size = type_size(memb->type, memb->ctype);
+            debug("Size of %s: %d", memb->name, size);
+            // We only store the largest byte size
+            if (size > maxSize) {
+                maxSize = size;
+            }
+        }
+    }
+
+    debug("Size of struct %d", offset);
+
+    cType->size = type == P_STRUCT ? offset : maxSize;
+
+    return cType;
+}
+
+static void enum_declare(Scanner s, SymTable st, Token tok) {
+    SymTableEntry eType = NULL;
+    char *name = NULL;
+    int intVal = 0;
+
+    Scanner_Scan(s, tok);
+
+    if (tok->token == T_IDENT) {
+        eType = SymTable_FindEnumType(st, s);
+        name = strdup(s->text);
+        Scanner_Scan(s, tok);
+    }
+
+    if (tok->token != T_LBRACE) {
+        if (eType == NULL) {
+            lfatala(s, "UndefinedError: enum %s is not defined", name);
+        }
+        if (name) free(name);
+        return;
+    }
+
+    Scanner_Scan(s, tok);
+
+    if (eType != NULL) {
+        lfatala(s, "DuplicateError: enum %s already defined", eType->name);
+    }
+
+    eType = SymTable_AddEnum(st, name, C_ENUMTYPE, 0);
+    
+    if (name) free(name);
+
+    while (true) {
+        ident(s, tok);
+        name = strdup(s->text);
+
+        eType = SymTable_FindEnumVal(st, s);
+        if (eType != NULL) {
+            lfatala(s, "DuplicateError: enum value %s already defined", name);
+        }
+
+        if (tok->token == T_ASSIGN) {
+            Scanner_Scan(s, tok);
+            if (tok->token != T_INTLIT) {
+                lfatal(s, "SyntaxError: expected integer literal");
+            }
+
+            intVal = tok->intvalue;
+            Scanner_Scan(s, tok);
+        }
+
+        eType = SymTable_AddEnum(st, name, C_ENUMVAL, intVal++);
+        free(name);
+
+        if (tok->token == T_RBRACE) break;
+
+        comma(s, tok);
+    }
+
+    // Consume the }
+    Scanner_Scan(s, tok);
+}
+
+static enum ASTPRIM typedef_declare(Scanner s, SymTable st, Token tok,
+                             SymTableEntry *cType) {
+    enum ASTPRIM type;
+    
+    // typedef consumed
+    Scanner_Scan(s, tok);
+    // a ident should be here
+
+    type = parse_type(s, st, tok, cType);
+
+    if (SymTable_FindTypeDef(st, s) != NULL) {
+        lfatala(s, "DuplicateError: typedef %s already defined", s->text);
+    }
+
+    SymTable_AddTypeDef(st, s->text, type, *cType, S_VAR, 0);
+    Scanner_Scan(s, tok);
+
+    return type;
+}
+
+static enum ASTPRIM typedef_type(Scanner s, SymTable st, Token tok, SymTableEntry *cType) {
+    SymTableEntry type;
+
+    type = SymTable_FindTypeDef(st, s);
+    if (type == NULL) {
+        lfatala(s, "UndefinedError: typedef %s is not defined", s->text);
+    }
+
+    Scanner_Scan(s, tok);
+    *cType = type->ctype;
+    return type->type;
 }

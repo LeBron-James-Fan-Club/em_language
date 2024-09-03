@@ -39,6 +39,6 @@ void lbrace(Scanner s, Token t);
 void rbrace(Scanner s, Token t);
 void lparen(Scanner s, Token t);
 void rparen(Scanner s, Token t);
-
+void comma(Scanner s, Token t);
 
 #endif

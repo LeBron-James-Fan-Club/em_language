@@ -81,7 +81,7 @@ static ASTnode primary(Scanner s, SymTable st, Token t, Context ctx) {
     SymTableEntry var;
     switch (t->token) {
         case T_STRLIT:
-            var = SymTable_AddGlob(st, s, pointer_to(P_CHAR), NULL, S_VAR, 1,
+            var = SymTable_AddGlob(st, s->text, pointer_to(P_CHAR), NULL, S_VAR, 1,
                                    true);
             SymTable_SetText(st, s, var);
             return ASTnode_NewLeaf(A_STRLIT, pointer_to(P_CHAR), var, 0);
@@ -391,6 +391,16 @@ static ASTnode ASTnode_Prefix(Scanner s, SymTable st, Token tok, Context ctx) {
 }
 
 static ASTnode ASTnode_Postfix(Scanner s, SymTable st, Token tok, Context ctx) {
+    SymTableEntry enumPtr;
+
+    // Converts enum to a specific int
+    if ((enumPtr = SymTable_FindEnumVal(st, s)) != NULL) {
+        //Scanner_Scan(s, tok);
+        // ! bug: for some reason a extra token is consumed i think
+        //! semi colon is ignored
+        return ASTnode_NewLeaf(A_INTLIT, P_INT, NULL, enumPtr->value);
+    }
+
     SymTableEntry var;
 
     Scanner_Scan(s, tok);

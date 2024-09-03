@@ -34,9 +34,14 @@
     - compile into mips using compiler
     - test that executable with output of mipsy (diff)
 
-- add comments
+- add comments - done
+- add namespaces
+    - Perhaps it could be added as a prefix to the variable names
+- add octal support
 
 # BUGS:
+- recursive typedef not supported
+
 - make sure to restore stack pointer afterwards
     - sp offset by 4 (main) and 8 (deez nuts function)
     (HORRIBLE FIX BUT IT WORKS)

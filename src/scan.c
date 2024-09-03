@@ -304,6 +304,7 @@ static int keyword(char *s) {
             break;
         case 'e':
             if (!strcmp(s, "else")) return T_ELSE;
+            if (!strcmp(s, "enum")) return T_ENUM;
             break;
         case 'g':
             if (!strcmp(s, "goto")) return T_GOTO;
@@ -319,6 +320,9 @@ static int keyword(char *s) {
             break;
         case 's':
             if (!strcmp(s, "struct")) return T_STRUCT;
+            break;
+        case 't':
+            if (!strcmp(s, "typedef")) return T_TYPEDEF;
             break;
         case 'p':
             if (!strcmp(s, "print")) return T_PRINT;
@@ -460,3 +464,5 @@ void rbrace(Scanner s, Token t) { match(s, t, T_RBRACE, "}"); }
 void lparen(Scanner s, Token t) { match(s, t, T_LPAREN, "("); }
 
 void rparen(Scanner s, Token t) { match(s, t, T_RPAREN, ")"); }
+
+void comma(Scanner s, Token t) { match(s, t, T_COMMA, ","); }
