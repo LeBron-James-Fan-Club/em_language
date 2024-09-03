@@ -1,9 +1,6 @@
 # Em Language
 ### This converts c-like code into MIPS (32 bit)
 
-## !!! IMPORTANT !!!
-## Local/Parameters are broken now cause of a code edit - fixed (maybe)
-
 ## Features
  - If statements
  - While/For loops
@@ -25,6 +22,9 @@
     - \- \+ % / \*
  - Bodmas
  - Logical operators (besides || and &&)
+ - Structs
+ - Union
+ - Comments
 
 ## What will be added soon (Hopefully)
  - Local arrays
@@ -33,7 +33,6 @@
  - Compiler directives
     - Including the ability to manually name any label
  - Macros?
- - Structs
  - Array initisaliation
  - Local variable initialisation
  - Namespace
@@ -42,7 +41,6 @@
  - Scopes
  - Sizeof operator
  - Type casting
- - Comments
 
 ## Low chance of being added but I might try
  - Heap support
