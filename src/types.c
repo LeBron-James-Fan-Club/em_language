@@ -7,14 +7,12 @@
 #include "defs.h"
 #include "misc.h"
 
-bool inttype(enum ASTPRIM type) { return type == P_INT || type == P_CHAR; }
+bool inttype(enum ASTPRIM type) { return (type & 0xf) == 0; }
 
-bool ptrtype(enum ASTPRIM type) {
-    return type == P_VOIDPTR || type == P_INTPTR || type == P_CHARPTR;
-}
+bool ptrtype(enum ASTPRIM type) { return (type & 0xf) != 0; }
 
 int type_size(enum ASTPRIM type, SymTableEntry cType) {
-    if (type == P_STRUCT) return cType->size;
+    if (type == P_STRUCT || type == P_UNION) return cType->size;
     return PrimSize(type);
 }
 
@@ -27,8 +25,10 @@ ASTnode modify_type(ASTnode tree, enum ASTPRIM rtype, enum ASTOP op) {
         // For assignment operator
         (ptrtype(ltype) && ptrtype(rtype))) {
         if (ltype == rtype) return tree;
-        lsize = PrimSize(ltype);
-        rsize = PrimSize(rtype);
+        // TODO: support structs later on
+
+        lsize = type_size(ltype, NULL);
+        rsize = type_size(rtype, NULL);
         if (lsize > rsize) {
             return NULL;
         } else if (lsize < rsize) {
@@ -61,27 +61,15 @@ ASTnode modify_type(ASTnode tree, enum ASTPRIM rtype, enum ASTOP op) {
 }
 
 enum ASTPRIM pointer_to(enum ASTPRIM type) {
-    switch (type) {
-        case P_VOID:
-            return P_VOIDPTR;
-        case P_INT:
-            return P_INTPTR;
-        case P_CHAR:
-            return P_CHARPTR;
-        default:
-            fatala("InternalError: Unknown type %d for pointer", type);
+    if ((type & 0xf) == 0xf) {
+        fatala("InternalError: Unknown type %d for pointer", type);
     }
+    return type + 1;
 }
 
 enum ASTPRIM value_at(enum ASTPRIM type) {
-    switch (type) {
-        case P_VOIDPTR:
-            return P_VOID;
-        case P_INTPTR:
-            return P_INT;
-        case P_CHARPTR:
-            return P_CHAR;
-        default:
-            fatala("InternalError: Unknown type %d for pointer", type);
+    if ((type & 0xf) == 0) {
+        fatala("InternalError: Unknown type %d for value_at", type);
     }
+    return type - 1;
 }

@@ -1,5 +1,6 @@
 #include "decl.h"
 
+#include "defs.h"
 #include "flags.h"
 #include "misc.h"
 
@@ -7,7 +8,11 @@ static int var_declare_list(Scanner s, SymTable st, Token tok,
                             SymTableEntry funcSym, enum STORECLASS store,
                             enum OPCODES sep, enum OPCODES end);
 
-static SymTableEntry struct_declare(Scanner s, SymTable st, Token tok) {
+static SymTableEntry composite_declare(Scanner s, SymTable st, Token tok,
+                                       enum ASTPRIM type);
+
+static SymTableEntry composite_declare(Scanner s, SymTable st, Token tok,
+                                       enum ASTPRIM type) {
     SymTableEntry cType = NULL;
     SymTableEntry memb;
 
@@ -15,22 +20,36 @@ static SymTableEntry struct_declare(Scanner s, SymTable st, Token tok) {
     Scanner_Scan(s, tok);
 
     if (tok->token == T_IDENT) {
-        cType = SymTable_FindStruct(st, s);
+        if (type == P_STRUCT) {
+            cType = SymTable_FindStruct(st, s);
+        } else if (type == P_UNION) {
+            cType = SymTable_FindUnion(st, s);
+        } else {
+            fatal("InternalError: Unknown composite type");
+        }
         Scanner_Scan(s, tok);
     }
 
     if (tok->token != T_LBRACE) {
         if (cType == NULL) {
-            lfatala(s, "UndefinedError: struct %s is not defined", s->text);
+            lfatala(s, "UndefinedError: struct/union %s is not defined",
+                    s->text);
         }
         return cType;
     }
 
     if (cType) {
-        lfatal(s, "DuplicateError: struct already defined");
+        lfatal(s, "DuplicateError: struct/union already defined");
     }
 
-    cType = SymTable_AddStruct(st, s, P_STRUCT, NULL, S_VAR, 0);
+    if (type == P_STRUCT) {
+        cType = SymTable_AddStruct(st, s, P_STRUCT, NULL, S_VAR, 0);
+    } else if (type == P_UNION) {
+        cType = SymTable_AddUnion(st, s, P_UNION, NULL, S_VAR, 0);
+    } else {
+        fatal("InternalError: Unknown composite type");
+    }
+
     debug("Declaring a struct: %s", s->text);
 
     Scanner_Scan(s, tok);
@@ -47,9 +66,18 @@ static SymTableEntry struct_declare(Scanner s, SymTable st, Token tok) {
     offset = type_size(memb->type, memb->ctype);
 
     for (memb = memb->next; memb != NULL; memb = memb->next) {
-        memb->offset = MIPS_Align(memb->type, offset, 1);
+        if (type == P_STRUCT) {
+            memb->offset = MIPS_Align(memb->type, offset, 1);
+        } else {
+            memb->offset = 0;
+        }
+
+        // Calculates offset of next free byte
         offset += type_size(memb->type, memb->ctype);
     }
+
+    cType->size = offset;
+
     return cType;
 }
 
@@ -109,6 +137,8 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
             switch (store) {
                 case C_STRUCT:
                     fatala("InternalError: C_STRUCT shouldn't be here");
+                case C_UNION:
+                    fatala("InternalError: C_UNION shouldn't be here");
                 case C_GLOBAL:
                     debug("Adding global variable %s", s->text);
                     if (SymTable_AddGlob(st, s, type, cType, S_VAR, 1, false) ==
@@ -239,7 +269,7 @@ void global_declare(Compiler c, Scanner s, SymTable st, Token tok,
 
         type = parse_type(s, st, tok, &cType);
 
-        if (type == P_STRUCT && tok->token == T_SEMI) {
+        if ((type == P_STRUCT || type == P_UNION) && tok->token == T_SEMI) {
             Scanner_Scan(s, tok);
             continue;
         }
@@ -353,7 +383,12 @@ enum ASTPRIM parse_type(Scanner s, SymTable st, Token tok,
         case T_STRUCT:
             debug("type is struct");
             type = P_STRUCT;
-            *ctype = struct_declare(s, st, tok);
+            *ctype = composite_declare(s, st, tok, P_STRUCT);
+            break;
+        case T_UNION:
+            debug("type is union");
+            type = P_UNION;
+            *ctype = composite_declare(s, st, tok, P_UNION);
             break;
         default:
             fatala("InternalError: unknown type %d", tok->token);

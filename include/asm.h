@@ -6,6 +6,13 @@
 #include "defs.h"
 #include "sym.h"
 
+// forward declarations
+bool ptrtype(enum ASTPRIM type);
+enum ASTPRIM value_at(enum ASTPRIM type);
+int type_size(enum ASTPRIM type, SymTableEntry cType);
+// end
+
+
 void MIPS_Pre(Compiler);
 void MIPS_Post(Compiler);
 

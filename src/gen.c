@@ -144,7 +144,7 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
             }
             if (n->type == P_CHAR) {
                 MIPS_PrintChar(this, leftReg);
-            } else if (n->type == P_CHARPTR) {
+            } else if ((n->type & P_CHAR) && ptrtype(n->type)) {
                 MIPS_PrintStr(this, leftReg);
             } else {
                 MIPS_PrintInt(this, leftReg);

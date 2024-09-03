@@ -64,18 +64,18 @@ static char skip(Scanner this) {
                // \f not really used much anymore
                c == '\f') {
             c = next(this);
-            debug("fuck before");
+            // debug("fuck before");
         }
 
         if (c == '/') {
             if ((c = next(this)) == '/') {
-                debug("first before");
+                // debug("first before");
                 while (c != '\n' && c != EOF) {
                     c = next(this);
-                    debug("fuck 1");
+                    // debug("fuck 1");
                 }
             } else if (c == '*') {
-                debug("second before");
+                // debug("second before");
                 while (true) {
                     c = next(this);
                     if (c == '*' && (c = next(this)) == '/') {
@@ -84,13 +84,13 @@ static char skip(Scanner this) {
                     } else if (c == EOF) {
                         lfatal(this, "SyntaxError: EOF in comment");
                     }
-                    debug("fuck 2");
+                    // debug("fuck 2");
                 }
             } else {
                 putback(this, c);
             }
         } else {
-            debug("fred fucks");
+            // debug("fred fucks");
             break;
         }
     }
@@ -139,6 +139,8 @@ bool Scanner_Scan(Scanner this, Token t) {
                 t->token = T_DEC;
             } else if (c == '=') {
                 t->token = T_ASSIGNSUB;
+            } else if (c == '>') {
+                t->token = T_ARROW;
             } else {
                 putback(this, c);
                 t->token = T_MINUS;
@@ -257,6 +259,9 @@ bool Scanner_Scan(Scanner this, Token t) {
             scanStr(this);
             t->token = T_STRLIT;
             break;
+        case '.':
+            t->token = T_DOT;
+            break;
         default:
             if (isdigit(c)) {
                 if (c == '0') {
@@ -296,29 +301,42 @@ static int keyword(char *s) {
     switch (*s) {
         case 'f':
             if (!strcmp(s, "for")) return T_FOR;
+            break;
         case 'e':
             if (!strcmp(s, "else")) return T_ELSE;
+            break;
         case 'g':
             if (!strcmp(s, "goto")) return T_GOTO;
+            break;
         case 'i':
             if (!strcmp(s, "input")) return T_INPUT;
             if (!strcmp(s, "i32")) return T_INT;
             if (!strcmp(s, "i8")) return T_CHAR;
             if (!strcmp(s, "if")) return T_IF;
+            break;
         case 'l':
             if (!strcmp(s, "label")) return T_LABEL;
+            break;
         case 's':
             if (!strcmp(s, "struct")) return T_STRUCT;
+            break;
         case 'p':
             if (!strcmp(s, "print")) return T_PRINT;
             if (!strcmp(s, "poke")) return T_POKE;
             if (!strcmp(s, "peek")) return T_PEEK;
+            break;
         case 'r':
             if (!strcmp(s, "return")) return T_RETURN;
+            break;
+        case 'u':
+            if (!strcmp(s, "union")) return T_UNION;
+            break;
         case 'v':
             if (!strcmp(s, "void")) return T_VOID;
+            break;
         case 'w':
             if (!strcmp(s, "while")) return T_WHILE;
+            break;
     }
     debug("not keyword %s", s);
     return 0;

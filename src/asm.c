@@ -6,17 +6,22 @@ static char *reglist[MAX_REG] = {"$t0", "$t1", "$t2", "$t3", "$t4",
                                  "$t5", "$t6", "$t7", "$t8", "$t9",
                                  "$a0", "$a1", "$a2", "$a3"};
 
-static int psize[] = {0, 0, 1, 4, 4, 4, 4};
-
 static int allocReg(Compiler this);
 static void freeReg(Compiler this, int reg1);
 
 int PrimSize(enum ASTPRIM type) {
-    if (type < P_NONE || type > P_INTPTR) {
-        debug("prim size error");
-        fatala("InternalError: Unknown type %d", type);
+    if (ptrtype(type)) {
+        return 4;
     }
-    return psize[type];
+    switch (type) {
+        case P_CHAR:
+            return 1;
+        case P_INT:
+            return 4;
+        default:
+            debug("primsize error");
+            fatala("InternalError: Unknown type %d", type);
+    }
 }
 
 void MIPS_Pre(Compiler this) {
@@ -73,7 +78,7 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
         if (paramReg > FIRST_PARAM_REG + 3) {
             break;
         }
-        
+
         paramCurr->isFirstFour = true;
         debug("paramReg: %d", paramReg);
         paramCurr->paramReg = paramReg++;
@@ -241,9 +246,10 @@ int MIPS_LoadGlob(Compiler this, SymTableEntry sym, enum ASTOP op) {
             }
 
             break;
-        case P_CHARPTR:
-        case P_INTPTR:
-            fprintf(this->outfile, "\tlw\t%s, %s\n", reglist[r], reglist[r]);
+        // case P_CHARPTR:
+        // case P_INTPTR:
+        default:
+            fprintf(this->outfile, "\tlw\t%s, %s\n", reglist[r], sym->name);
 
             if (op == A_PREINC || op == A_PREDEC) {
                 fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r],
@@ -262,9 +268,9 @@ int MIPS_LoadGlob(Compiler this, SymTableEntry sym, enum ASTOP op) {
                 freeReg(this, r2);
             }
             break;
-        default:
-            debug("load glob error");
-            fatala("InternalError: Unknown type %d", sym->type);
+            // default:
+            //     debug("load glob error");
+            //    fatala("InternalError: Unknown type %d", sym->type);
     }
     return r;
 }
@@ -343,8 +349,13 @@ int MIPS_LoadLocal(Compiler this, SymTableEntry sym, enum ASTOP op) {
             }
 
             break;
-        case P_CHARPTR:
-        case P_INTPTR:
+        // case P_CHARPTR:
+        // case P_INTPTR:
+        default:
+            if (!ptrtype(sym->type)) {
+                debug("load local error");
+                fatala("InternalError: Unknown type %d", sym->type);
+            }
             fprintf(this->outfile, "\tlw\t%s, %d($sp)\n", reglist[r],
                     sym->offset);
 
@@ -366,8 +377,6 @@ int MIPS_LoadLocal(Compiler this, SymTableEntry sym, enum ASTOP op) {
                 freeReg(this, r2);
             }
             break;
-        default:
-            fatala("InternalError: Unknown type %d", sym->type);
     }
     return r;
 }
@@ -384,12 +393,14 @@ int MIPS_StoreGlob(Compiler this, int r1, SymTableEntry sym) {
         case P_CHAR:
             fprintf(this->outfile, "\tsb\t%s, %s\n", reglist[r1], sym->name);
             break;
-        case P_CHARPTR:
-        case P_INTPTR:
+        default:
+            if (!ptrtype(sym->type)) {
+                debug("store glob error");
+                fatala("InternalError: Unknown type %d", sym->type);
+            }
+
             fprintf(this->outfile, "\tsw\t%s, %s\n", reglist[r1], sym->name);
             break;
-        default:
-            fatala("InternalError: Unknown type %d", sym->type);
     }
 
     return r1;
@@ -423,14 +434,15 @@ int MIPS_StoreLocal(Compiler this, int r1, SymTableEntry sym) {
             fprintf(this->outfile, "\tsb\t%s, %d($sp)\n", reglist[r1],
                     sym->offset);
             break;
-        case P_CHARPTR:
-        case P_INTPTR:
+        default:
+            if (!ptrtype(sym->type)) {
+                debug("store local error");
+                fatala("InternalError: Unknown type %d", sym->type);
+            }
+
             fprintf(this->outfile, "\tsw\t%s, %d($sp)\n", reglist[r1],
                     sym->offset);
             break;
-        default:
-            debug("store local error");
-            fatala("InternalError: Unknown type %d", sym->type);
     }
 
     return r1;
@@ -445,12 +457,14 @@ int MIPS_StoreRef(Compiler this, int r1, int r2, enum ASTPRIM type) {
         fatal("InternalError: Trying to store an empty register for r2");
     }
 
-    switch (type) {
-        case P_CHAR:
+    int size = PrimSize(type);
+
+    switch (size) {
+        case 1:
             fprintf(this->outfile, "\tsb\t%s, 0(%s)\n", reglist[r1],
                     reglist[r2]);
             break;
-        case P_INT:
+        case 4:
             fprintf(this->outfile, "\tsw\t%s, 0(%s)\n", reglist[r1],
                     reglist[r2]);
             break;
@@ -491,32 +505,33 @@ int MIPS_Align(enum ASTPRIM type, int offset, int dir) {
 
 // Needs to be below .data
 void MIPS_GlobSym(Compiler this, SymTableEntry sym) {
-    int typesize = PrimSize(sym->type);
-    enum ASTPRIM type = sym->type;
+    int size = type_size(sym->type, sym->ctype);
 
-    if (type == P_CHARPTR && sym->hasValue) {
+    // Might work idk?
+    if ((sym->type & P_CHAR) && ptrtype(sym->type) && sym->hasValue) {
         fprintf(this->outfile, "\t%s:\t.asciiz \"%s\"\n", sym->name,
                 sym->strValue);
-    } else {
-        if (sym->hasValue) {
-            if (type == P_CHAR) {
-                fprintf(this->outfile, "\t%s:\t.byte %d\n", sym->name,
-                        sym->value);
-            } else {
-                fprintf(this->outfile, "\t%s:\t.word %d\n", sym->name,
-                        sym->value);
-            }
-        } else {
+        return;
+    }
+
+    switch (size) {
+        case 1:
+            fprintf(this->outfile, "\t%s:\t.byte %d\n", sym->name, sym->value);
+            fputs("\t.align 2\n", this->outfile);
+            break;
+        case 4:
+            fprintf(this->outfile, "\t%s:\t.word %d\n", sym->name, sym->value);
+            break;
+        default:
+            // ! won't work on multi-dimensional arrays
+            debug("sym type %d", sym->type);
+            debug("other %d", (sym->type == P_STRUCT || sym->type == P_UNION)
+                                  ? size
+                                  : PrimSize(sym->type));
             fprintf(this->outfile, "\t%s:\t.space %d\n", sym->name,
-                    typesize * sym->size);
-        }
-        switch (type) {
-            case P_CHAR:
-                fprintf(this->outfile, "\t.align 2\n");
-                break;
-            default:
-                break;
-        }
+                    (sym->type == P_STRUCT || sym->type == P_UNION)
+                        ? size
+                        : PrimSize(sym->type) * sym->size);
     }
 }
 
@@ -660,11 +675,12 @@ int MIPS_Call(Compiler this, SymTableEntry sym) {
     for (int i = 0; i < this->paramRegCount; i++) {
         fprintf(this->outfile, "\tpush\t%s\n", reglist[FIRST_PARAM_REG + i]);
     }
-    
+
     for (SymTableEntry curr = sym->member; curr != NULL; curr = curr->next) {
         offset += PrimSize(curr->type);
     }
-    if (offset > 16) fprintf(this->outfile, "\taddiu\t$sp, $sp, %d\n", offset - 16);
+    if (offset > 16)
+        fprintf(this->outfile, "\taddiu\t$sp, $sp, %d\n", offset - 16);
 
     for (int i = 0; i < this->paramRegCount; i++) {
         fprintf(this->outfile, "\tpop\t%s\n", reglist[FIRST_PARAM_REG + i]);
@@ -710,12 +726,15 @@ int MIPS_Address(Compiler this, SymTableEntry sym) {
 int MIPS_Deref(Compiler this, int r, enum ASTPRIM type) {
     //! bug: derefing not occuring for b[3]
 
-    switch (type) {
-        case P_CHARPTR:
+    enum ASTPRIM newType = value_at(type);
+    int size = PrimSize(newType);
+
+    switch (size) {
+        case 1:
             fprintf(this->outfile, "\tlbu\t%s, 0(%s)\n", reglist[r],
                     reglist[r]);
             break;
-        case P_INTPTR:
+        case 4:
             fprintf(this->outfile, "\tlw\t%s, 0(%s)\n", reglist[r], reglist[r]);
             break;
         default:
@@ -831,6 +850,7 @@ void Compiler_FreeAllReg(Compiler this) {
 
 void Compiler_GenData(Compiler this, SymTable st) {
     bool found = false;
+    debug("Generating globs");
 
     for (SymTableEntry curr = st->globHead; curr != NULL; curr = curr->next) {
         // TODO: Remove these lines below (2)

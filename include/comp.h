@@ -30,6 +30,9 @@ struct compiler {
     int paramOffset;
 };
 
+// forward declaration
+int PrimSize(enum ASTPRIM type);
+
 typedef struct compiler *Compiler;
 
 Compiler Compiler_New(char *outfile);

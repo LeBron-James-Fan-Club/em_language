@@ -31,6 +31,7 @@ struct symTableEntry {
         int paramReg; // param register if first 4
     };
 
+    // is the first 4 parameters?
     bool isFirstFour;
 
     int size;  // Number of elements in the symbol
@@ -54,6 +55,7 @@ struct symTable {
     SymTableEntry paramHead, paramTail;
     SymTableEntry membHead, membTail;
     SymTableEntry structHead, structTail;
+    SymTableEntry unionHead, unionTail;
 
     // for annoymous
     int anon;
@@ -63,6 +65,7 @@ typedef struct symTable *SymTable;
 
 SymTable SymTable_New(void);
 void SymTable_Free(SymTable);
+
 SymTableEntry SymTable_AddGlob(SymTable this, Scanner s, enum ASTPRIM type,
                                SymTableEntry ctype, enum STRUCTTYPE stype,
                                int size, bool isAnon);
@@ -78,6 +81,9 @@ SymTableEntry SymTable_AddMemb(SymTable this, Scanner s, enum ASTPRIM type,
 SymTableEntry SymTable_AddStruct(SymTable this, Scanner s, enum ASTPRIM type,
                                  SymTableEntry ctype, enum STRUCTTYPE stype,
                                  int size);
+SymTableEntry SymTable_AddUnion(SymTable this, Scanner s, enum ASTPRIM type,
+                               SymTableEntry ctype, enum STRUCTTYPE stype,
+                               int size);
 
 SymTableEntry SymTable_FindGlob(SymTable this, Scanner s);
 SymTableEntry SymTable_FindLocl(SymTable this, Scanner s);
@@ -85,6 +91,8 @@ SymTableEntry SymTable_FindMember(SymTable this, Scanner s);
 SymTableEntry SymTable_FindStruct(SymTable this, Scanner s);
 SymTableEntry SymTable_FindSymInList(Scanner s, SymTableEntry head);
 SymTableEntry SymTable_FindSymbol(SymTable this, Scanner s, Context c);
+SymTableEntry SymTable_FindUnion(SymTable this, Scanner s);
+
 void SymTable_SetValue(SymTable this, SymTableEntry e, int intvalue);
 void SymTable_SetText(SymTable this, Scanner s, SymTableEntry e);
 void SymTable_FreeLocls(SymTable this);

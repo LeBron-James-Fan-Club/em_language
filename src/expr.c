@@ -21,6 +21,9 @@ static ASTnode ASTnode_Postfix(Scanner s, SymTable st, Token tok, Context ctx);
 static ASTnode peek_statement(Scanner s, SymTable st, Token tok, Context ctx);
 static ASTnode expression_list(Scanner s, SymTable st, Token tok, Context ctx);
 
+static ASTnode ASTnode_MemberAccess(Scanner s, SymTable st, Token tok,
+                                    Context ctx, bool isPtr);
+
 // * 1:1 baby
 static enum ASTOP arithOp(Scanner s, enum OPCODES tok) {
     if (tok > T_EOF && tok < T_INTLIT) return (enum ASTOP)tok;
@@ -78,7 +81,8 @@ static ASTnode primary(Scanner s, SymTable st, Token t, Context ctx) {
     SymTableEntry var;
     switch (t->token) {
         case T_STRLIT:
-            var = SymTable_AddGlob(st, s, pointer_to(P_CHAR), NULL, S_VAR, 1, true);
+            var = SymTable_AddGlob(st, s, pointer_to(P_CHAR), NULL, S_VAR, 1,
+                                   true);
             SymTable_SetText(st, s, var);
             return ASTnode_NewLeaf(A_STRLIT, pointer_to(P_CHAR), var, 0);
         case T_INTLIT:
@@ -392,13 +396,23 @@ static ASTnode ASTnode_Postfix(Scanner s, SymTable st, Token tok, Context ctx) {
     Scanner_Scan(s, tok);
     if (tok->token == T_LPAREN) return ASTnode_FuncCall(s, st, tok, ctx);
     if (tok->token == T_LBRACKET) return ASTnode_ArrayRef(s, st, tok, ctx);
+    if (tok->token == T_DOT)
+        return ASTnode_MemberAccess(s, st, tok, ctx, false);
+    if (tok->token == T_ARROW)
+        return ASTnode_MemberAccess(s, st, tok, ctx, true);
+
+    // TODO: cant remember why i need to reject the token
     Scanner_RejectToken(s, tok);
 
-    if ((var = SymTable_FindSymbol(st, s, ctx)) == NULL) {
+    if ((var = SymTable_FindSymbol(st, s, ctx)) == NULL ||
+        var->stype != S_VAR) {
+        debug("fuck :(");
         lfatala(s, "UndefinedError: Undefined variable %s", s->text);
     }
 
     debug("Variable %p", var);
+
+    // * Doesn't work for a++++ i think
 
     switch (tok->token) {
         case T_INC:
@@ -410,6 +424,58 @@ static ASTnode ASTnode_Postfix(Scanner s, SymTable st, Token tok, Context ctx) {
         default:
             return ASTnode_NewLeaf(A_IDENT, var->type, var, 0);
     }
+}
+
+static ASTnode ASTnode_MemberAccess(Scanner s, SymTable st, Token tok,
+                                    Context ctx, bool isPtr) {
+    ASTnode left, right;
+    // the struct
+    SymTableEntry compVar;
+    SymTableEntry typePtr;
+
+    // the member
+    SymTableEntry m = NULL;
+
+    if ((compVar = SymTable_FindSymbol(st, s, ctx)) == NULL) {
+        fatala("UndefinedError: Undefined variable %s", s->text);
+    }
+    if (isPtr && compVar->type != pointer_to(P_STRUCT) &&
+        compVar->type != pointer_to(P_UNION)) {
+        fatala("TypeError: %s is not a pointer to a struct/union", s->text);
+    }
+    if (!isPtr && compVar->type != P_STRUCT && compVar->type != P_UNION) {
+        fatala("TypeError: %s is not a struct/union", s->text);
+    }
+
+    if (isPtr) {
+        left = ASTnode_NewLeaf(A_IDENT, pointer_to(P_STRUCT), compVar, 0);
+    } else {
+        left = ASTnode_NewLeaf(A_ADDR, P_STRUCT, compVar, 0);
+    }
+
+    left->rvalue = 1;
+
+    typePtr = compVar->ctype;
+
+    Scanner_Scan(s, tok);
+    ident(s, tok);
+
+    for (m = typePtr->member; m != NULL; m = m->next) {
+        if (strcmp(m->name, s->text) == 0) break;
+    }
+
+    debug("Member %s", s->text);
+
+    if (m == NULL) fatala("UndefinedError: Undefined member %s", s->text);
+
+    right = ASTnode_NewLeaf(A_INTLIT, P_INT, NULL, m->offset);
+
+    left = ASTnode_New(A_ADD, pointer_to(m->type), left, NULL, right, NULL, 0);
+    left = ASTnode_NewUnary(A_DEREF, m->type, left, NULL, 0);
+
+    debug("left struct access");
+    Scanner_RejectToken(s, tok);
+    return left;
 }
 
 static ASTnode peek_statement(Scanner s, SymTable st, Token tok, Context ctx) {

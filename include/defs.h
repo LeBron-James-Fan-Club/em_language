@@ -65,12 +65,12 @@ enum OPCODES {
 
     // INPUT a - takes input and stores it in a
     T_INPUT,  // 21
-    
+
     // dangerous shit
     T_PEEK,
     T_POKE,
 
-    T_INT,    // 22
+    T_INT,  // 22
     T_STRUCT,
 
     T_IF,     // 23
@@ -82,6 +82,9 @@ enum OPCODES {
     T_VOID,
     T_CHAR,
     T_COMMA,
+    T_DOT,
+    T_ARROW,
+    T_UNION,
     T_RETURN,
     T_STRLIT
 
@@ -139,7 +142,7 @@ enum ASTOP {
 
     A_PRINT,
     A_INPUT,
-    
+
     A_PEEK,
     A_POKE,
 
@@ -176,27 +179,26 @@ enum ASTOP {
 };
 
 // Primitives
+
+// We use bitwise to keep track of pointers
+// con: can only support up to 4 pointers (find a fix for this soon)
+// anything in 0xf (1111) is assumed a pointer
 enum ASTPRIM {
     P_NONE,
 
-    P_VOID,
-    P_CHAR,
-    P_INT,
+    P_VOID = 1 << 4,
+    P_CHAR = 1 << 5,
+    P_INT = 1 << 6,
 
-    P_VOIDPTR,
-    P_CHARPTR,
-    P_INTPTR,
+    // P_VOIDPTR,
+    // P_CHARPTR,
+    // P_INTPTR,
 
-    P_STRUCT
+    P_STRUCT = 1 << 7,
+    P_UNION = 1 << 8
 };
 
-enum STORECLASS {
-    C_GLOBAL = 1,
-    C_LOCAL,
-    C_PARAM,
-    C_MEMBER,
-    C_STRUCT
-};
+enum STORECLASS { C_GLOBAL = 1, C_LOCAL, C_PARAM, C_MEMBER, C_STRUCT, C_UNION };
 
 struct token {
     enum OPCODES token;

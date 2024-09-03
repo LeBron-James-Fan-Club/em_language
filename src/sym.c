@@ -118,6 +118,16 @@ SymTableEntry SymTable_AddStruct(SymTable this, Scanner s, enum ASTPRIM type,
     return e;
 }
 
+SymTableEntry SymTable_AddUnion(SymTable this, Scanner s, enum ASTPRIM type,
+                               SymTableEntry ctype, enum STRUCTTYPE stype,
+                               int size) {
+    SymTableEntry e =
+        SymTableEntryNew(s->text, type, ctype, stype, C_UNION, size, 0);
+
+    pushSym(&this->unionHead, &this->unionTail, e);
+    return e;
+}
+
 SymTableEntry SymTable_FindSymInList(Scanner s, SymTableEntry head) {
     for (; head != NULL; head = head->next) {
         if (head->name != NULL && !strcmp(s->text, head->name)) {
@@ -141,6 +151,10 @@ SymTableEntry SymTable_FindMember(SymTable this, Scanner s) {
 
 SymTableEntry SymTable_FindStruct(SymTable this, Scanner s) {
     return SymTable_FindSymInList(s, this->structHead);
+}
+
+SymTableEntry SymTable_FindUnion(SymTable this, Scanner s) {
+    return SymTable_FindSymInList(s, this->unionHead);
 }
 
 SymTableEntry SymTable_FindSymbol(SymTable this, Scanner s, Context c) {
@@ -189,6 +203,7 @@ void SymTable_Free(SymTable this) {
     freeList(this->paramHead);
     freeList(this->membHead);
     freeList(this->structHead);
+    freeList(this->unionHead);
 
     free(this);
 }
