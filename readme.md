@@ -25,6 +25,8 @@
  - Structs
  - Union
  - Comments
+ - typedef
+ - enums
 
 ## What will be added soon (Hopefully)
  - Local arrays
