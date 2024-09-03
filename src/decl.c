@@ -65,18 +65,30 @@ static SymTableEntry composite_declare(Scanner s, SymTable st, Token tok,
     memb->offset = 0;
     offset = type_size(memb->type, memb->ctype);
 
+    // for union
+    int maxSize = 0;
+
     for (memb = memb->next; memb != NULL; memb = memb->next) {
         if (type == P_STRUCT) {
             memb->offset = MIPS_Align(memb->type, offset, 1);
+            offset += type_size(memb->type, memb->ctype);
         } else {
             memb->offset = 0;
+            int size = type_size(memb->type, memb->ctype);
+            debug("Size of %s: %d", memb->name,
+                   size);
+            if (size > maxSize) {
+                maxSize = size;
+            }
         }
 
         // Calculates offset of next free byte
-        offset += type_size(memb->type, memb->ctype);
+        
     }
 
-    cType->size = offset;
+    debug ("Size of struct %d", offset);
+
+    cType->size = type == P_STRUCT ? offset : maxSize;
 
     return cType;
 }

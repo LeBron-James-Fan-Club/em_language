@@ -52,3 +52,5 @@
 
 - need somewhere to store the register $a0 before its used for a syscall
     - will need to push then pop - fixed
+
+- unncessary space created when creating union

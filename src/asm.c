@@ -525,6 +525,7 @@ void MIPS_GlobSym(Compiler this, SymTableEntry sym) {
         default:
             // ! won't work on multi-dimensional arrays
             debug("sym type %d", sym->type);
+            debug("sym size %d", sym->size);
             debug("other %d", (sym->type == P_STRUCT || sym->type == P_UNION)
                                   ? size
                                   : PrimSize(sym->type));
@@ -719,7 +720,11 @@ void MIPS_RegPop(Compiler this, int r) {
 
 int MIPS_Address(Compiler this, SymTableEntry sym) {
     int r = allocReg(this);
-    fprintf(this->outfile, "\tla\t%s, %s\n", reglist[r], sym->name);
+    if (sym->class == C_GLOBAL) {
+        fprintf(this->outfile, "\tla\t%s, %s\n", reglist[r], sym->name);
+    } else {
+        fprintf(this->outfile, "\tla\t%s, %d($sp)\n", reglist[r], sym->offset);
+    }
     return r;
 }
 
