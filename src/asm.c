@@ -54,6 +54,14 @@ void MIPS_Post(Compiler this) {
  * offset need to be after 0 and then negatives
  */
 
+/*
+Structure of the stack
+(Parameters after 4th param)
+($fp) + 8
+($ra) 
+(local variables)
+*/
+
 void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
     char *name = ctx->functionId->name;
 
@@ -85,17 +93,20 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
         this->paramRegCount++;
     }
 
-    for (; paramCurr != NULL; paramCurr = paramCurr->next) {
-        // for remaining params they get pushed on stack
-        paramCurr->offset = Compiler_GetParamOffset(this, paramCurr->type);
-    }
-
     SymTableEntry loclCurr = st->loclHead;
 
     for (; loclCurr != NULL; loclCurr = loclCurr->next) {
         // same thing but for local
-        loclCurr->offset = Compiler_GetLocalOffset(this, loclCurr->type);
+        // We subtract 4 cause its 1 off
+        // e.g. a[0] instead of a[1]
+        loclCurr->offset = Compiler_GetLocalOffset(this, loclCurr->type) - 4;
     }
+
+    for (; paramCurr != NULL; paramCurr = paramCurr->next) {
+        // for remaining params they get pushed on stack
+        paramCurr->offset = this->localOffset + Compiler_GetParamOffset(this, paramCurr->type);
+    }
+
 
     // need to add local offset to all offsets somehow
 
@@ -106,7 +117,7 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
     // Actual offset for locals if have been initialised
     if (st->loclHead) {
         fprintf(this->outfile, "\taddiu\t$sp, $sp, %d\n",
-                -(this->localOffset - 8));
+                -this->localOffset);
         for (loclCurr = st->loclHead; loclCurr != NULL;
              loclCurr = loclCurr->next) {
             if (loclCurr->hasValue) {
@@ -124,12 +135,13 @@ void MIPS_PostFunc(Compiler this, Context ctx) {
     // TODO: if there are no early returns
     // TODO: we don't add return label
     MIPS_ReturnLabel(this, ctx);
-    fprintf(this->outfile,
-            "\taddiu\t$sp, $sp, %d\n"
+    if (this->localOffset > 0) {
+        fprintf(this->outfile, "\taddiu\t$sp, $sp, %d\n", this->localOffset);
+    }
+    fputs(
             "\tpop\t$ra\n"
             "\tend\n"
-            "\tjr\t$ra\n\n",
-            this->localOffset - 8);
+            "\tjr\t$ra\n\n", this->outfile);
 }
 
 int MIPS_Load(Compiler this, int value) {
@@ -705,6 +717,8 @@ void MIPS_ArgCopy(Compiler this, int r, int argPos, int maxArg) {
     if (argPos > 4) {
         fprintf(this->outfile, "\tpush\t%s\n", reglist[r]);
     } else {
+        debug("argPos: %d", argPos);
+        debug("calculation %d", FIRST_PARAM_REG + argPos - 1);
         fprintf(this->outfile, "\tmove\t%s, %s\n",
                 reglist[FIRST_PARAM_REG + argPos - 1], reglist[r]);
     }

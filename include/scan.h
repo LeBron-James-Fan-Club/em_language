@@ -14,6 +14,8 @@
 struct scanner {
     // file to scan in
     FILE *infile;
+    char *infilename;
+
     // character to put back
     char putback;
     // current line number
@@ -26,7 +28,7 @@ struct scanner {
 
 typedef struct scanner *Scanner;
 
-Scanner Scanner_New(char *name);
+Scanner Scanner_New(void);
 void Scanner_Free(Scanner);
 bool Scanner_Scan(Scanner, Token t);
 void Scanner_Putback(Scanner this, char c);

@@ -3,7 +3,11 @@
 
 // Commonly used stuff - prevents circular includes
 
-#define DEBUG 1
+#define CPPCMD "cpp -P -nostdinc -isystem"
+// declared in makeifle
+#ifndef INCDIR
+#define INCDIR "./bin/include"
+#endif
 
 enum OPCODES {
     T_EOF,  // 0
@@ -87,6 +91,7 @@ enum OPCODES {
     T_UNION,
     T_ENUM,
     T_TYPEDEF,
+    T_EXTERN,
     T_RETURN,
     T_STRLIT
 
@@ -97,14 +102,6 @@ enum ASTOP {
     A_NONE,
 
     A_ASSIGN,
-
-    /*
-    A_ASSIGNADD,
-    A_ASSIGNSUB,
-    A_ASSIGNMUL,
-    A_ASSIGNDIV,
-    A_ASSIGNMOD,
-    */
 
     // Not supported yet
     A_LOGOR,
@@ -210,7 +207,8 @@ enum STORECLASS {
     C_UNION,
     C_ENUMTYPE,
     C_ENUMVAL,
-    C_TYPEDEF
+    C_TYPEDEF,
+    C_EXTERN
 };
 
 struct token {

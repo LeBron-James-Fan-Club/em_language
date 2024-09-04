@@ -60,7 +60,7 @@ static void pushSym(SymTableEntry *head, SymTableEntry *tail, SymTableEntry e) {
 
 SymTableEntry SymTable_AddGlob(SymTable this, char *name, enum ASTPRIM type,
                                SymTableEntry ctype, enum STRUCTTYPE stype,
-                               int size, bool isAnon) {
+                               enum STORECLASS class, int size, bool isAnon) {
     char *newName;
     if (isAnon) {
         asprintf(&newName, "anon_%d", this->anon++);
@@ -69,7 +69,7 @@ SymTableEntry SymTable_AddGlob(SymTable this, char *name, enum ASTPRIM type,
     }
 
     SymTableEntry e =
-        SymTableEntryNew(newName, type, ctype, stype, C_GLOBAL, size, 0);
+        SymTableEntryNew(newName, type, ctype, stype, class, size, 0);
 
     pushSym(&this->globHead, &this->globTail, e);
 
@@ -161,7 +161,12 @@ SymTableEntry SymTable_FindGlob(SymTable this, Scanner s) {
     return SymTable_FindSymInList(s, this->globHead, C_NONE);
 }
 
-SymTableEntry SymTable_FindLocl(SymTable this, Scanner s) {
+SymTableEntry SymTable_FindLocl(SymTable this, Scanner s, Context c) {
+    SymTableEntry e;
+    if (c->functionId) {
+        e = SymTable_FindSymInList(s, c->functionId->member, C_NONE);
+        if (e) return e;
+    }
     return SymTable_FindSymInList(s, this->loclHead, C_NONE);
 }
 
@@ -191,11 +196,7 @@ SymTableEntry SymTable_FindTypeDef(SymTable this, Scanner s) {
 
 SymTableEntry SymTable_FindSymbol(SymTable this, Scanner s, Context c) {
     SymTableEntry e;
-    if (c->functionId) {
-        e = SymTable_FindSymInList(s, c->functionId->member, C_NONE);
-        if (e) return e;
-    }
-    e = SymTable_FindLocl(this, s);
+    e = SymTable_FindLocl(this, s, c);
     if (e) return e;
 
     return SymTable_FindGlob(this, s);

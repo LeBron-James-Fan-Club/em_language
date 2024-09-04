@@ -1,5 +1,10 @@
+#define _GNU_SOURCE
 #include <stdio.h>
+
 #include <stdlib.h>
+
+#include <unistd.h>
+#include <errno.h>
 
 #include "ast.h"
 #include "context.h"
@@ -13,6 +18,10 @@
 #include "sym.h"
 
 Flags flags;
+
+static void usage(char *path);
+static int argParse(int argc, char *argv[]);
+static void preprocess(Scanner s, char *filename);
 
 static void usage(char *path) {
     printf("Usage: %s [file] [outfile]\n", path);
@@ -52,6 +61,19 @@ static int argParse(int argc, char *argv[]) {
     return i;
 }
 
+static void preprocess(Scanner s, char *filename) {
+    char *cmd;
+    asprintf(&cmd, "%s %s %s", CPPCMD, INCDIR, filename);
+
+    if ((s->infile = popen(cmd, "r")) == NULL) {
+        fatala("OSError: Unable to open pipe to cpp %s, error: %s", filename, strerror(errno));
+    }
+    s->infilename = filename;
+    
+
+    free(cmd);
+}
+
 int main(int argc, char *argv[]) {
     if (argc < 3) {
         usage(argv[0]);
@@ -61,7 +83,9 @@ int main(int argc, char *argv[]) {
 
     int i = argParse(argc, argv);
 
-    Scanner s = Scanner_New(argv[i]);
+    Scanner s = Scanner_New();
+    preprocess(s, argv[i]);
+
     if (s == NULL) {
         fatal("InternalError: unable to initialise scanner\n");
     }

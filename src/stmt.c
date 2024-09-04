@@ -49,6 +49,7 @@ ASTnode Compound_Statement(Compiler c, Scanner s, SymTable st, Token tok,
             (tree->op == A_INPUT || tree->op == A_RETURN ||
              tree->op == A_ASSIGN || tree->op == A_FUNCCALL ||
              tree->op == A_LABEL || tree->op == A_GOTO || tree->op == A_POKE)) {
+                debug("consume semi");
             semi(s, tok);
         }
 
@@ -67,17 +68,31 @@ ASTnode Compound_Statement(Compiler c, Scanner s, SymTable st, Token tok,
 
 static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
                                 Context ctx) {
-    int type;
+    enum ASTPRIM type;
+    enum STORECLASS class = C_LOCAL;
+
     SymTableEntry cType;
 
     switch (tok->token) {
         case T_PRINT:
             return print_statement(s, st, tok, ctx);
+        case T_IDENT:
+            if (SymTable_FindTypeDef(st, s) == NULL)
+                return ASTnode_Order(s, st, tok, ctx);
         case T_CHAR:
         case T_INT:
-            type = parse_type(s, st, tok, &cType);
+        case T_STRUCT:
+        case T_UNION:
+        case T_ENUM:
+        case T_TYPEDEF:
+            type = parse_type(s, st, tok, &cType, &class);
             ident(s, tok);
-            var_declare(s, st, tok, type, cType, C_LOCAL, false);
+            debug("class %d", class);
+            var_declare(s, st, tok, type, cType, class, false);
+            // ! check if this fucks up anything
+            debug("before semi consume");
+            semi(s, tok);
+            debug("out of here");
             return NULL;
         case T_POKE:
             return poke_statement(s, st, tok, ctx);
@@ -165,9 +180,7 @@ static ASTnode input_statement(Scanner s, SymTable st, Token tok, Context ctx) {
     ident(s, tok);
 
     if ((var = SymTable_FindSymbol(st, s, ctx)) == NULL) {
-        fprintf(stderr, "Error: Undefined variable %s on line %d\n", s->text,
-                s->line);
-        exit(-1);
+        lfatala(s, "UndefinedError: Undefined variable %s", s->text);
     }
 
     ASTnode left = ASTnode_NewLeaf(A_INPUT, P_INT, NULL, 0);
@@ -260,7 +273,8 @@ static ASTnode label_statement(Scanner s, SymTable st, Token tok) {
     match(s, tok, T_LABEL, "label");
     ident(s, tok);
 
-    SymTableEntry var = SymTable_AddGlob(st, s->text, P_NONE, NULL, S_LABEL, 0, false);
+    SymTableEntry var = SymTable_AddGlob(st, s->text, P_NONE, NULL, S_LABEL,
+                                         C_GLOBAL, 0, false);
 
     ASTnode t = ASTnode_NewLeaf(A_LABEL, P_NONE, var, 0);
 
@@ -274,9 +288,7 @@ static ASTnode goto_statement(Scanner s, SymTable st, Token tok) {
     // ! Might be buggy?
     ident(s, tok);
     if ((var = SymTable_FindGlob(st, s)) == NULL) {
-        fprintf(stderr, "Error: Undefined variable %s on line %d\n", s->text,
-                s->line);
-        exit(-1);
+        lfatala(s, "UndefinedError: Undefined label %s", s->text);
     }
 
     ASTnode t = ASTnode_NewLeaf(A_GOTO, P_NONE, var, 0);

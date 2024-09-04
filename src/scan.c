@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <unistd.h>
+
 #include "defs.h"
 #include "misc.h"
 
@@ -21,19 +23,20 @@ static int keyword(char *s);
 
 static int chrpos(char *s, int c);
 
-Scanner Scanner_New(char *name) {
+Scanner Scanner_New(void) {
     Scanner n = calloc(1, sizeof(struct scanner));
     n->line = 1;
     n->putback = '\n';
-    n->infile = fopen(name, "r");
-    if (n->infile == NULL) {
-        fatala("OSError: Unable to open file %s", name);
-    }
+
+    //n->infile = fopen(name, "r");
+    //if (n->infile == NULL) {
+    //    fatala("OSError: Unable to open file %s", name);
+    //}
     return n;
 }
 
 void Scanner_Free(Scanner this) {
-    fclose(this->infile);
+    pclose(this->infile);
     free(this);
 }
 
@@ -58,8 +61,15 @@ void Scanner_Putback(Scanner this, char c) { putback(this, c); }
 static char skip(Scanner this) {
     char c;
     c = next(this);
+
     // please work
     while (true) {
+        // Just in case
+        if (c == EOF) {
+            strcpy(this->text, "<EOF>");
+            return EOF;
+        }
+
         while (c == ' ' || c == '\t' || c == '\n' || c == '\r' ||
                // \f not really used much anymore
                c == '\f') {
@@ -67,6 +77,8 @@ static char skip(Scanner this) {
             // debug("fuck before");
         }
 
+
+        // This ignores comments
         if (c == '/') {
             if ((c = next(this)) == '/') {
                 // debug("first before");
@@ -305,6 +317,7 @@ static int keyword(char *s) {
         case 'e':
             if (!strcmp(s, "else")) return T_ELSE;
             if (!strcmp(s, "enum")) return T_ENUM;
+            if (!strcmp(s, "extern")) return T_EXTERN;
             break;
         case 'g':
             if (!strcmp(s, "goto")) return T_GOTO;

@@ -11,10 +11,10 @@
 #include "sym.h"
 
 enum ASTPRIM parse_type(Scanner s, SymTable st, Token tok,
-                        SymTableEntry *ctype);
+                        SymTableEntry *ctype, enum STORECLASS *class);
 
 void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
-                 SymTableEntry cType, enum STORECLASS store, bool ignoreEnd);
+                 SymTableEntry cType, enum STORECLASS class, bool ignoreEnd);
 void global_declare(Compiler c, Scanner s, SymTable st, Token tok, Context ctx);
 ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
                          Context ctx, enum ASTPRIM type);

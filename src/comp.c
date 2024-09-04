@@ -21,9 +21,9 @@ void Compiler_Free(Compiler this) {
 }
 
 void Compiler_ResetOffset(Compiler this) {
-    // 8 for $ra and $fp (begin)
-    this->localOffset = 8;
-    // 4 for $ra (but i dont know why yet - trial and error)
+
+    this->localOffset = 0;
+    // 4 because its like accessing a[0] instead of a[1]
     this->paramOffset = 4;
     this->paramRegCount = 0;
 }

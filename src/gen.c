@@ -115,6 +115,7 @@ static int genAST(Compiler this, SymTable st, int label, Context ctx, ASTnode n,
                     return MIPS_LoadLocal(this, n->sym, n->op);
                 }
             } else {
+                debug("IDENT %s has NO_REG", n->sym->name);
                 return NO_REG;
             }
         case A_ASSIGN:

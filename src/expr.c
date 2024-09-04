@@ -81,8 +81,8 @@ static ASTnode primary(Scanner s, SymTable st, Token t, Context ctx) {
     SymTableEntry var;
     switch (t->token) {
         case T_STRLIT:
-            var = SymTable_AddGlob(st, s->text, pointer_to(P_CHAR), NULL, S_VAR, 1,
-                                   true);
+            var = SymTable_AddGlob(st, s->text, pointer_to(P_CHAR), NULL, S_VAR,
+                                   C_GLOBAL, 1, true);
             SymTable_SetText(st, s, var);
             return ASTnode_NewLeaf(A_STRLIT, pointer_to(P_CHAR), var, 0);
         case T_INTLIT:
@@ -95,6 +95,7 @@ static ASTnode primary(Scanner s, SymTable st, Token t, Context ctx) {
             // printf("PEEK\n");
             return peek_statement(s, st, t, ctx);
         case T_IDENT:
+            debug("IDENT %s", s->text);
             return ASTnode_Postfix(s, st, t, ctx);
         default:
             break;
@@ -252,6 +253,9 @@ out:
 
     free(stack);
     free(opStack);
+
+    // Might break it?
+    n->rvalue = 1;
     return n;
 }
 
@@ -259,6 +263,7 @@ static ASTnode ASTnode_FuncCall(Scanner s, SymTable st, Token tok,
                                 Context ctx) {
     ASTnode t;
     SymTableEntry var;
+
     if ((var = SymTable_FindSymbol(st, s, ctx)) == NULL) {
         lfatala(s, "UndefinedError: Undefined function %s", s->text);
     }
@@ -281,6 +286,9 @@ static ASTnode expression_list(Scanner s, SymTable st, Token tok, Context ctx) {
     while (tok->token != T_RPAREN) {
         child = ASTnode_Order(s, st, tok, ctx);
         exprCount++;
+
+        debug("expression generation %d", exprCount);
+        debug("child %p", child);
 
         tree = ASTnode_New(A_GLUE, P_NONE, tree, NULL, child, NULL, exprCount);
 
@@ -395,7 +403,8 @@ static ASTnode ASTnode_Postfix(Scanner s, SymTable st, Token tok, Context ctx) {
 
     // Converts enum to a specific int
     if ((enumPtr = SymTable_FindEnumVal(st, s)) != NULL) {
-        //Scanner_Scan(s, tok);
+        // Scanner_Scan(s, tok);
+        debug("hit a enum word");
         // ! bug: for some reason a extra token is consumed i think
         //! semi colon is ignored
         return ASTnode_NewLeaf(A_INTLIT, P_INT, NULL, enumPtr->value);
@@ -432,6 +441,7 @@ static ASTnode ASTnode_Postfix(Scanner s, SymTable st, Token tok, Context ctx) {
             Scanner_Scan(s, tok);
             return ASTnode_NewLeaf(A_POSTDEC, var->type, var, 0);
         default:
+            debug("variable %d %p", var->type, var);
             return ASTnode_NewLeaf(A_IDENT, var->type, var, 0);
     }
 }

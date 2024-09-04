@@ -70,7 +70,7 @@ void SymTable_Free(SymTable);
 
 SymTableEntry SymTable_AddGlob(SymTable this, char *name, enum ASTPRIM type,
                                SymTableEntry ctype, enum STRUCTTYPE stype,
-                               int size, bool isAnon);
+                               enum STORECLASS class, int size, bool isAnon);
 SymTableEntry SymTable_AddLocl(SymTable this, char *name, enum ASTPRIM type,
                                SymTableEntry ctype, enum STRUCTTYPE stype,
                                int size);
@@ -93,10 +93,11 @@ SymTableEntry SymTable_AddTypeDef(SymTable this, char *name, enum ASTPRIM type,
                                   int size);
 
 SymTableEntry SymTable_FindGlob(SymTable this, Scanner s);
-SymTableEntry SymTable_FindLocl(SymTable this, Scanner s);
+SymTableEntry SymTable_FindLocl(SymTable this, Scanner s, Context c);
 SymTableEntry SymTable_FindMember(SymTable this, Scanner s);
 SymTableEntry SymTable_FindStruct(SymTable this, Scanner s);
-SymTableEntry SymTable_FindSymInList(Scanner s, SymTableEntry head, enum STORECLASS class);
+SymTableEntry SymTable_FindSymInList(Scanner s, SymTableEntry head,
+                                     enum STORECLASS class);
 SymTableEntry SymTable_FindSymbol(SymTable this, Scanner s, Context c);
 SymTableEntry SymTable_FindUnion(SymTable this, Scanner s);
 SymTableEntry SymTable_FindEnumType(SymTable st, Scanner s);

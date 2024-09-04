@@ -14,16 +14,19 @@ static SymTableEntry composite_declare(Scanner s, SymTable st, Token tok,
 static void enum_declare(Scanner s, SymTable st, Token tok);
 
 static enum ASTPRIM typedef_declare(Scanner s, SymTable st, Token tok,
-                             SymTableEntry *cType);
+                                    SymTableEntry *cType);
 
-static enum ASTPRIM typedef_type(Scanner s, SymTable st, Token tok, SymTableEntry *cType);
+static enum ASTPRIM typedef_type(Scanner s, SymTable st, Token tok,
+                                 SymTableEntry *cType);
 
 void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
-                 SymTableEntry cType, enum STORECLASS store, bool ignoreEnd) {
+                 SymTableEntry cType, enum STORECLASS class, bool ignoreEnd) {
     //* int x[2], a;
 
     // TODO : Support array initialisation
     // TODO : Support multi-dimensional arrays
+
+    // ! Broken with other types for local variables (fix later)
 
     while (true) {
         if (tok->token == T_LBRACKET) {
@@ -31,16 +34,17 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
             //! I don't think i calculated the offset for the size yet
 
             Scanner_Scan(s, tok);
-            if (store == C_LOCAL || store == C_PARAM || store == C_MEMBER) {
+            if (class == C_LOCAL || class == C_PARAM || class == C_MEMBER) {
                 lfatal(s, "UnsupportedError: only globals can be arrays");
             }
 
             SymTable_AddGlob(st, s->text, pointer_to(type), cType, S_ARRAY,
+                             class,
                              tok->token == T_INTLIT ? tok->intvalue : 1, false);
             Scanner_Scan(s, tok);
             match(s, tok, T_RBRACKET, "]");
         } else if (tok->token == T_ASSIGN) {
-            if (store == C_LOCAL || store == C_PARAM || store == C_MEMBER) {
+            if (class == C_LOCAL || class == C_PARAM || class == C_MEMBER) {
                 lfatal(s,
                        "UnsupportedError: only globals can"
                        "be initialised");
@@ -49,8 +53,8 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
             Scanner_Scan(s, tok);
 
             // Only for scalar types
-            SymTableEntry sym =
-                SymTable_AddGlob(st, s->text, type, cType, S_VAR, 0, false);
+            SymTableEntry sym = SymTable_AddGlob(st, s->text, type, cType,
+                                                 S_VAR, C_GLOBAL, 0, false);
 
             // For now until lazy evaluation is implemented
             // we stick with singular values
@@ -71,7 +75,8 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
             // TODO : check if there is wrong syntax?
             // TODO: NVM it does it below
         } else {
-            switch (store) {
+            debug("Adding variable %s class %d", s->text, class);
+            switch (class) {
                 case C_STRUCT:
                     fatala("InternalError: C_STRUCT shouldn't be here");
                 case C_UNION:
@@ -84,12 +89,13 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
                     fatala("InternalError: C_TYPEDEF shouldn't be here");
                 case C_ENUMVAL:
                     fatala("InternalError: C_ENUMVAL shouldn't be here");
-
-                
+                case C_EXTERN:
                 case C_GLOBAL:
                     debug("Adding global variable %s", s->text);
-                    if (SymTable_AddGlob(st, s->text, type, cType, S_VAR, 1, false) ==
-                        NULL) {
+                    // ! this might create bugs for extern
+                    // ! check later
+                    if (SymTable_AddGlob(st, s->text, type, cType, S_VAR,
+                                         class, 1, false) == NULL) {
                         lfatala(s,
                                 "DuplicateError: Duplicate global variable %s",
                                 s->text);
@@ -123,13 +129,13 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
             }
         }
 
-        if (store == C_PARAM &&
+        if (class == C_PARAM &&
             (tok->token == T_COMMA || tok->token == T_RPAREN)) {
             return;
         }
 
         if (tok->token == T_SEMI || tok->token == T_EOF) {
-            if (!ignoreEnd) Scanner_Scan(s, tok);
+            //if (!ignoreEnd) Scanner_Scan(s, tok);
             return;
         }
 
@@ -142,7 +148,7 @@ void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
 }
 
 static int var_declare_list(Scanner s, SymTable st, Token tok,
-                            SymTableEntry funcSym, enum STORECLASS store,
+                            SymTableEntry funcSym, enum STORECLASS class,
                             enum OPCODES sep, enum OPCODES end) {
     enum ASTPRIM type;
     int paramCnt = 0;
@@ -158,7 +164,7 @@ static int var_declare_list(Scanner s, SymTable st, Token tok,
 
     while (tok->token != end) {
         // debug("before type check");
-        type = parse_type(s, st, tok, &cType);
+        type = parse_type(s, st, tok, &cType, &class);
         // debug("after type check");
 
         // debug("before ident check");
@@ -174,7 +180,7 @@ static int var_declare_list(Scanner s, SymTable st, Token tok,
             protoPtr = protoPtr->next;
         }
 
-        var_declare(s, st, tok, type, cType, store, true);
+        var_declare(s, st, tok, type, cType, class, true);
         paramCnt++;
 
         debug("token %d", tok->token);
@@ -207,6 +213,7 @@ void global_declare(Compiler c, Scanner s, SymTable st, Token tok,
                     Context ctx) {
     ASTnode tree;
     enum ASTPRIM type;
+    enum STORECLASS class = C_GLOBAL;
     SymTableEntry cType;
 
     while (true) {
@@ -214,7 +221,7 @@ void global_declare(Compiler c, Scanner s, SymTable st, Token tok,
 
         debug("token 1 %d", tok->token);
 
-        type = parse_type(s, st, tok, &cType);
+        type = parse_type(s, st, tok, &cType, &class);
 
         if (type == -1) {
             semi(s, tok);
@@ -246,7 +253,7 @@ void global_declare(Compiler c, Scanner s, SymTable st, Token tok,
             Context_SetFunctionId(ctx, NULL);
 
         } else {
-            var_declare(s, st, tok, type, cType, C_GLOBAL, false);
+            var_declare(s, st, tok, type, cType, class, false);
         }
         if (tok->token == T_EOF) break;
     }
@@ -267,7 +274,8 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
     }
 
     if (oldFuncSym == NULL) {
-        newFuncSym = SymTable_AddGlob(st, s->text, type, NULL, S_FUNC, 1, false);
+        newFuncSym = SymTable_AddGlob(st, s->text, type, NULL, S_FUNC, C_GLOBAL,
+                                      1, false);
     }
 
     lparen(s, tok);
@@ -306,9 +314,25 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
 }
 
 enum ASTPRIM parse_type(Scanner s, SymTable st, Token tok,
-                        SymTableEntry *ctype) {
+                        SymTableEntry *ctype, enum STORECLASS *class) {
     debug("parse_type");
     enum ASTPRIM type;
+    bool exstatic = true;
+
+
+    // extern extern extern extern extern ...
+    while (exstatic) {
+        switch (tok->token) {
+            case T_EXTERN:
+                debug("extern hit");
+                *class = C_EXTERN;
+                Scanner_Scan(s, tok);
+                break;
+            default:
+                exstatic = false;
+        }
+    }
+
     switch (tok->token) {
         case T_INT:
             debug("type is int");
@@ -348,20 +372,22 @@ enum ASTPRIM parse_type(Scanner s, SymTable st, Token tok,
             type = typedef_declare(s, st, tok, ctype);
             if (tok->token == T_SEMI) type = -1;
             break;
-        case T_IDENT: // typedef
+        case T_IDENT:  // typedef
             debug("type is ident (maybe a typedef)");
             type = typedef_type(s, st, tok, ctype);
-            break;  
+            break;
         default:
             fatala("InternalError: unknown type %d", tok->token);
     }
 
     // allows the user to do int ******a
+    debug("WOW THE TYPE ISSSS %d", type);
     while (true) {
         if (tok->token != T_STAR) break;
         type = pointer_to(type);
         Scanner_Scan(s, tok);
     }
+    debug("END OF THE TYPE ISSSS %d", type);
 
     return type;
 }
@@ -474,7 +500,7 @@ static void enum_declare(Scanner s, SymTable st, Token tok) {
     }
 
     eType = SymTable_AddEnum(st, name, C_ENUMTYPE, 0);
-    
+
     if (name) free(name);
 
     while (true) {
@@ -509,14 +535,18 @@ static void enum_declare(Scanner s, SymTable st, Token tok) {
 }
 
 static enum ASTPRIM typedef_declare(Scanner s, SymTable st, Token tok,
-                             SymTableEntry *cType) {
+                                    SymTableEntry *cType) {
     enum ASTPRIM type;
-    
+    enum STORECLASS class = C_NONE;
+
     // typedef consumed
     Scanner_Scan(s, tok);
     // a ident should be here
 
-    type = parse_type(s, st, tok, cType);
+    type = parse_type(s, st, tok, cType, &class);
+    if (class != C_NONE) {
+        lfatal(s, "TypeError: typedef cannot have extern");
+    }
 
     if (SymTable_FindTypeDef(st, s) != NULL) {
         lfatala(s, "DuplicateError: typedef %s already defined", s->text);
@@ -528,10 +558,12 @@ static enum ASTPRIM typedef_declare(Scanner s, SymTable st, Token tok,
     return type;
 }
 
-static enum ASTPRIM typedef_type(Scanner s, SymTable st, Token tok, SymTableEntry *cType) {
+static enum ASTPRIM typedef_type(Scanner s, SymTable st, Token tok,
+                                 SymTableEntry *cType) {
     SymTableEntry type;
 
     type = SymTable_FindTypeDef(st, s);
+    debug("typedef is %d :)", type->type);
     if (type == NULL) {
         lfatala(s, "UndefinedError: typedef %s is not defined", s->text);
     }
