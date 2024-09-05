@@ -27,6 +27,7 @@
  - Comments
  - typedef
  - enums
+ - break/continue
 
 ## What will be added soon (Hopefully)
  - Local arrays
