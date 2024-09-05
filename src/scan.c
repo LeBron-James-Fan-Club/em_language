@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <unistd.h>
 
 #include "defs.h"
@@ -28,10 +27,10 @@ Scanner Scanner_New(void) {
     n->line = 1;
     n->putback = '\n';
 
-    //n->infile = fopen(name, "r");
-    //if (n->infile == NULL) {
-    //    fatala("OSError: Unable to open file %s", name);
-    //}
+    // n->infile = fopen(name, "r");
+    // if (n->infile == NULL) {
+    //     fatala("OSError: Unable to open file %s", name);
+    // }
     return n;
 }
 
@@ -63,48 +62,14 @@ static char skip(Scanner this) {
     c = next(this);
 
     // please work
-    while (true) {
-        // Just in case
-        if (c == EOF) {
-            strcpy(this->text, "<EOF>");
-            return EOF;
-        }
 
-        while (c == ' ' || c == '\t' || c == '\n' || c == '\r' ||
-               // \f not really used much anymore
-               c == '\f') {
-            c = next(this);
-            // debug("fuck before");
-        }
+    // * comments are handled by preprocessor
 
-
-        // This ignores comments
-        if (c == '/') {
-            if ((c = next(this)) == '/') {
-                // debug("first before");
-                while (c != '\n' && c != EOF) {
-                    c = next(this);
-                    // debug("fuck 1");
-                }
-            } else if (c == '*') {
-                // debug("second before");
-                while (true) {
-                    c = next(this);
-                    if (c == '*' && (c = next(this)) == '/') {
-                        c = next(this);
-                        break;
-                    } else if (c == EOF) {
-                        lfatal(this, "SyntaxError: EOF in comment");
-                    }
-                    // debug("fuck 2");
-                }
-            } else {
-                putback(this, c);
-            }
-        } else {
-            // debug("fred fucks");
-            break;
-        }
+    while (c == ' ' || c == '\t' || c == '\n' || c == '\r' ||
+           // \f not really used much anymore
+           c == '\f') {
+        c = next(this);
+        // debug("fuck before");
     }
     return c;
 }
@@ -311,6 +276,12 @@ bool Scanner_Scan(Scanner this, Token t) {
 static int keyword(char *s) {
     debug("keyword %s", s);
     switch (*s) {
+        case 'b':
+            if (!strcmp(s, "break")) return T_BREAK;
+            break;
+        case 'c':
+            if (!strcmp(s, "continue")) return T_CONTINUE;
+            break;
         case 'f':
             if (!strcmp(s, "for")) return T_FOR;
             break;

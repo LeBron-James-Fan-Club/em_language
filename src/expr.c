@@ -153,7 +153,10 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t, Context ctx) {
     bool expectPreOp = true;
 
     int top = -1, opTop = -1;
+
+    int test = 0;
     do {
+        debug("%d time iterated", ++test);
         debug("Token %d", t->token);
 
         switch (t->token) {
@@ -161,6 +164,7 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t, Context ctx) {
             case T_EOF:
             case T_COMMA:
                 // Breaks out of loop if parenthesis are not balanced
+                debug("(breaking out) top %d", top);
                 goto out;
             case T_INTLIT:
             case T_IDENT:
@@ -247,7 +251,7 @@ out:
         orderOp(s, st, t, stack, opStack, &top, &opTop);
     }
 
-    debug("Top: %d", top);
+    debug("Top: %d line %d", top, s->line);
 
     ASTnode n = stack[top];
 
@@ -436,6 +440,7 @@ static ASTnode ASTnode_Postfix(Scanner s, SymTable st, Token tok, Context ctx) {
     switch (tok->token) {
         case T_INC:
             Scanner_Scan(s, tok);
+            debug("inc");
             return ASTnode_NewLeaf(A_POSTINC, var->type, var, 0);
         case T_DEC:
             Scanner_Scan(s, tok);

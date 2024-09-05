@@ -322,7 +322,7 @@ int MIPS_LoadLocal(Compiler this, SymTableEntry sym, enum ASTOP op) {
             if (op == A_PREINC || op == A_PREDEC) {
                 fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r],
                         reglist[r], op == A_PREINC ? "1" : "-1");
-                fprintf(this->outfile, "\tsw\t%s, -%d($sp)\n", reglist[r],
+                fprintf(this->outfile, "\tsw\t%s, %d($sp)\n", reglist[r],
                         sym->offset);
             }
 

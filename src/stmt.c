@@ -28,6 +28,10 @@ static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok,
                              Context ctx);
 static ASTnode return_statement(Scanner s, SymTable st, Token tok, Context ctx);
 
+static ASTnode break_statement(Scanner s, SymTable st, Token tok, Context ctx);
+static ASTnode continue_statement(Scanner s, SymTable st, Token tok,
+                                  Context ctx);
+
 static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
                                 Context ctx);
 
@@ -45,11 +49,15 @@ ASTnode Compound_Statement(Compiler c, Scanner s, SymTable st, Token tok,
         // TODO:  Compiler directive will be checked here
         tree = single_statement(c, s, st, tok, ctx);
 
+        if (tree != NULL) {
+            debug("op %d", tree->op);
+        }
         if (tree != NULL &&
-            (tree->op == A_INPUT || tree->op == A_RETURN ||
-             tree->op == A_ASSIGN || tree->op == A_FUNCCALL ||
-             tree->op == A_LABEL || tree->op == A_GOTO || tree->op == A_POKE)) {
-                debug("consume semi");
+            ((tree->op >= A_ASSIGN && tree->op <= A_IDENT) ||
+            tree->op == A_INPUT || tree->op == A_RETURN || tree->op == A_FUNCCALL ||
+             tree->op == A_LABEL || tree->op == A_GOTO || tree->op == A_POKE ||
+             tree->op == A_BREAK || tree->op == A_CONTINUE)) {
+            debug("consume semi");
             semi(s, tok);
         }
 
@@ -77,8 +85,11 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
         case T_PRINT:
             return print_statement(s, st, tok, ctx);
         case T_IDENT:
-            if (SymTable_FindTypeDef(st, s) == NULL)
+            if (SymTable_FindTypeDef(st, s) == NULL) {
+                debug("Went through here");
                 return ASTnode_Order(s, st, tok, ctx);
+            }
+            debug("pass through");
         case T_CHAR:
         case T_INT:
         case T_STRUCT:
@@ -111,8 +122,12 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
             return for_statement(c, s, st, tok, ctx);
         case T_RETURN:
             return return_statement(s, st, tok, ctx);
+        case T_BREAK:
+            return break_statement(s, st, tok, ctx);
+        case T_CONTINUE:
+            return continue_statement(s, st, tok, ctx);
         default:
-            debug("tok is %d", tok->token);
+            debug("in here 2, token %d", tok->token);
             return ASTnode_Order(s, st, tok, ctx);
     }
 }
@@ -235,7 +250,10 @@ static ASTnode while_statement(Compiler c, Scanner s, SymTable st, Token tok,
     }
 
     rparen(s, tok);
+
+    Context_IncLoopLevel(ctx);
     bodyAST = Compound_Statement(c, s, st, tok, ctx);
+    Context_DecLoopLevel(ctx);
 
     return ASTnode_New(A_WHILE, P_NONE, condAST, NULL, bodyAST, NULL, 0);
 }
@@ -262,7 +280,9 @@ static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok,
     postopAST = single_statement(c, s, st, tok, ctx);
     rparen(s, tok);
 
+    Context_IncLoopLevel(ctx);
     bodyAST = Compound_Statement(c, s, st, tok, ctx);
+    Context_DecLoopLevel(ctx);
 
     t = ASTnode_New(A_GLUE, P_NONE, bodyAST, NULL, postopAST, NULL, 0);
     t = ASTnode_New(A_WHILE, P_NONE, condAST, NULL, t, NULL, 0);
@@ -324,4 +344,21 @@ static ASTnode return_statement(Scanner s, SymTable st, Token tok,
         exit(-1);
     }
     return ASTnode_NewUnary(A_RETURN, P_NONE, t, NULL, 0);
+}
+
+static ASTnode break_statement(Scanner s, SymTable st, Token tok, Context ctx) {
+    if (Context_GetLoopLevel(ctx) == 0) {
+        lfatal(s, "SyntaxError: break outside of loop");
+    }
+    Scanner_Scan(s, tok);
+    return ASTnode_NewLeaf(A_BREAK, P_NONE, NULL, 0);
+}
+
+static ASTnode continue_statement(Scanner s, SymTable st, Token tok,
+                                  Context ctx) {
+    if (Context_GetLoopLevel(ctx) == 0) {
+        lfatal(s, "SyntaxError: continue outside of loop");
+    }
+    Scanner_Scan(s, tok);
+    return ASTnode_NewLeaf(A_CONTINUE, P_NONE, NULL, 0);
 }

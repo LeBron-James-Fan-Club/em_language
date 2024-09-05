@@ -91,6 +91,8 @@ enum OPCODES {
     T_UNION,
     T_ENUM,
     T_TYPEDEF,
+    T_BREAK,
+    T_CONTINUE,
     T_EXTERN,
     T_RETURN,
     T_STRLIT
@@ -101,6 +103,7 @@ enum ASTOP {
     // 1:1 (almost) with tokens
     A_NONE,
 
+    // START OF SEMI CHECKING
     A_ASSIGN,
 
     // Not supported yet
@@ -133,7 +136,19 @@ enum ASTOP {
     // 1:1 ends here
 
     // After this we need checks
+
+    A_PREINC,
+    A_PREDEC,
+    A_POSTINC,
+    A_POSTDEC,
+
+    A_NEGATE,
+    A_INVERT,
+    A_LOGNOT,
+
     A_IDENT,
+    
+    // END OF SEMI CHECKING
 
     // for some god damn reason
     // commenting out this line causes a segfault
@@ -161,16 +176,10 @@ enum ASTOP {
     A_SCALE,
     A_STRLIT,
 
-    A_PREINC,
-    A_PREDEC,
-    A_POSTINC,
-    A_POSTDEC,
-
-    A_NEGATE,
-    A_INVERT,
-    A_LOGNOT,
-
     A_TOBOOL,
+
+    A_BREAK,
+    A_CONTINUE,
 
     // misc so the compiler stops complaining
     A_STARTPAREN

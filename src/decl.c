@@ -300,7 +300,8 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
         return NULL;
     }
 
-    ctx->functionId = oldFuncSym;
+    Context_SetFunctionId(ctx, oldFuncSym);
+    Context_ResetLoopLevel(ctx);
 
     tree = Compound_Statement(c, s, st, tok, ctx);
     if (type != P_VOID) {
