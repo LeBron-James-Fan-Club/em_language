@@ -29,6 +29,7 @@
  - enums
  - break/continue
  - switch
+ - macros
 
 ## What will be added soon (Hopefully)
  - Local arrays
@@ -36,7 +37,6 @@
  - Function headings
  - Compiler directives
     - Including the ability to manually name any label
- - Macros?
  - Array initisaliation
  - Local variable initialisation
  - Namespace
