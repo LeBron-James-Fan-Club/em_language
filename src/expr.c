@@ -163,6 +163,7 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t, Context ctx) {
             case T_SEMI:
             case T_EOF:
             case T_COMMA:
+            case T_COLON:
                 // Breaks out of loop if parenthesis are not balanced
                 debug("(breaking out) top %d", top);
                 goto out;
@@ -252,6 +253,10 @@ out:
     }
 
     debug("Top: %d line %d", top, s->line);
+
+    if (top != 0) {
+        lfatal(s, "SyntaxError: Invalid expression");
+    }
 
     ASTnode n = stack[top];
 
@@ -367,6 +372,7 @@ static ASTnode ASTnode_Prefix(Scanner s, SymTable st, Token tok, Context ctx) {
             if (t->op != A_IDENT) {
                 lfatal(s, "SyntaxError: ++ must be followed by an identifier");
             }
+            debug("pre inc");
             t = ASTnode_NewUnary(A_PREINC, t->type, t, NULL, 0);
             break;
         case T_MINUS:

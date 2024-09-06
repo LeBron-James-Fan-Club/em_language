@@ -95,6 +95,8 @@ int main(int argc, char *argv[]) {
     Token tok = calloc(1, sizeof(struct token));
     Context ctx = Context_New();
 
+    MIPS_Pre(c);
+
     Scanner_Scan(s, tok);
     global_declare(c, s, st, tok, ctx);
     MIPS_Post(c);

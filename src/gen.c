@@ -18,6 +18,7 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n, int label,
 static int genIFAST(Compiler this, SymTable st, Context ctx, ASTnode n,
                     int loopTopLabel, int loopEndLabel);
 static int genWHILEAST(Compiler this, SymTable st, Context ctx, ASTnode n);
+static int genSWITCHAST(Compiler this, SymTable st, Context ctx, ASTnode n);
 static int genFUNCCALLAST(Compiler this, SymTable st, Context ctx, ASTnode n);
 
 int Compiler_Gen(Compiler this, SymTable st, Context ctx, ASTnode n) {
@@ -42,6 +43,8 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
             return genIFAST(this, st, ctx, n, loopTopLabel, loopEndLabel);
         case A_WHILE:
             return genWHILEAST(this, st, ctx, n);
+        case A_SWITCH:
+            return genSWITCHAST(this, st, ctx, n);
         case A_GLUE:
             genAST(this, st, ctx, n->left, ifLabel, loopTopLabel, loopEndLabel,
                    n->op);
@@ -237,6 +240,7 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
             return MIPS_LogNOT(this, leftReg);
         case A_PREINC:
         case A_PREDEC:
+            debug("Preinc/dec found :)");
             if (n->left == NULL) {
                 fatal("InternalError: Left side of preinc is NULL");
             }
@@ -247,6 +251,7 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
             }
         case A_POSTINC:
         case A_POSTDEC:
+            debug("Postinc/dec found :)");
             if (n->sym->class == C_GLOBAL) {
                 return MIPS_LoadGlob(this, n->sym, n->op);
             } else {
@@ -271,8 +276,8 @@ static int genIFAST(Compiler this, SymTable st, Context ctx, ASTnode n,
                     int loopTopLabel, int loopEndLabel) {
     int Lfalse, Lend;
 
-    Lfalse = label(this);
-    if (n->right) Lend = label(this);
+    Lfalse = Compiler_GenLabel(this);
+    if (n->right) Lend = Compiler_GenLabel(this);
 
     // reg acts as parameter for label
     genAST(this, st, ctx, n->left, Lfalse, NO_LABEL, NO_LABEL, n->op);
@@ -296,8 +301,8 @@ static int genIFAST(Compiler this, SymTable st, Context ctx, ASTnode n,
 static int genWHILEAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
     int Lstart, Lend;
 
-    Lstart = label(this);
-    Lend = label(this);
+    Lstart = Compiler_GenLabel(this);
+    Lend = Compiler_GenLabel(this);
 
     MIPS_Label(this, Lstart);
 
@@ -309,6 +314,56 @@ static int genWHILEAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
 
     MIPS_Jump(this, Lstart);
     MIPS_Label(this, Lend);
+
+    return NO_REG;
+}
+
+static int genSWITCHAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
+    int *caseVal, *caseLabel;
+    int LjumpTop, Lend;
+    int reg, defaultLabel = 0, caseCount = 0;
+    ASTnode ca;
+
+    caseVal = calloc(n->intvalue + 1, sizeof(int));
+    caseLabel = calloc(n->intvalue + 1, sizeof(int));
+
+    LjumpTop = Compiler_GenLabel(this);
+    Lend = Compiler_GenLabel(this);
+
+    defaultLabel = Lend;
+
+    reg = genAST(this, st, ctx, n->left, NO_LABEL, NO_LABEL, NO_LABEL, A_NONE);
+    MIPS_Jump(this, LjumpTop);
+
+    Compiler_FreeAllReg(this);
+
+    ca = n->right;
+    for (int i = 0; ca != NULL; i++, ca = ca->right) {
+        caseLabel[i] = Compiler_GenLabel(this);
+        caseVal[i] = ca->intvalue;
+        debug("case value: %d", ca->intvalue);
+        debug("caseVal[%d] = %d", i, caseVal[i]);
+        MIPS_Label(this, caseLabel[i]);
+        if (ca->op == A_DEFAULT) {
+            debug("hit default");
+            defaultLabel = caseLabel[i];
+        } else {
+            debug("op (SWITCH) %d", ca->op);
+            caseCount++;
+        }
+
+        genAST(this, st, ctx, ca->left, NO_LABEL, NO_LABEL, Lend, A_NONE);
+        Compiler_FreeAllReg(this);
+    }
+
+    MIPS_Jump(this, Lend);
+
+    MIPS_Switch(this, reg, caseCount, LjumpTop, caseLabel, caseVal,
+                defaultLabel);
+    MIPS_Label(this, Lend);
+
+    free(caseVal);
+    free(caseLabel);
 
     return NO_REG;
 }

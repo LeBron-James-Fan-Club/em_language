@@ -31,6 +31,8 @@ static ASTnode return_statement(Scanner s, SymTable st, Token tok, Context ctx);
 static ASTnode break_statement(Scanner s, SymTable st, Token tok, Context ctx);
 static ASTnode continue_statement(Scanner s, SymTable st, Token tok,
                                   Context ctx);
+static ASTnode switch_statement(Compiler c, Scanner s, SymTable st, Token tok,
+                                Context ctx);
 
 static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
                                 Context ctx);
@@ -45,6 +47,12 @@ ASTnode Compound_Statement(Compiler c, Scanner s, SymTable st, Token tok,
 
     lbrace(s, tok);
 
+    // Edge case: its empty
+    if (tok->token == T_RBRACE) {
+        rbrace(s, tok);
+        return NULL;
+    }
+
     while (true) {
         // TODO:  Compiler directive will be checked here
         tree = single_statement(c, s, st, tok, ctx);
@@ -52,11 +60,11 @@ ASTnode Compound_Statement(Compiler c, Scanner s, SymTable st, Token tok,
         if (tree != NULL) {
             debug("op %d", tree->op);
         }
-        if (tree != NULL &&
-            ((tree->op >= A_ASSIGN && tree->op <= A_IDENT) ||
-            tree->op == A_INPUT || tree->op == A_RETURN || tree->op == A_FUNCCALL ||
-             tree->op == A_LABEL || tree->op == A_GOTO || tree->op == A_POKE ||
-             tree->op == A_BREAK || tree->op == A_CONTINUE)) {
+        if (tree != NULL && ((tree->op >= A_ASSIGN && tree->op <= A_IDENT) ||
+                             tree->op == A_INPUT || tree->op == A_RETURN ||
+                             tree->op == A_FUNCCALL || tree->op == A_LABEL ||
+                             tree->op == A_GOTO || tree->op == A_POKE ||
+                             tree->op == A_BREAK || tree->op == A_CONTINUE)) {
             debug("consume semi");
             semi(s, tok);
         }
@@ -126,6 +134,8 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
             return break_statement(s, st, tok, ctx);
         case T_CONTINUE:
             return continue_statement(s, st, tok, ctx);
+        case T_SWITCH:
+            return switch_statement(c, s, st, tok, ctx);
         default:
             debug("in here 2, token %d", tok->token);
             return ASTnode_Order(s, st, tok, ctx);
@@ -361,4 +371,111 @@ static ASTnode continue_statement(Scanner s, SymTable st, Token tok,
     }
     Scanner_Scan(s, tok);
     return ASTnode_NewLeaf(A_CONTINUE, P_NONE, NULL, 0);
+}
+
+static ASTnode switch_statement(Compiler c, Scanner s, SymTable st, Token tok,
+                                Context ctx) {
+    // n = node, ca = case
+    ASTnode left, n, ca, caseTree = NULL, caseTail;
+    bool inLoop = true, seenDefault = false;
+    int caseCount = 0;
+    enum ASTOP op;
+    int caseValue;
+
+    Scanner_Scan(s, tok);
+
+    lparen(s, tok);
+    left = ASTnode_Order(s, st, tok, ctx);
+    rparen(s, tok);
+
+    lbrace(s, tok);
+
+    debug("after lbrace");
+
+    if (!inttype(left->type)) {
+        fatal("TypeError: switch expression must be an integer");
+    }
+
+    n = ASTnode_NewUnary(A_SWITCH, P_NONE, left, NULL, 0);
+
+    Context_IncSwitchLevel(ctx);
+    while (inLoop) {
+        switch (tok->token) {
+            case T_RBRACE:
+                if (caseCount == 0) {
+                    lfatal(s, "SyntaxError: switch statement with no cases");
+                }
+                debug("break out");
+                inLoop = false;
+                break;
+            case T_CASE:
+            case T_DEFAULT:
+                if (seenDefault) {
+                    lfatal(
+                        s,
+                        "SyntaxError: case or default after existing default");
+                }
+
+
+                if (tok->token == T_DEFAULT) {
+                    debug("A DEFAULT");
+
+                    op = A_DEFAULT;
+                    seenDefault = true;
+                    Scanner_Scan(s, tok);
+                } else {
+                    debug("A CASE");
+                    op = A_CASE;
+                    Scanner_Scan(s, tok);
+                    left = ASTnode_Order(s, st, tok, ctx);
+
+                    if (left->op != A_INTLIT) {
+                        lfatal(
+                            s,
+                            "TypeError: case value must be an integer literal");
+                    }
+                    caseValue = left->intvalue;
+                    debug("case value: %d", caseValue);
+
+                    for (ca = caseTree; ca != NULL; ca = ca->right) {
+                        if (ca->intvalue == caseValue) {
+                            lfatala(s,
+                                    "DuplicateError: duplicate case value %d",
+                                    caseValue);
+                        }
+                    }
+
+                    // Free it we don't need it anymore
+                    ASTnode_Free(left);
+                }
+                match(s, tok, T_COLON, ":");
+
+                left = Compound_Statement(c, s, st, tok, ctx);
+                debug("left the case");
+                caseCount++;
+
+                if (caseTree == NULL) {
+                    caseTree = caseTail =
+                        ASTnode_NewUnary(op, P_NONE, left, NULL, caseValue);
+                    debug("first create %p", caseTree);
+                } else {
+                    caseTail->right =
+                        ASTnode_NewUnary(op, P_NONE, left, NULL, caseValue);
+                    caseTail = caseTail->right;
+                    debug("add %p", caseTail);
+                }
+                break;
+            default:
+                lfatal(s, "SyntaxError: Expected case or default");
+        }
+    }
+    Context_DecSwitchLevel(ctx);
+
+    n->intvalue = caseCount;
+    debug("case count %d", caseCount);
+    n->right = caseTree;
+
+    rbrace(s, tok);
+
+    return n;
 }

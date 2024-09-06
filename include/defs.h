@@ -93,6 +93,10 @@ enum OPCODES {
     T_TYPEDEF,
     T_BREAK,
     T_CONTINUE,
+    T_SWITCH,
+    T_CASE,
+    T_DEFAULT,
+    T_COLON,
     T_EXTERN,
     T_RETURN,
     T_STRLIT
@@ -147,7 +151,7 @@ enum ASTOP {
     A_LOGNOT,
 
     A_IDENT,
-    
+
     // END OF SEMI CHECKING
 
     // for some god damn reason
@@ -180,6 +184,10 @@ enum ASTOP {
 
     A_BREAK,
     A_CONTINUE,
+
+    A_SWITCH,
+    A_CASE,
+    A_DEFAULT,
 
     // misc so the compiler stops complaining
     A_STARTPAREN

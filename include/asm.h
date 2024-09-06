@@ -99,8 +99,10 @@ int MIPS_ToBool(Compiler this, enum ASTOP parentOp, int r, int label);
 
 void MIPS_Poke(Compiler this, int r1, int r2);
 int MIPS_Peek(Compiler this, int r1, int r2);
+void MIPS_Switch(Compiler this, int r, int caseCount, int topLabel,
+                 int *caseLabel, int *caseVal, int defaultLabel);
 
-int label(Compiler);
+int Compiler_GenLabel(Compiler this);
 
 void Compiler_FreeAllReg(Compiler);
 void Compiler_GenData(Compiler, SymTable st);

@@ -25,11 +25,40 @@ int PrimSize(enum ASTPRIM type) {
 }
 
 void MIPS_Pre(Compiler this) {
-    fputs(
+    /*fputs(
         ".text\n"
         "\t.globl main\n"
         "\n"
         "main:\n",
+        this->outfile);*/
+
+    // switch shit
+    // TODO: only put this in if there is a switch
+    // TODO: (might be a tad bit weird tho ngl)
+
+    // accepts two parameters
+    // $a0 = register to compare
+    // $a1 = base address of jump table
+    fputs(
+        "\nswitch:\n"
+        "\tmove\t$t0, $a0\n"
+        // scan no of cases
+        "\tlw\t$t1, 0($a1)\n"
+        "\nnext:\n"
+        "\taddi\t$a1, $a1, 4\n"
+        "\tlw\t$t2, 0($a1)\n"
+        // load label
+        "\taddi\t$a1, $a1, 4\n"
+        "\tbne\t$t0, $t2, fail\n"
+        "\tlw\t$t3, 0($a1)\n"
+        "\tjr\t$t3\n"
+        "\nfail:\n"
+        "\taddi\t$t1, $t1, -1\n"
+        "\tbgtz\t$t1, next\n"
+        // last is just label so scan that
+        // and go to default
+        "\tlw\t$t3, 0($a1)\n"
+        "\tjr\t$t3\n",
         this->outfile);
 }
 
@@ -58,7 +87,7 @@ void MIPS_Post(Compiler this) {
 Structure of the stack
 (Parameters after 4th param)
 ($fp) + 8
-($ra) 
+($ra)
 (local variables)
 */
 
@@ -104,20 +133,19 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
 
     for (; paramCurr != NULL; paramCurr = paramCurr->next) {
         // for remaining params they get pushed on stack
-        paramCurr->offset = this->localOffset + Compiler_GetParamOffset(this, paramCurr->type);
+        paramCurr->offset =
+            this->localOffset + Compiler_GetParamOffset(this, paramCurr->type);
     }
-
 
     // need to add local offset to all offsets somehow
 
     fprintf(this->outfile,
             "\tbegin\n\n"
-            "\tpush $ra\n");
+            "\tpush\t$ra\n");
 
     // Actual offset for locals if have been initialised
     if (st->loclHead) {
-        fprintf(this->outfile, "\taddiu\t$sp, $sp, %d\n",
-                -this->localOffset);
+        fprintf(this->outfile, "\taddiu\t$sp, $sp, %d\n", -this->localOffset);
         for (loclCurr = st->loclHead; loclCurr != NULL;
              loclCurr = loclCurr->next) {
             if (loclCurr->hasValue) {
@@ -139,9 +167,10 @@ void MIPS_PostFunc(Compiler this, Context ctx) {
         fprintf(this->outfile, "\taddiu\t$sp, $sp, %d\n", this->localOffset);
     }
     fputs(
-            "\tpop\t$ra\n"
-            "\tend\n"
-            "\tjr\t$ra\n\n", this->outfile);
+        "\tpop\t$ra\n"
+        "\tend\n"
+        "\tjr\t$ra\n\n",
+        this->outfile);
 }
 
 int MIPS_Load(Compiler this, int value) {
@@ -842,6 +871,31 @@ int MIPS_Peek(Compiler this, int r1, int r2) {
     return r1;
 }
 
+void MIPS_Switch(Compiler this, int r, int caseCount, int topLabel,
+                 int *caseLabel, int *caseVal, int defaultLabel) {
+    int label = Compiler_GenLabel(this);
+    MIPS_Label(this, label);
+
+    if (caseCount == 0) {
+        caseVal[0] = 0;
+        caseLabel[0] = defaultLabel;
+        caseCount = 1;
+    }
+    fprintf(this->outfile, "\t.word\t%d\n", caseCount);
+    for (int i = 0; i < caseCount; i++) {
+        fprintf(this->outfile, "\t.word\t%d, L%d\n", caseVal[i], caseLabel[i]);
+    }
+    fprintf(this->outfile, "\t.word\tL%d\n", defaultLabel);
+    MIPS_Label(this, topLabel);
+
+    // TODO: PUSH $a0, $a1 to stack if it is used
+    fprintf(this->outfile, "\tmove\t$a0, %s\n", reglist[r]);
+    fprintf(this->outfile, "\tla\t$a1, L%d\n", label);
+    // fprintf(this->outfile, "\tla\t$v1, L%d\n", label);
+
+    fputs("\tjal\tswitch\n", this->outfile);
+}
+
 static int allocReg(Compiler this) {
     for (int i = 0; i < MAX_REG; i++) {
         if (!this->regUsed[i]) {
@@ -859,7 +913,7 @@ static void freeReg(Compiler this, int reg1) {
     this->regUsed[reg1] = false;
 }
 
-int label(Compiler this) { return this->label++; }
+int Compiler_GenLabel(Compiler this) { return this->label++; }
 
 void Compiler_FreeAllReg(Compiler this) {
     for (int i = 0; i < MAX_REG; i++) {

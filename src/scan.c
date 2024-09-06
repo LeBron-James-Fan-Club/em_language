@@ -239,6 +239,9 @@ bool Scanner_Scan(Scanner this, Token t) {
         case '.':
             t->token = T_DOT;
             break;
+        case ':':
+            t->token = T_COLON;
+            break;
         default:
             if (isdigit(c)) {
                 if (c == '0') {
@@ -280,15 +283,19 @@ static int keyword(char *s) {
             if (!strcmp(s, "break")) return T_BREAK;
             break;
         case 'c':
+            if (!strcmp(s, "case")) return T_CASE;
             if (!strcmp(s, "continue")) return T_CONTINUE;
             break;
-        case 'f':
-            if (!strcmp(s, "for")) return T_FOR;
+        case 'd':
+            if (!strcmp(s, "default")) return T_DEFAULT;
             break;
         case 'e':
             if (!strcmp(s, "else")) return T_ELSE;
             if (!strcmp(s, "enum")) return T_ENUM;
             if (!strcmp(s, "extern")) return T_EXTERN;
+            break;
+        case 'f':
+            if (!strcmp(s, "for")) return T_FOR;
             break;
         case 'g':
             if (!strcmp(s, "goto")) return T_GOTO;
@@ -304,6 +311,7 @@ static int keyword(char *s) {
             break;
         case 's':
             if (!strcmp(s, "struct")) return T_STRUCT;
+            if (!strcmp(s, "switch")) return T_SWITCH;
             break;
         case 't':
             if (!strcmp(s, "typedef")) return T_TYPEDEF;

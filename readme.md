@@ -28,6 +28,7 @@
  - typedef
  - enums
  - break/continue
+ - switch
 
 ## What will be added soon (Hopefully)
  - Local arrays
@@ -44,6 +45,7 @@
  - Scopes
  - Sizeof operator
  - Type casting
+ - octal support
 
 ## Low chance of being added but I might try
  - Heap support
