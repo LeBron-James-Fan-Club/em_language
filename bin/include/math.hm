@@ -1,0 +1,9 @@
+#pragma once
+
+/*
+ Contains trivial math definitions.
+    (seriously u should u know this by now)
+*/
+
+// Returns the power of a number.
+i32 pow(i32 base, i32 exp);

@@ -46,6 +46,7 @@
  - Sizeof operator
  - Type casting
  - octal support
+ - scope creation
 
 ## Low chance of being added but I might try
  - Heap support

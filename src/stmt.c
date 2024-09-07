@@ -38,14 +38,14 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
                                 Context ctx);
 
 ASTnode Compound_Statement(Compiler c, Scanner s, SymTable st, Token tok,
-                           Context ctx) {
-    // Might combine assignment and declare
-    // change syntax to lol : i32 = 2
+                           Context ctx, bool inSwitch) {
+    // * Might combine assignment and declare
+    // * change syntax to lol : i32 = 2 - nah fuck that
 
     ASTnode left = NULL;
     ASTnode tree = NULL;
 
-    lbrace(s, tok);
+    //lbrace(s, tok);
 
     // Edge case: its empty
     if (tok->token == T_RBRACE) {
@@ -76,7 +76,11 @@ ASTnode Compound_Statement(Compiler c, Scanner s, SymTable st, Token tok,
         }
 
         if (tok->token == T_RBRACE) {
-            rbrace(s, tok);
+            //rbrace(s, tok);
+            return left;
+        }
+        
+        if (inSwitch && (tok->token == T_CASE || tok->token == T_DEFAULT)) {
             return left;
         }
     }
@@ -136,6 +140,11 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
             return continue_statement(s, st, tok, ctx);
         case T_SWITCH:
             return switch_statement(c, s, st, tok, ctx);
+        case T_RBRACE:
+            lbrace(s, tok);
+            ASTnode stmt = Compound_Statement(c, s, st, tok, ctx, false);
+            rbrace(s, tok);
+            return stmt;
         default:
             debug("in here 2, token %d", tok->token);
             return ASTnode_Order(s, st, tok, ctx);
@@ -236,11 +245,11 @@ static ASTnode if_statement(Compiler c, Scanner s, SymTable st, Token tok,
 
     rparen(s, tok);
 
-    trueAST = Compound_Statement(c, s, st, tok, ctx);
+    trueAST = single_statement(c, s, st, tok, ctx);
 
     if (tok->token == T_ELSE) {
         Scanner_Scan(s, tok);
-        falseAST = Compound_Statement(c, s, st, tok, ctx);
+        falseAST = single_statement(c, s, st, tok, ctx);
     }
 
     return ASTnode_New(A_IF, P_NONE, condAST, trueAST, falseAST, NULL, 0);
@@ -262,7 +271,7 @@ static ASTnode while_statement(Compiler c, Scanner s, SymTable st, Token tok,
     rparen(s, tok);
 
     Context_IncLoopLevel(ctx);
-    bodyAST = Compound_Statement(c, s, st, tok, ctx);
+    bodyAST = single_statement(c, s, st, tok, ctx);
     Context_DecLoopLevel(ctx);
 
     return ASTnode_New(A_WHILE, P_NONE, condAST, NULL, bodyAST, NULL, 0);
@@ -277,7 +286,7 @@ static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok,
     match(s, tok, T_FOR, "for");
     lparen(s, tok);
 
-    preopAST = single_statement(c, s, st, tok, ctx);
+    preopAST = expression_list(c, s, st, tok, ctx, T_SEMI);
     semi(s, tok);
 
     condAST = ASTnode_Order(s, st, tok, ctx);
@@ -287,11 +296,11 @@ static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok,
     }
     semi(s, tok);
 
-    postopAST = single_statement(c, s, st, tok, ctx);
+    postopAST = expression_list(c, s, st, tok, ctx, T_RPAREN);
     rparen(s, tok);
 
     Context_IncLoopLevel(ctx);
-    bodyAST = Compound_Statement(c, s, st, tok, ctx);
+    bodyAST = single_statement(c, s, st, tok, ctx);
     Context_DecLoopLevel(ctx);
 
     t = ASTnode_New(A_GLUE, P_NONE, bodyAST, NULL, postopAST, NULL, 0);
@@ -416,7 +425,6 @@ static ASTnode switch_statement(Compiler c, Scanner s, SymTable st, Token tok,
                         "SyntaxError: case or default after existing default");
                 }
 
-
                 if (tok->token == T_DEFAULT) {
                     debug("A DEFAULT");
 
@@ -450,7 +458,7 @@ static ASTnode switch_statement(Compiler c, Scanner s, SymTable st, Token tok,
                 }
                 match(s, tok, T_COLON, ":");
 
-                left = Compound_Statement(c, s, st, tok, ctx);
+                left = Compound_Statement(c, s, st, tok, ctx, true);
                 debug("left the case");
                 caseCount++;
 

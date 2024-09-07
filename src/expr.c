@@ -19,14 +19,15 @@ static ASTnode ASTnode_Prefix(Scanner s, SymTable st, Token tok, Context ctx);
 static ASTnode ASTnode_Postfix(Scanner s, SymTable st, Token tok, Context ctx);
 
 static ASTnode peek_statement(Scanner s, SymTable st, Token tok, Context ctx);
-static ASTnode expression_list(Scanner s, SymTable st, Token tok, Context ctx);
 
 static ASTnode ASTnode_MemberAccess(Scanner s, SymTable st, Token tok,
                                     Context ctx, bool isPtr);
 
 // * 1:1 baby
 static enum ASTOP arithOp(Scanner s, enum OPCODES tok) {
-    if (tok > T_EOF && tok < T_INTLIT) return (enum ASTOP)tok;
+    if ((tok > T_EOF && tok < T_INTLIT) ||
+        (tok >= T_ASSIGNADD && tok <= T_ASSIGNMOD))
+        return (enum ASTOP)tok;
     lfatala(s, "SyntaxError: %d", tok);
 }
 
@@ -279,7 +280,7 @@ static ASTnode ASTnode_FuncCall(Scanner s, SymTable st, Token tok,
 
     lparen(s, tok);
 
-    t = expression_list(s, st, tok, ctx);
+    t = expression_list(s, st, tok, ctx, T_RPAREN);
 
     t = ASTnode_NewUnary(A_FUNCCALL, var->type, t, var, 0);
 
@@ -289,10 +290,11 @@ static ASTnode ASTnode_FuncCall(Scanner s, SymTable st, Token tok,
     return t;
 }
 
-static ASTnode expression_list(Scanner s, SymTable st, Token tok, Context ctx) {
+ASTnode expression_list(Scanner s, SymTable st, Token tok, Context ctx,
+                        enum OPCODES endToken) {
     ASTnode tree = NULL, child = NULL;
     int exprCount = 0;
-    while (tok->token != T_RPAREN) {
+    while (tok->token != endToken) {
         child = ASTnode_Order(s, st, tok, ctx);
         exprCount++;
 
@@ -301,15 +303,9 @@ static ASTnode expression_list(Scanner s, SymTable st, Token tok, Context ctx) {
 
         tree = ASTnode_New(A_GLUE, P_NONE, tree, NULL, child, NULL, exprCount);
 
-        switch (tok->token) {
-            case T_COMMA:
-                Scanner_Scan(s, tok);
-                break;
-            case T_RPAREN:
-                break;
-            default:
-                lfatal(s, "SyntaxError: Expected comma or right parenthesis");
-        }
+        if (tok->token == endToken) break;
+
+        match(s, tok, T_COMMA, ",");
     }
     return tree;
 }

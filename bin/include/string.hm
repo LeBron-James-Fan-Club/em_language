@@ -1,0 +1,12 @@
+#pragma once
+
+/*
+ Contains trivial string definitions.
+ (read the c documentation)
+*/
+
+typedef i8 *string;
+
+// Returns the length of a string
+i32 strlen(string str);
+

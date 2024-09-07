@@ -40,6 +40,8 @@
 - add octal support
 
 # BUGS:
+- make it so that multiple files are included
+
 - recursive typedef not supported
 
 - make sure to restore stack pointer afterwards

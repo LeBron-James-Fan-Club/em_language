@@ -9,6 +9,16 @@
 #define INCDIR "./bin/include"
 #endif
 
+char *TokStr[] = {
+    "<EOF>",   "=",      "||",    "&&",         "|",      "^",     "&",
+    "==",      "!=",     "<",     ">",          "<=",     ">=",    "<<",
+    ">>",      "+",      "-",     "*",          "/",      "%%",    "++",
+    "--",      "~",      "!", "intlit",     "void",       "i8",     "i32",   "if",
+    "else",    "while",  "for",   "return",     "struct", "union", "enum",
+    "typedef", "extern", "break", "continue",   "switch", "case",  "default",
+     "strlit", ";",     "identifier", "{",      "}",     "(",
+    ")",       "[",      "]",     ",",          ".",      "->",    ":"};
+
 enum OPCODES {
     T_EOF,  // 0
 
@@ -46,13 +56,15 @@ enum OPCODES {
     T_INVERT,
     T_LOGNOT,
 
+    T_INTLIT,  // 13
+
     T_ASSIGNADD,
     T_ASSIGNSUB,
     T_ASSIGNMUL,
     T_ASSIGNDIV,
     T_ASSIGNMOD,
+    // 1:1 ends
 
-    T_INTLIT,  // 13
     T_SEMI,    // 14
     T_IDENT,   // 15
 
