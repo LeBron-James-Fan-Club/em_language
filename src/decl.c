@@ -303,7 +303,7 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
     Context_SetFunctionId(ctx, oldFuncSym);
     Context_ResetLoopLevel(ctx);
 
-    tree = Compound_Statement(c, s, st, tok, ctx);
+    tree = Compound_Statement(c, s, st, tok, ctx, false);
     if (type != P_VOID) {
         finalstmt = tree->op == A_GLUE ? tree->right : tree;
         if (finalstmt == NULL || finalstmt->op != A_RETURN) {

@@ -9,6 +9,18 @@
 #include "defs.h"
 #include "misc.h"
 
+static char *TokStr[] = {
+    "<EOF>",  "=",     "||",      "&&",      "|",      "^",          "&",
+    "==",     "!=",    "<",       ">",       "<=",     ">=",         "<<",
+    ">>",     "+",     "-",       "*",       "/",      "%%",         "++",
+    "--",     "~",     "!",       "intlit",  "+=",     "-=",         "*=",
+    "/=",     "%%=",   "void",    "i8",      "i32",    "print",      "input",
+    "peek",   "poke",  "if",      "else",    "while",  "for",        "return",
+    "struct", "union", "enum",    "typedef", "extern", "break",      "continue",
+    "switch", "case",  "default", "strlit",  ";",      "identifier", "{",
+    "}",      "(",     ")",       "[",       "]",      ",",          ".",
+    "->",     ":"};
+
 static char next(Scanner);
 static void putback(Scanner, char c);
 static char skip(Scanner this);
@@ -95,11 +107,13 @@ bool Scanner_Scan(Scanner this, Token t) {
     switch (c) {
         case EOF:
             t->token = T_EOF;
+            t->tokstr = TokStr[t->token];
             return false;
         case ';':
             // equv to eof
             // Need to manage putback of characters
             t->token = T_SEMI;
+            t->tokstr = TokStr[t->token];
             return false;
         case '+':
             if ((c = next(this)) == '+') {
@@ -196,15 +210,18 @@ bool Scanner_Scan(Scanner this, Token t) {
             // TODO NEED TO CHANGE THIS LATER ON
             // TODO WHEN WE USE PARENS - fixed? (its kinda shitty tho)
             t->token = T_RPAREN;
+            t->tokstr = TokStr[t->token];
             return false;
         case '[':
             t->token = T_LBRACKET;
             break;
         case ']':
             t->token = T_RBRACKET;
+            t->tokstr = TokStr[t->token];
             return false;
         case ',':
             t->token = T_COMMA;
+            t->tokstr = TokStr[t->token];
             return false;
         case '&':
             if ((c = next(this)) == '&') {
@@ -273,6 +290,8 @@ bool Scanner_Scan(Scanner this, Token t) {
             // occurs only probs when unicode
             lfatala(this, "SyntaxError: Invalid character %c", c);
     }
+
+    t->tokstr = TokStr[t->token];
     return true;
 }
 
@@ -441,7 +460,7 @@ void match(Scanner s, Token t, enum OPCODES op, char *tok) {
     if (t->token == op) {
         Scanner_Scan(s, t);
     } else {
-        lfatala(s, "SyntaxError: %s expected got instead %d", tok, t->token);
+        lfatala(s, "SyntaxError: %s expected got instead %s", tok, t->tokstr);
     }
 }
 

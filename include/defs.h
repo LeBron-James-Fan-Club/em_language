@@ -9,16 +9,6 @@
 #define INCDIR "./bin/include"
 #endif
 
-char *TokStr[] = {
-    "<EOF>",   "=",      "||",    "&&",         "|",      "^",     "&",
-    "==",      "!=",     "<",     ">",          "<=",     ">=",    "<<",
-    ">>",      "+",      "-",     "*",          "/",      "%%",    "++",
-    "--",      "~",      "!", "intlit",     "void",       "i8",     "i32",   "if",
-    "else",    "while",  "for",   "return",     "struct", "union", "enum",
-    "typedef", "extern", "break", "continue",   "switch", "case",  "default",
-     "strlit", ";",     "identifier", "{",      "}",     "(",
-    ")",       "[",      "]",     ",",          ".",      "->",    ":"};
-
 enum OPCODES {
     T_EOF,  // 0
 
@@ -57,24 +47,17 @@ enum OPCODES {
     T_LOGNOT,
 
     T_INTLIT,  // 13
+    // 1:1 ends
 
     T_ASSIGNADD,
     T_ASSIGNSUB,
     T_ASSIGNMUL,
     T_ASSIGNDIV,
     T_ASSIGNMOD,
-    // 1:1 ends
 
-    T_SEMI,    // 14
-    T_IDENT,   // 15
-
-    // Braces
-    T_LBRACE,    // 16
-    T_RBRACE,    // 17
-    T_LPAREN,    // 18
-    T_RPAREN,    // 19
-    T_LBRACKET,  // 20
-    T_RBRACKET,  // 21
+    T_VOID,
+    T_CHAR,
+    T_INT,
 
     // Keywords
     T_PRINT,  // 20
@@ -86,32 +69,46 @@ enum OPCODES {
     T_PEEK,
     T_POKE,
 
-    T_INT,  // 22
-    T_STRUCT,
+    T_IF,
+    T_ELSE,
+    T_LABEL,
+    T_GOTO,
+    T_WHILE,
+    T_FOR,
 
-    T_IF,     // 23
-    T_ELSE,   // 24
-    T_LABEL,  // 25
-    T_GOTO,   // 26
-    T_WHILE,  // 27
-    T_FOR,    // 28
-    T_VOID,
-    T_CHAR,
-    T_COMMA,
-    T_DOT,
-    T_ARROW,
+    T_RETURN,
+
+    T_STRUCT,
     T_UNION,
     T_ENUM,
     T_TYPEDEF,
+
+    T_EXTERN,
     T_BREAK,
     T_CONTINUE,
+
     T_SWITCH,
     T_CASE,
+
     T_DEFAULT,
+    T_STRLIT,
+
+    T_SEMI,
+    T_IDENT,
+
+    // Braces
+    T_LBRACE,
+    T_RBRACE,
+    T_LPAREN,
+    T_RPAREN,
+    T_LBRACKET,
+    T_RBRACKET,
+
+    T_COMMA,
+    T_DOT,
+    T_ARROW,
+
     T_COLON,
-    T_EXTERN,
-    T_RETURN,
-    T_STRLIT
 
 };
 
@@ -177,6 +174,7 @@ enum ASTOP {
     A_POKE,
 
     A_GLUE,
+
     A_IF,
     A_LABEL,
     A_GOTO,
@@ -242,6 +240,7 @@ enum STORECLASS {
 
 struct token {
     enum OPCODES token;
+    char *tokstr;
     int intvalue;
 };
 

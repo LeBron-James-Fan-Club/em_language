@@ -286,7 +286,7 @@ static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok,
     match(s, tok, T_FOR, "for");
     lparen(s, tok);
 
-    preopAST = expression_list(c, s, st, tok, ctx, T_SEMI);
+    preopAST = expression_list(s, st, tok, ctx, T_SEMI);
     semi(s, tok);
 
     condAST = ASTnode_Order(s, st, tok, ctx);
@@ -296,7 +296,7 @@ static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok,
     }
     semi(s, tok);
 
-    postopAST = expression_list(c, s, st, tok, ctx, T_RPAREN);
+    postopAST = expression_list( s, st, tok, ctx, T_RPAREN);
     rparen(s, tok);
 
     Context_IncLoopLevel(ctx);
