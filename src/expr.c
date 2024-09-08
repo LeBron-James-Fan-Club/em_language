@@ -522,13 +522,13 @@ static ASTnode ASTnode_Postfix(Compiler c, Scanner s, SymTable st, Token tok,
     switch (tok->token) {
         case T_INC:
             if (rvalue == 1) {
-                lfatal(s, "SyntaxError: Cannot ++ on rvalue, %s", s->text);
+                lfatala(s, "SyntaxError: Cannot ++ on rvalue, %s", s->text);
             }
             Scanner_Scan(s, tok);
             return ASTnode_NewLeaf(A_POSTINC, var->type, var, 0);
         case T_DEC:
             if (rvalue == 1) {
-                lfatal(s, "SyntaxError: Cannot --s on rvalue, %s", s->text);
+                lfatala(s, "SyntaxError: Cannot --s on rvalue, %s", s->text);
             }
             Scanner_Scan(s, tok);
             return ASTnode_NewLeaf(A_POSTDEC, var->type, var, 0);
