@@ -10,16 +10,16 @@
 #include "misc.h"
 
 static char *TokStr[] = {
-    "<EOF>",  "=",        "+=",         "-=",    "*=",      "/=",      "%%=",
-    "||",     "&&",       "|",          "^",     "&",       "==",      "!=",
-    "<",      ">",        "<=",         ">=",    "<<",      ">>",      "+",
-    "-",      "*",        "/",          "%%",    "++",      "--",      "~",
-    "!",      "intlit",   "void",       "i8",    "i32",     "print",   "input",
-    "peek",   "poke",     "if",         "else",  "label",   "goto",    "while",
-    "for",    "return",   "struct",     "union", "enum",    "typedef", "extern",
-    "break",  "continue", "switch",     "case",  "default", "sizeof",  "static",
-    "strlit", ";",        "identifier", "{",     "}",       "(",       ")",
-    "[",      "]",        ",",          ".",     "->",      ":"};
+    "<EOF>",  "=",      "+=",       "-=",         "*=",    "/=",      "%%=",
+    "?",      "||",     "&&",       "|",          "^",     "&",       "==",
+    "!=",     "<",      ">",        "<=",         ">=",    "<<",      ">>",
+    "+",      "-",      "*",        "/",          "%%",    "++",      "--",
+    "~",      "!",      "intlit",   "void",       "i8",    "i32",     "print",
+    "input",  "peek",   "poke",     "if",         "else",  "label",   "goto",
+    "while",  "for",    "return",   "struct",     "union", "enum",    "typedef",
+    "extern", "break",  "continue", "switch",     "case",  "default", "sizeof",
+    "static", "strlit", ";",        "identifier", "{",     "}",       "(",
+    ")",      "[",      "]",        ",",          ".",     "->",      ":"};
 
 static char next(Scanner);
 static void putback(Scanner, char c);
@@ -251,6 +251,9 @@ void Scanner_Scan(Scanner this, Token t) {
             break;
         case ':':
             t->token = T_COLON;
+            break;
+        case '?':
+            t->token = T_QUESTION;
             break;
         default:
             if (isdigit(c)) {

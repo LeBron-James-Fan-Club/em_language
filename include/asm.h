@@ -80,6 +80,7 @@ void MIPS_RegPop(Compiler this, int r);
 
 void MIPS_StoreParam(Compiler this, int r1);
 
+void MIPS_Move(Compiler this, int r1, int r2);
 int MIPS_Address(Compiler, SymTableEntry sym);
 int MIPS_Deref(Compiler, int r, enum ASTPRIM type);
 int MIPS_ShiftLeftConstant(Compiler, int r, int c);
@@ -104,8 +105,9 @@ void MIPS_Switch(Compiler this, int r, int caseCount, int topLabel,
 
 int Compiler_GenLabel(Compiler this);
 
-void Compiler_FreeAllReg(Compiler);
+void Compiler_FreeAllReg(Compiler, int keepReg);
 void Compiler_GenData(Compiler, SymTable st);
+int allocReg(Compiler this);
 
 int PrimSize(enum ASTPRIM type);
 

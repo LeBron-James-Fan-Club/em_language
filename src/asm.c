@@ -6,7 +6,7 @@ static char *reglist[MAX_REG] = {"$t0", "$t1", "$t2", "$t3", "$t4",
                                  "$t5", "$t6", "$t7", "$t8", "$t9",
                                  "$a0", "$a1", "$a2", "$a3"};
 
-static int allocReg(Compiler this);
+
 static void freeReg(Compiler this, int reg1);
 
 int PrimSize(enum ASTPRIM type) {
@@ -149,17 +149,6 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
     // Actual offset for locals if have been initialised
     if (st->loclHead) {
         fprintf(this->outfile, "\taddiu\t$sp, $sp, %d\n", -this->localOffset);
-        /*
-        for (loclCurr = st->loclHead; loclCurr != NULL;
-             loclCurr = loclCurr->next) {
-            if (loclCurr->hasValue) {
-                int r = MIPS_Load(this, loclCurr->value);
-                MIPS_StoreLocal(this, r, loclCurr);
-                freeReg(this, r);
-            }
-        }
-        */
-        // unimplemented for now
     }
 
     fputs("\n", this->outfile);
@@ -623,7 +612,7 @@ int MIPS_EqualSet(Compiler this, int r1, int r2) {
 
 int MIPS_EqualJump(Compiler this, int r1, int r2, int l) {
     fprintf(this->outfile, "\tbne\t%s, %s, L%d\n", reglist[r1], reglist[r2], l);
-    Compiler_FreeAllReg(this);
+    Compiler_FreeAllReg(this, NO_REG);
     return NO_REG;
 }
 
@@ -636,7 +625,7 @@ int MIPS_NotEqualSet(Compiler this, int r1, int r2) {
 
 int MIPS_NotEqualJump(Compiler this, int r1, int r2, int l) {
     fprintf(this->outfile, "\tbeq\t%s, %s, L%d\n", reglist[r1], reglist[r2], l);
-    Compiler_FreeAllReg(this);
+    Compiler_FreeAllReg(this, NO_REG);
     return NO_REG;
 }
 
@@ -649,7 +638,7 @@ int MIPS_LessThanSet(Compiler this, int r1, int r2) {
 
 int MIPS_LessThanJump(Compiler this, int r1, int r2, int l) {
     fprintf(this->outfile, "\tbge\t%s, %s, L%d\n", reglist[r1], reglist[r2], l);
-    Compiler_FreeAllReg(this);
+    Compiler_FreeAllReg(this, NO_REG);
     return NO_REG;
 }
 
@@ -662,7 +651,7 @@ int MIPS_GreaterThanSet(Compiler this, int r1, int r2) {
 
 int MIPS_GreaterThanJump(Compiler this, int r1, int r2, int l) {
     fprintf(this->outfile, "\tble\t%s, %s, L%d\n", reglist[r1], reglist[r2], l);
-    Compiler_FreeAllReg(this);
+    Compiler_FreeAllReg(this, NO_REG);
     return NO_REG;
 }
 
@@ -675,7 +664,7 @@ int MIPS_LessThanEqualSet(Compiler this, int r1, int r2) {
 
 int MIPS_LessThanEqualJump(Compiler this, int r1, int r2, int l) {
     fprintf(this->outfile, "\tbgt\t%s, %s, L%d\n", reglist[r1], reglist[r2], l);
-    Compiler_FreeAllReg(this);
+    Compiler_FreeAllReg(this, NO_REG);
     return NO_REG;
 }
 
@@ -688,7 +677,7 @@ int MIPS_GreaterThanEqualSet(Compiler this, int r1, int r2) {
 
 int MIPS_GreaterThanEqualJump(Compiler this, int r1, int r2, int l) {
     fprintf(this->outfile, "\tblt\t%s, %s, L%d\n", reglist[r1], reglist[r2], l);
-    Compiler_FreeAllReg(this);
+    Compiler_FreeAllReg(this, NO_REG);
     return NO_REG;
 }
 
@@ -780,6 +769,11 @@ void MIPS_RegPush(Compiler this, int r) {
 
 void MIPS_RegPop(Compiler this, int r) {
     fprintf(this->outfile, "\tpop\t%s\n", reglist[r]);
+}
+
+void MIPS_Move(Compiler this, int r1, int r2) {
+    fprintf(this->outfile, "\tmove\t%s, %s\n", reglist[r2], reglist[r1]);
+    freeReg(this, r1);
 }
 
 int MIPS_Address(Compiler this, SymTableEntry sym) {
@@ -918,7 +912,7 @@ void MIPS_Switch(Compiler this, int r, int caseCount, int topLabel,
     fputs("\tjal\tswitch\n", this->outfile);
 }
 
-static int allocReg(Compiler this) {
+int allocReg(Compiler this) {
     for (int i = 0; i < MAX_REG; i++) {
         if (!this->regUsed[i]) {
             this->regUsed[i] = true;
@@ -937,9 +931,9 @@ static void freeReg(Compiler this, int reg1) {
 
 int Compiler_GenLabel(Compiler this) { return this->label++; }
 
-void Compiler_FreeAllReg(Compiler this) {
+void Compiler_FreeAllReg(Compiler this, int keepReg) {
     for (int i = 0; i < MAX_REG; i++) {
-        this->regUsed[i] = false;
+        if (i != keepReg) this->regUsed[i] = false;
     }
 }
 

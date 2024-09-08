@@ -35,6 +35,7 @@
  - Type casting
  - octal support
  - Sizeof operator
+ - Ternary operator
 
 ## What will be added soon (Hopefully)
  - Local arrays

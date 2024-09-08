@@ -42,6 +42,7 @@
  - the compiler is gonna awfully stitch the code
 - get unions to work in a struct
 - get structs to work in a struct
+- add static for local variables
 
 # BUGS:
 - make it so that multiple files are included

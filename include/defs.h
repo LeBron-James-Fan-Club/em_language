@@ -18,6 +18,7 @@ enum OPCODES {
     T_ASSTAR,
     T_ASSLASH,
     T_ASMOD,
+    T_QUESTION,
 
     // Not supported yet
     T_LOGOR,
@@ -124,6 +125,7 @@ enum ASTOP {
     A_ASSTAR,
     A_ASSLASH,
     A_ASMOD,
+    A_TERNARY,
 
     // Not supported yet
     A_LOGOR,
@@ -205,7 +207,7 @@ enum ASTOP {
     A_CASE,
     A_DEFAULT,
 
-    A_CAST,
+    A_CAST
 
 };
 
@@ -251,6 +253,5 @@ struct token {
 };
 
 typedef struct token *Token;
-
 
 #endif
