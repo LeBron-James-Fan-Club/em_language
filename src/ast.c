@@ -251,12 +251,6 @@ void ASTnode_Dump(ASTnode n, SymTable st, int label, int level) {
         case A_ASMOD:
             printf("A_ASMOD\n");
             return;
-        case A_LOGAND:
-            printf("A_LOGAND\n");
-            return;
-        case A_LOGOR:
-            printf("A_LOGOR\n");
-            return;
         default:
             fatala("InternalError: Unknown AST node %d", n->op);
     }
