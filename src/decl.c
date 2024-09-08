@@ -17,8 +17,8 @@ static enum ASTPRIM typedef_declare(Compiler c, Scanner s, SymTable st,
 
 static enum ASTPRIM typedef_type(Scanner s, SymTable st, Token tok,
                                  SymTableEntry *cType);
-static int parse_literal(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
-                         bool *ignore);
+static int parse_literal(Compiler c, Scanner s, SymTable st, Token tok,
+                         Context ctx, enum ASTPRIM type);
 SymTableEntry function_declare(Compiler c, Scanner s, SymTable st, Token tok,
                                Context ctx, enum ASTPRIM type);
 static SymTableEntry symbol_declare(Compiler c, Scanner s, SymTable st,
@@ -32,8 +32,9 @@ static int param_declare_list(Compiler c, Scanner s, SymTable st, Token tok,
                               SymTableEntry newFuncSym);
 
 static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
-                                   Token tok, char *varName, enum ASTPRIM type,
-                                   SymTableEntry cType, enum STORECLASS class);
+                                   Token tok, Context ctx, char *varName,
+                                   enum ASTPRIM type, SymTableEntry cType,
+                                   enum STORECLASS class);
 static SymTableEntry scalar_declare(Compiler c, Scanner s, SymTable st,
                                     Token tok, Context ctx, char *varName,
                                     enum ASTPRIM type, SymTableEntry cType,
@@ -81,7 +82,7 @@ static SymTableEntry symbol_declare(Compiler c, Scanner s, SymTable st,
     }
 
     if (tok->token == T_LBRACKET) {
-        sym = array_declare(c, s, st, tok, varName, type, cType, class);
+        sym = array_declare(c, s, st, tok, ctx, varName, type, cType, class);
     } else {
         sym = scalar_declare(c, s, st, tok, ctx, varName, type, cType, class,
                              tree);
@@ -92,37 +93,32 @@ static SymTableEntry symbol_declare(Compiler c, Scanner s, SymTable st,
     return sym;
 }
 
-static int parse_literal(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
-                         bool *ignore) {
-    if ((type == pointer_to(P_CHAR) || type == P_NONE) &&
-        tok->token == T_STRLIT) {
-        int anon;
-        char *name = SymTableEntry_MakeAnon(st, &anon);
-        SymTableEntry var =
-            SymTable_AddGlob(st, name, type, NULL, S_VAR, C_GLOBAL, 1, 0);
-        SymTable_SetText(st, s, var);
-        free(name);
-        if (ignore != NULL) *ignore = true;
-        return anon;
+static int parse_literal(Compiler c, Scanner s, SymTable st, Token tok,
+                         Context ctx, enum ASTPRIM type) {
+    ASTnode tree = Optimise(ASTnode_Order(c, s, st, tok, ctx));
+
+    // if cast then mark it having the type from cast
+    if (tree->op == A_CAST) {
+        tree->left->type = tree->type;
+        ASTnode temp = tree;
+        tree = tree->left;
+        temp->left = NULL;
+        free(temp);
     }
 
-    if (tok->token == T_INTLIT) {
-        switch (type) {
-            case P_CHAR:
-                if (tok->intvalue < 0 || tok->intvalue > 255) {
-                    lfatal(s, "InvalidValueError: char literal out of range");
-                }
-            case P_NONE:
-            case P_INT:
-                break;
-            default:
-                fatal("InvalidTypeError: invalid type for integer literal\n");
-        }
-    } else {
-        lfatala(s, "SyntaxError: expected integer literal got %s", tok->tokstr);
+    if (tree->op != A_INTLIT && tree->op != A_STRLIT) {
+        lfatal(s, "SyntaxError: Cannot initialize with non-constant values");
     }
 
-    return tok->intvalue;
+    if (type == pointer_to(P_CHAR) ||
+        (inttype(type) &&
+         type_size(type, NULL) >= type_size(tree->type, NULL))) {
+        int value = tree->intvalue;
+        ASTnode_Free(tree);
+        return value;
+    }
+
+    lfatal(s, "TypeError: Incompatible types in initialization");
 }
 
 static SymTableEntry scalar_declare(Compiler c, Scanner s, SymTable st,
@@ -131,7 +127,6 @@ static SymTableEntry scalar_declare(Compiler c, Scanner s, SymTable st,
                                     enum STORECLASS class, ASTnode *tree) {
     SymTableEntry sym = NULL;
     ASTnode varNode, exprNode;
-    enum ASTPRIM castType;
     *tree = NULL;
 
     switch (class) {
@@ -169,26 +164,8 @@ static SymTableEntry scalar_declare(Compiler c, Scanner s, SymTable st,
         Scanner_Scan(s, tok);
 
         if (class == C_GLOBAL) {
-            if (tok->token == T_LPAREN) {
-                Scanner_Scan(s, tok);
-                castType = parse_cast(c, s, st, tok, ctx);
-                rparen(s, tok);
-
-                if (castType == type ||
-                    (castType == pointer_to(P_VOID) && ptrtype(type))) {
-                    type = P_NONE;
-                } else {
-                    fatal("TypeError: incompatible types in assignment\n");
-                }
-            }
-
             sym->initList = calloc(1, sizeof(int));
-            bool ignore = false;
-            int value = parse_literal(s, st, tok, type, &ignore);
-            if (!ignore) {
-                sym->initList[0] = value;
-            }
-            Scanner_Scan(s, tok);
+            sym->initList[0] = parse_literal(c, s, st, tok, ctx, type);
         } else if (class == C_LOCAL) {
             varNode = ASTnode_NewLeaf(A_IDENT, type, sym, 0);
 
@@ -209,10 +186,10 @@ static SymTableEntry scalar_declare(Compiler c, Scanner s, SymTable st,
 }
 
 static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
-                                   Token tok, char *varName, enum ASTPRIM type,
-                                   SymTableEntry cType, enum STORECLASS class) {
+                                   Token tok, Context ctx, char *varName,
+                                   enum ASTPRIM type, SymTableEntry cType,
+                                   enum STORECLASS class) {
     SymTableEntry sym;
-    enum ASTPRIM castType, newType;
     int nelems = -1;
     int maxElems;
     int *initList;
@@ -221,16 +198,14 @@ static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
     // eat [
     Scanner_Scan(s, tok);
 
-    if (tok->token == T_INTLIT) {
-        if (tok->intvalue < 0) {
-            lfatala(s, "InvalidValueError: negative array size: %d",
-                    tok->intvalue);
+    if (tok->token != T_RBRACKET) {
+        nelems = parse_literal(c, s, st, tok, ctx, P_INT);
+        if (nelems < 0) {
+            lfatala(s, "InvalidValueError: negative array size: %d", nelems);
         }
-        nelems = tok->intvalue;
-        Scanner_Scan(s, tok);
     }
 
-    // eat [
+    // eat ]
     match(s, tok, T_RBRACKET, "]");
 
     switch (class) {
@@ -265,26 +240,9 @@ static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
                     "ArraySizeError: too many elements in array initializer\n");
             }
 
-            newType = type;
-
-            if (tok->token == T_LPAREN) {
-                Scanner_Scan(s, tok);
-                castType = parse_cast(c, s, st, tok, NULL);
-                rparen(s, tok);
-
-                if (castType == type ||
-                    (castType == pointer_to(P_VOID) && ptrtype(type))) {
-                    newType = P_NONE;
-                } else {
-                    lfatal(s, "TypeError: incompatible types in assignment\n");
-                }
-                newType = P_NONE;
-            }
-
             // TODO: Figure out how the fuck I'm going to handle custom
             // TODO: LABELS
-            initList[i++] = parse_literal(s, st, tok, newType, NULL);
-            Scanner_Scan(s, tok);
+            initList[i++] = parse_literal(c, s, st, tok, ctx, type);
 
             if (nelems == -1 && i == maxElems) {
                 maxElems += TABLE_INCREMENT;
@@ -461,7 +419,7 @@ SymTableEntry function_declare(Compiler c, Scanner s, SymTable st, Token tok,
     }
 
     tree = ASTnode_NewUnary(A_FUNCTION, type, tree, oldFuncSym, 0);
-    
+
     // optimise!!!
     tree = Optimise(tree);
 

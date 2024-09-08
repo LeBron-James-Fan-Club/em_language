@@ -161,6 +161,7 @@ static ASTnode primary(Compiler c, Scanner s, SymTable st, Token t,
                 case T_COLON:
                 case T_RPAREN:
                 case T_RBRACKET:
+                case T_RBRACE:
                     Scanner_RejectToken(s, t);
             }
 
@@ -240,6 +241,7 @@ do {
             case T_COLON:
             case T_RPAREN:
             case T_RBRACKET:
+            case T_RBRACE:
                 // Breaks out of loop if parenthesis are not balanced
                 debug("(breaking out) top %d token %s", top, t->tokstr);
                 debug("GTFO OUT OF ORDER NOW");
