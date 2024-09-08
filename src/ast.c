@@ -4,7 +4,8 @@
 #include "sym.h"
 
 ASTnode ASTnode_New(enum ASTOP op, enum ASTPRIM type, ASTnode left, ASTnode mid,
-                    ASTnode right, SymTableEntry sym, int intvalue) {
+                    ASTnode right, SymTableEntry ctype, SymTableEntry sym,
+                    int intvalue) {
     ASTnode n = calloc(1, sizeof(struct astnode));
     if (n == NULL) {
         fatal("InternalError: Unable to allocate memory for ASTnode\n");
@@ -15,20 +16,21 @@ ASTnode ASTnode_New(enum ASTOP op, enum ASTPRIM type, ASTnode left, ASTnode mid,
     n->left = left;
     n->mid = mid;
     n->sym = sym;
+    n->ctype = ctype;
     n->right = right;
     n->intvalue = intvalue;
 
     return n;
 }
 
-ASTnode ASTnode_NewLeaf(enum ASTOP op, enum ASTPRIM type, SymTableEntry sym,
-                        int intvalue) {
-    return ASTnode_New(op, type, NULL, NULL, NULL, sym, intvalue);
+ASTnode ASTnode_NewLeaf(enum ASTOP op, enum ASTPRIM type, SymTableEntry ctype,
+                        SymTableEntry sym, int intvalue) {
+    return ASTnode_New(op, type, NULL, NULL, NULL, ctype, sym, intvalue);
 }
 
 ASTnode ASTnode_NewUnary(enum ASTOP op, enum ASTPRIM type, ASTnode left,
-                         SymTableEntry sym, int intvalue) {
-    return ASTnode_New(op, type, left, NULL, NULL, sym, intvalue);
+                         SymTableEntry ctype, SymTableEntry sym, int intvalue) {
+    return ASTnode_New(op, type, left, NULL, NULL, ctype, sym, intvalue);
 }
 
 void ASTnode_Free(ASTnode this) {
@@ -123,8 +125,7 @@ void ASTnode_Dump(ASTnode n, SymTable st, int label, int level) {
             return;
         case A_IDENT:
             if (n->rvalue)
-                printf("A_IDENT rval %s type %d\n", n->sym->name,
-                       n->type);
+                printf("A_IDENT rval %s type %d\n", n->sym->name, n->type);
             else
                 printf("A_IDENT %s type %d\n", n->sym->name, n->type);
             return;

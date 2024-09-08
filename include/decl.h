@@ -21,6 +21,6 @@ enum ASTPRIM declare_list(Compiler c, Scanner s, SymTable st, Token tok,
                           enum OPCODES end2, ASTnode *glueTree);
 void global_declare(Compiler c, Scanner s, SymTable st, Token tok, Context ctx);
 enum ASTPRIM parse_cast(Compiler c, Scanner s, SymTable st, Token tok,
-                        Context ctx);
+                        Context ctx, SymTableEntry *cType);
 int parse_stars(Scanner s, Token tok, enum ASTPRIM type);
 #endif

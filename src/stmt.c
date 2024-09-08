@@ -17,8 +17,7 @@ static ASTnode poke_statement(Compiler c, Scanner s, SymTable st, Token tok,
 
 static ASTnode print_statement(Compiler c, Scanner s, SymTable st, Token tok,
                                Context ctx);
-static ASTnode input_statement(Scanner s, SymTable st, Token tok,
-                               Context ctx);
+static ASTnode input_statement(Scanner s, SymTable st, Token tok, Context ctx);
 static ASTnode if_statement(Compiler c, Scanner s, SymTable st, Token tok,
                             Context ctx);
 
@@ -57,18 +56,17 @@ ASTnode Compound_Statement(Compiler c, Scanner s, SymTable st, Token tok,
         }
         if (tree != NULL &&
             (/*(tree->op >= A_ASSIGN && tree->op <= A_IDENT) ||*/
-             tree->op == A_RETURN ||
-             tree->op == A_FUNCCALL || tree->op == A_LABEL ||
-             tree->op == A_GOTO || tree->op == A_POKE || tree->op == A_BREAK ||
-             tree->op == A_CONTINUE)) {
+             tree->op == A_RETURN || tree->op == A_FUNCCALL ||
+             tree->op == A_LABEL || tree->op == A_GOTO || tree->op == A_POKE ||
+             tree->op == A_BREAK || tree->op == A_CONTINUE)) {
             debug("consume semi");
             semi(s, tok);
         }
 
         if (tree) {
-            left = (left == NULL)
-                       ? tree
-                       : ASTnode_New(A_GLUE, P_NONE, left, NULL, tree, NULL, 0);
+            left = (left == NULL) ? tree
+                                  : ASTnode_New(A_GLUE, P_NONE, left, NULL,
+                                                tree, NULL, NULL, 0);
         }
 
         if (tok->token == T_RBRACE) {
@@ -157,7 +155,7 @@ static ASTnode poke_statement(Compiler c, Scanner s, SymTable st, Token tok,
     comma(s, tok);
     param2 = ASTnode_Order(c, s, st, tok, ctx);
     rparen(s, tok);
-    return ASTnode_New(A_POKE, P_NONE, param2, NULL, param1, NULL, 0);
+    return ASTnode_New(A_POKE, P_NONE, param2, NULL, param1, NULL, NULL, 0);
 }
 
 static ASTnode print_statement(Compiler c, Scanner s, SymTable st, Token tok,
@@ -187,11 +185,12 @@ static ASTnode print_statement(Compiler c, Scanner s, SymTable st, Token tok,
             exit(-1);
         }
 
-        t = ASTnode_NewUnary(A_PRINT, rightType, t, NULL, 0);
+        t = ASTnode_NewUnary(A_PRINT, rightType, t, NULL, NULL, 0);
 
         if (firstGone) {
             // memory leak occurs here
-            parent = ASTnode_New(A_GLUE, P_NONE, parent, NULL, t, NULL, 0);
+            parent =
+                ASTnode_New(A_GLUE, P_NONE, parent, NULL, t, NULL, NULL, 0);
         } else {
             parent = t;
             firstGone = true;
@@ -216,13 +215,13 @@ static ASTnode input_statement(Scanner s, SymTable st, Token tok, Context ctx) {
         lfatala(s, "UndefinedError: Undefined variable %s", s->text);
     }
 
-    ASTnode left = ASTnode_NewLeaf(A_INPUT, P_INT, NULL, 0);
-    ASTnode right = ASTnode_NewLeaf(A_IDENT, var->type, var, 0);
+    ASTnode left = ASTnode_NewLeaf(A_INPUT, P_INT, NULL, NULL, 0);
+    ASTnode right = ASTnode_NewLeaf(A_IDENT, var->type, var->ctype, var, 0);
     right->rvalue = 0;  // We do not need to load the value of the variable
 
-    ASTnode tree = modify_type(right, left->type, A_NONE);
+    ASTnode tree = modify_type(right, left->type, left->ctype, A_NONE);
 
-    tree = ASTnode_New(A_ASSIGN, P_NONE, left, NULL, tree, NULL, 0);
+    tree = ASTnode_New(A_ASSIGN, P_NONE, left, NULL, tree, NULL, NULL, 0);
     rparen(s, tok);
 
     semi(s, tok);
@@ -241,7 +240,8 @@ static ASTnode if_statement(Compiler c, Scanner s, SymTable st, Token tok,
 
     // Might remove this guard later
     if (condAST->op < A_EQ || condAST->op > A_GE) {
-        condAST = ASTnode_NewUnary(A_TOBOOL, condAST->type, condAST, NULL, 0);
+        condAST =
+            ASTnode_NewUnary(A_TOBOOL, condAST->type, condAST, NULL, NULL, 0);
     }
 
     rparen(s, tok);
@@ -253,7 +253,7 @@ static ASTnode if_statement(Compiler c, Scanner s, SymTable st, Token tok,
         falseAST = single_statement(c, s, st, tok, ctx);
     }
 
-    return ASTnode_New(A_IF, P_NONE, condAST, trueAST, falseAST, NULL, 0);
+    return ASTnode_New(A_IF, P_NONE, condAST, trueAST, falseAST, NULL, NULL, 0);
 }
 
 static ASTnode while_statement(Compiler c, Scanner s, SymTable st, Token tok,
@@ -275,7 +275,7 @@ static ASTnode while_statement(Compiler c, Scanner s, SymTable st, Token tok,
     bodyAST = single_statement(c, s, st, tok, ctx);
     Context_DecLoopLevel(ctx);
 
-    return ASTnode_New(A_WHILE, P_NONE, condAST, NULL, bodyAST, NULL, 0);
+    return ASTnode_New(A_WHILE, P_NONE, condAST, NULL, bodyAST, NULL, NULL, 0);
 }
 
 static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok,
@@ -309,9 +309,9 @@ static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok,
     bodyAST = single_statement(c, s, st, tok, ctx);
     Context_DecLoopLevel(ctx);
 
-    t = ASTnode_New(A_GLUE, P_NONE, bodyAST, NULL, postopAST, NULL, 0);
-    t = ASTnode_New(A_WHILE, P_NONE, condAST, NULL, t, NULL, 0);
-    return ASTnode_New(A_GLUE, P_NONE, preopAST, NULL, t, NULL, 0);
+    t = ASTnode_New(A_GLUE, P_NONE, bodyAST, NULL, postopAST, NULL, NULL, 0);
+    t = ASTnode_New(A_WHILE, P_NONE, condAST, NULL, t, NULL, NULL, 0);
+    return ASTnode_New(A_GLUE, P_NONE, preopAST, NULL, t, NULL, NULL, 0);
 }
 
 static ASTnode label_statement(Scanner s, SymTable st, Token tok) {
@@ -321,7 +321,7 @@ static ASTnode label_statement(Scanner s, SymTable st, Token tok) {
     SymTableEntry var = SymTable_AddGlob(st, s->text, P_NONE, NULL, S_LABEL,
                                          C_GLOBAL, 0, false);
 
-    ASTnode t = ASTnode_NewLeaf(A_LABEL, P_NONE, var, 0);
+    ASTnode t = ASTnode_NewLeaf(A_LABEL, P_NONE, NULL, var, 0);
 
     return t;
 }
@@ -336,7 +336,7 @@ static ASTnode goto_statement(Scanner s, SymTable st, Token tok) {
         lfatala(s, "UndefinedError: Undefined label %s", s->text);
     }
 
-    ASTnode t = ASTnode_NewLeaf(A_GOTO, P_NONE, var, 0);
+    ASTnode t = ASTnode_NewLeaf(A_GOTO, P_NONE, NULL, var, 0);
 
     return t;
 }
@@ -363,12 +363,12 @@ static ASTnode return_statement(Compiler c, Scanner s, SymTable st, Token tok,
 
     debug("func type %d, t type %d", func->type, t->type);
 
-    t = modify_type(t, func->type, A_NONE);
+    t = modify_type(t, func->type, func->ctype, A_NONE);
     if (t == NULL) {
         fprintf(stderr, "Error: Type mismatch in return on line %d\n", s->line);
         exit(-1);
     }
-    return ASTnode_NewUnary(A_RETURN, P_NONE, t, NULL, 0);
+    return ASTnode_NewUnary(A_RETURN, P_NONE, t, NULL, NULL, 0);
 }
 
 static ASTnode break_statement(Scanner s, Token tok, Context ctx) {
@@ -376,7 +376,7 @@ static ASTnode break_statement(Scanner s, Token tok, Context ctx) {
         lfatal(s, "SyntaxError: break outside of loop");
     }
     Scanner_Scan(s, tok);
-    return ASTnode_NewLeaf(A_BREAK, P_NONE, NULL, 0);
+    return ASTnode_NewLeaf(A_BREAK, P_NONE, NULL, NULL, 0);
 }
 
 static ASTnode continue_statement(Scanner s, Token tok, Context ctx) {
@@ -384,7 +384,7 @@ static ASTnode continue_statement(Scanner s, Token tok, Context ctx) {
         lfatal(s, "SyntaxError: continue outside of loop");
     }
     Scanner_Scan(s, tok);
-    return ASTnode_NewLeaf(A_CONTINUE, P_NONE, NULL, 0);
+    return ASTnode_NewLeaf(A_CONTINUE, P_NONE, NULL, NULL, 0);
 }
 
 static ASTnode switch_statement(Compiler c, Scanner s, SymTable st, Token tok,
@@ -410,7 +410,7 @@ static ASTnode switch_statement(Compiler c, Scanner s, SymTable st, Token tok,
         fatal("TypeError: switch expression must be an integer");
     }
 
-    n = ASTnode_NewUnary(A_SWITCH, P_NONE, left, NULL, 0);
+    n = ASTnode_NewUnary(A_SWITCH, P_NONE, left, NULL, NULL, 0);
 
     Context_IncSwitchLevel(ctx);
     while (inLoop) {
@@ -474,12 +474,12 @@ static ASTnode switch_statement(Compiler c, Scanner s, SymTable st, Token tok,
                 caseCount++;
 
                 if (caseTree == NULL) {
-                    caseTree = caseTail =
-                        ASTnode_NewUnary(op, P_NONE, left, NULL, caseValue);
+                    caseTree = caseTail = ASTnode_NewUnary(
+                        op, P_NONE, left, NULL, NULL, caseValue);
                     debug("first create %p", caseTree);
                 } else {
-                    caseTail->right =
-                        ASTnode_NewUnary(op, P_NONE, left, NULL, caseValue);
+                    caseTail->right = ASTnode_NewUnary(op, P_NONE, left, NULL,
+                                                       NULL, caseValue);
                     caseTail = caseTail->right;
                     debug("add %p", caseTail);
                 }

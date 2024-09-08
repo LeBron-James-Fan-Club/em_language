@@ -7,7 +7,9 @@
 #include "defs.h"
 #include "misc.h"
 
-bool inttype(enum ASTPRIM type) { return (type & 0xf) == 0 && type >= P_CHAR && type <= P_INT; }
+bool inttype(enum ASTPRIM type) {
+    return (type & 0xf) == 0 && type >= P_CHAR && type <= P_INT;
+}
 
 bool ptrtype(enum ASTPRIM type) { return (type & 0xf) != 0; }
 
@@ -16,7 +18,8 @@ int type_size(enum ASTPRIM type, SymTableEntry cType) {
     return PrimSize(type);
 }
 
-ASTnode modify_type(ASTnode tree, enum ASTPRIM rtype, enum ASTOP op) {
+ASTnode modify_type(ASTnode tree, enum ASTPRIM rtype, SymTableEntry rctype,
+                    enum ASTOP op) {
     enum ASTPRIM ltype;
     int lsize, rsize;
 
@@ -41,25 +44,18 @@ ASTnode modify_type(ASTnode tree, enum ASTPRIM rtype, enum ASTOP op) {
         if (lsize > rsize) {
             return NULL;
         } else if (lsize < rsize) {
-            return ASTnode_NewUnary(A_WIDEN, ltype, tree, NULL, 0);
+            return ASTnode_NewUnary(A_WIDEN, ltype,  tree,NULL, NULL, 0);
         }
     }
-
-/*
-    if (ptrtype(rtype)) {
-        if (op == A_NONE && ptrtype(rtype)) {
-            return tree;
-        }
-    }
-*/
 
     if (ptrtype(ltype) && ptrtype(rtype)) {
-        debug ("Comparing two pointers");
+        debug("Comparing two pointers");
         if (op >= A_EQ && op <= A_GE) {
             return tree;
         }
 
-        debug("op %d ltype %d, rtype %d, pointer_to(P_VOID) %d", op, ltype, rtype, pointer_to(P_VOID));
+        debug("op %d ltype %d, rtype %d, pointer_to(P_VOID) %d", op, ltype,
+              rtype, pointer_to(P_VOID));
 
         if (op == A_NONE && (ltype == rtype || ltype == pointer_to(P_VOID))) {
             return tree;
@@ -75,7 +71,8 @@ ASTnode modify_type(ASTnode tree, enum ASTPRIM rtype, enum ASTOP op) {
 
             rsize = PrimSize(value_at(rtype));
             if (rsize > 1) {
-                return ASTnode_NewUnary(A_SCALE, rtype, tree, NULL, rsize);
+                return ASTnode_NewUnary(A_SCALE, rtype,  tree,rctype, NULL,
+                                        rsize);
             } else {
                 return tree;
             }

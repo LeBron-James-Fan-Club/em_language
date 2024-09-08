@@ -10,6 +10,8 @@
 
 // forward declaration
 int parse_stars(Scanner s, Token tok, enum ASTPRIM type);
+enum ASTPRIM parse_cast(Compiler c, Scanner s, SymTable st, Token tok,
+                        Context ctx, SymTableEntry *cType);
 
 ASTnode ASTnode_Order(Compiler c, Scanner s, SymTable st, Token t, Context ctx);
 ASTnode expression_list(Compiler c, Scanner s, SymTable st, Token tok, Context ctx,

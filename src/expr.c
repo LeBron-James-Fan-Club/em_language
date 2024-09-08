@@ -11,13 +11,15 @@ static enum ASTOP arithOp(Scanner s, enum OPCODES tok);
 static int precedence(enum ASTOP op);
 static ASTnode primary(Compiler c, Scanner s, SymTable st, Token t,
                        Context ctx);
+static ASTnode paren_expression(Compiler c, Scanner s, SymTable st, Token t,
+                                Context ctx);
 static void orderOp(Compiler c, Scanner s, SymTable st, Token t, Context ctx,
                     ASTnode *stack, enum ASTOP *opStack, int *top, int *opTop);
 
 static ASTnode ASTnode_FuncCall(Compiler c, Scanner s, SymTable st, Token tok,
                                 Context ctx);
 static ASTnode ASTnode_ArrayRef(Compiler c, Scanner s, SymTable st, Token tok,
-                                Context ctx);
+                                Context ctx, ASTnode left);
 
 static ASTnode ASTnode_Prefix(Compiler c, Scanner s, SymTable st, Token tok,
                               Context ctx);
@@ -30,7 +32,7 @@ static ASTnode sizeof_operator(Compiler c, Scanner s, SymTable st, Token tok,
                                Context ctx);
 
 static ASTnode ASTnode_MemberAccess(Scanner s, SymTable st, Token tok,
-                                    Context ctx, bool isPtr);
+                                    Context ctx, ASTnode left, bool isPtr);
 
 // * 1:1 baby
 static enum ASTOP arithOp(Scanner s, enum OPCODES tok) {
@@ -92,9 +94,9 @@ static bool rightAssoc(enum ASTOP op) {
 
 static ASTnode primary(Compiler c, Scanner s, SymTable st, Token t,
                        Context ctx) {
-    SymTableEntry var;
     ASTnode n;
-    enum ASTPRIM type = P_NONE;
+    SymTableEntry var;
+    SymTableEntry enumPtr;
 
     switch (t->token) {
         case T_STRLIT:
@@ -106,14 +108,14 @@ static ASTnode primary(Compiler c, Scanner s, SymTable st, Token t,
                                        S_VAR, C_GLOBAL, 1, 0);
                 free(name);
                 SymTable_SetText(st, s, var);
-                n = ASTnode_NewLeaf(A_STRLIT, pointer_to(P_CHAR), var, 0);
+                n = ASTnode_NewLeaf(A_STRLIT, pointer_to(P_CHAR), NULL, var, 0);
             }
             break;
         case T_INTLIT:
             if (t->intvalue >= 0 && t->intvalue < 256) {
-                n = ASTnode_NewLeaf(A_INTLIT, P_CHAR, NULL, t->intvalue);
+                n = ASTnode_NewLeaf(A_INTLIT, P_CHAR, NULL, NULL, t->intvalue);
             } else {
-                n = ASTnode_NewLeaf(A_INTLIT, P_INT, NULL, t->intvalue);
+                n = ASTnode_NewLeaf(A_INTLIT, P_INT, NULL, NULL, t->intvalue);
             }
             break;
         case T_PEEK:
@@ -124,54 +126,89 @@ static ASTnode primary(Compiler c, Scanner s, SymTable st, Token t,
             n = sizeof_operator(c, s, st, t, ctx);
             break;
         case T_IDENT:
-            debug("IDENT %s", s->text);
-            return ASTnode_Postfix(c, s, st, t, ctx);
+            if ((enumPtr = SymTable_FindEnumVal(st, s)) != NULL) {
+                return ASTnode_NewLeaf(A_INTLIT, P_INT, NULL, NULL,
+                                       enumPtr->posn);
+            }
+            if ((var = SymTable_FindSymbol(st, s, ctx)) == NULL) {
+                lfatala(s, "UndefinedError: Undefined variable %s", s->text);
+            }
+
+            switch (var->stype) {
+                case S_VAR:
+                    n = ASTnode_NewLeaf(A_IDENT, var->type, var->ctype, var, 0);
+                    break;
+                case S_ARRAY:
+                    n = ASTnode_NewLeaf(A_ADDR, var->type, var->ctype, var, 0);
+                    n->rvalue = 1;
+                    break;
+                case S_FUNC:
+                    Scanner_Scan(s, t);
+                    if (t->token == T_LPAREN) {
+                        n = ASTnode_FuncCall(c, s, st, t, ctx);
+                    } else {
+                        lfatala(s,
+                                "SyntaxError: Expected '(' after function %s",
+                                s->text);
+                    }
+                    return n;
+                default:
+                    lfatala(s,
+                            "SyntaxError: identifier not a scalar or array, %s",
+                            s->text);
+            }
 
         case T_LPAREN:
-            // eat (
-            Scanner_Scan(s, t);
-
-            switch (t->token) {
-                case T_IDENT:
-                    if (SymTable_FindTypeDef(st, s) == NULL) {
-                        n = ASTnode_Order(c, s, st, t, ctx);
-                        break;
-                    }
-                case T_VOID:
-                case T_CHAR:
-                case T_INT:
-                case T_STRUCT:
-                case T_UNION:
-                case T_ENUM:
-                    debug("fell here");
-                    type = parse_cast(c, s, st, t, ctx);
-                    rparen(s, t);
-                default:
-                    // * rest of the expression (int)b <- this
-                    // * Please work with the shunting algorithm
-                    // * I beg you
-                    debug("falling INTO THE FUCKING VOID");
-                    n = ASTnode_Order(c, s, st, t, ctx);
-                    debug("token now %s", t->tokstr);
-            }
-
-            // Its a left parenthesis eat it
-            if (type == P_NONE) {
-                rparen(s, t);
-            } else {
-                n = ASTnode_NewUnary(A_CAST, type, n, NULL, 0);
-            }
-
-            // If shit was scanned in before
-            Scanner_RejectToken(s, t);
-
-            debug("leaving primary now");
-            return n;
-
+            return paren_expression(c, s, st, t, ctx);
         default:
-            lfatala(s, "SyntaxError: Expected primary expression got %s",
+            lfatala(s, "SyntaxError: Expecting primary expression got %s",
                     t->tokstr);
     }
+
+    return n;
+}
+
+static ASTnode paren_expression(Compiler c, Scanner s, SymTable st, Token t,
+                                Context ctx) {
+    ASTnode n;
+    enum ASTPRIM type = P_NONE;
+    SymTableEntry cType = NULL;
+
+    Scanner_Scan(s, t);
+
+    switch (t->token) {
+        case T_IDENT:
+            if (SymTable_FindTypeDef(st, s) == NULL) {
+                n = ASTnode_Order(c, s, st, t, ctx);
+                break;
+            }
+        case T_VOID:
+        case T_CHAR:
+        case T_INT:
+        case T_STRUCT:
+        case T_UNION:
+        case T_ENUM:
+            debug("fell here");
+            type = parse_cast(c, s, st, t, ctx, &cType);
+            rparen(s, t);
+        default:
+            // * rest of the expression (int)b <- this
+            // * Please work with the shunting algorithm
+            // * I beg you
+            debug("falling INTO THE FUCKING VOID");
+            n = ASTnode_Order(c, s, st, t, ctx);
+            debug("token now %s", t->tokstr);
+    }
+
+    // Its a left parenthesis eat it
+    if (type == P_NONE) {
+        rparen(s, t);
+    } else {
+        n = ASTnode_NewUnary(A_CAST, type,  n,cType, NULL, 0);
+    }
+
+    // If shit was scanned in before
+    Scanner_RejectToken(s, t);
 
     return n;
 }
@@ -198,14 +235,14 @@ static void orderOp(Compiler c, Scanner s, SymTable st, Token t, Context ctx,
         debug("Ternary operator");
         match(s, t, T_COLON, ":");
         ltemp = ASTnode_Order(c, s, st, t, ctx);
-        stack[++(*top)] =
-            ASTnode_New(A_TERNARY, right->type, left, right, ltemp, NULL, 0);
+        stack[++(*top)] = ASTnode_New(A_TERNARY, right->type, left, right,
+                                      ltemp, right->ctype, NULL, 0);
         return;
 
     } else if (op == A_ASSIGN) {
         right->rvalue = 1;
         debug("The assign called it");
-        right = modify_type(right, left->type, A_NONE);
+        right = modify_type(right, left->type, left->ctype, A_NONE);
         if (right == NULL) {
             lfatal(s, "SyntaxError: incompatible types in assignment");
         }
@@ -217,8 +254,8 @@ static void orderOp(Compiler c, Scanner s, SymTable st, Token t, Context ctx,
         debug("op %d", op);
         right->rvalue = 1;
         left->rvalue = 1;
-        ltemp = modify_type(left, right->type, op);
-        rtemp = modify_type(right, left->type, op);
+        ltemp = modify_type(left, right->type, right->ctype, op);
+        rtemp = modify_type(right, left->type, left->type, op);
 
         if (ltemp == NULL && rtemp == NULL) {
             lfatal(s, "SyntaxError: Incompatible types in expression");
@@ -227,7 +264,8 @@ static void orderOp(Compiler c, Scanner s, SymTable st, Token t, Context ctx,
         if (ltemp != NULL) left = ltemp;
         if (rtemp != NULL) right = rtemp;
     }
-    stack[++(*top)] = ASTnode_New(op, left->type, left, NULL, right, NULL, 0);
+    stack[++(*top)] =
+        ASTnode_New(op, left->type, left, NULL, right, left->ctype, NULL, 0);
     debug("%d top", *top);
 }
 
@@ -341,7 +379,7 @@ static ASTnode ASTnode_FuncCall(Compiler c, Scanner s, SymTable st, Token tok,
 
     t = expression_list(c, s, st, tok, ctx, T_RPAREN);
 
-    t = ASTnode_NewUnary(A_FUNCCALL, var->type, t, var, 0);
+    t = ASTnode_NewUnary(A_FUNCCALL, var->type, t, var->ctype, var, 0);
 
     rparen(s, tok);
 
@@ -360,7 +398,8 @@ ASTnode expression_list(Compiler c, Scanner s, SymTable st, Token tok,
         debug("expression generation %d", exprCount);
         debug("child %p", child);
 
-        tree = ASTnode_New(A_GLUE, P_NONE, tree, NULL, child, NULL, exprCount);
+        tree = ASTnode_New(A_GLUE, P_NONE, tree, NULL, child, NULL, NULL,
+                           exprCount);
 
         if (tok->token == endToken) break;
 
@@ -370,26 +409,18 @@ ASTnode expression_list(Compiler c, Scanner s, SymTable st, Token tok,
 }
 
 static ASTnode ASTnode_ArrayRef(Compiler c, Scanner s, SymTable st, Token tok,
-                                Context ctx) {
-    //! BUG: For some reason intlit becomes top of stack
-    //! only copying the right value
-    ASTnode left, right;
+                                Context ctx, ASTnode left) {
+    ASTnode right;
     SymTableEntry var;
-    if ((var = SymTable_FindSymbol(st, s, ctx)) == NULL) {
-        fatala("UndefinedError: Undefined array %s", s->text);
-    }
-    if (var->stype != S_ARRAY && (var->stype == S_VAR && !ptrtype(var->type))) {
-        lfatala(s, "TypeError: %s is not an array or pointer", s->text);
+
+    if (!ptrtype(left->type)) {
+        lfatala(s, "TypeError: Array index must be a pointer or array, %s",
+                s->text);
     }
 
-    if (var->stype == S_ARRAY) {
-        left = ASTnode_NewLeaf(A_ADDR, var->type, var, 0);
-    } else {
-        left = ASTnode_NewLeaf(A_IDENT, var->type, var, 0);
-        left->rvalue = 1;
-    }
-
+    // eat [
     Scanner_Scan(s, tok);
+
     right = ASTnode_Order(c, s, st, tok, ctx);
 
     match(s, tok, T_RBRACKET, "]");
@@ -398,12 +429,16 @@ static ASTnode ASTnode_ArrayRef(Compiler c, Scanner s, SymTable st, Token tok,
         fatal("TypeError: Array index must be an integer");
     }
 
-    right = modify_type(right, left->type, A_ADD);
+    left->rvalue = 1;
 
-    left = ASTnode_New(A_ADD, var->type, left, NULL, right, NULL, 0);
+    right = modify_type(right, left->type, left->ctype, A_ADD);
+
+    left =
+        ASTnode_New(A_ADD, left->type, left, NULL, right, left->ctype, NULL, 0);
     Scanner_RejectToken(s, tok);
-    
-    return ASTnode_NewUnary(A_DEREF, value_at(left->type), left, NULL, 0);
+
+    return ASTnode_NewUnary(A_DEREF, value_at(left->type), left, left->ctype,
+                            NULL, 0);
 }
 
 static ASTnode ASTnode_Prefix(Compiler c, Scanner s, SymTable st, Token tok,
@@ -428,7 +463,8 @@ static ASTnode ASTnode_Prefix(Compiler c, Scanner s, SymTable st, Token tok,
                     "SyntaxError: * Operator must be followed by an identifier "
                     "or *");
             }
-            t = ASTnode_NewUnary(A_DEREF, value_at(t->type), t, NULL, 0);
+            t = ASTnode_NewUnary(A_DEREF, t->ctype, value_at(t->type), t, NULL,
+                                 0);
             break;
         case T_INC:
             Scanner_Scan(s, tok);
@@ -439,26 +475,26 @@ static ASTnode ASTnode_Prefix(Compiler c, Scanner s, SymTable st, Token tok,
                 lfatal(s, "SyntaxError: ++ must be followed by an identifier");
             }
             debug("pre inc");
-            t = ASTnode_NewUnary(A_PREINC, t->type, t, NULL, 0);
+            t = ASTnode_NewUnary(A_PREINC, t->ctype, t->type, t, NULL, 0);
             break;
         case T_MINUS:
             Scanner_Scan(s, tok);
             // for ---a
             t = ASTnode_Prefix(c, s, st, tok, ctx);
             t->rvalue = 1;
-            t = ASTnode_NewUnary(A_NEGATE, t->type, t, NULL, 0);
+            t = ASTnode_NewUnary(A_NEGATE, t->ctype, t->type, t, NULL, 0);
             break;
         case T_INVERT:
             Scanner_Scan(s, tok);
             t = ASTnode_Prefix(c, s, st, tok, ctx);
             t->rvalue = 1;
-            t = ASTnode_NewUnary(A_INVERT, t->type, t, NULL, 0);
+            t = ASTnode_NewUnary(A_INVERT, t->ctype, t->type, t, NULL, 0);
             break;
         case T_LOGNOT:
             Scanner_Scan(s, tok);
             t = ASTnode_Prefix(c, s, st, tok, ctx);
             t->rvalue = 1;
-            t = ASTnode_NewUnary(A_LOGNOT, t->type, t, NULL, 0);
+            t = ASTnode_NewUnary(A_LOGNOT, t->ctype, t->type, t, NULL, 0);
             break;
         case T_DEC:
             Scanner_Scan(s, tok);
@@ -466,132 +502,111 @@ static ASTnode ASTnode_Prefix(Compiler c, Scanner s, SymTable st, Token tok,
             if (t->op != A_IDENT) {
                 lfatal(s, "SyntaxError: -- must be followed by an identifier");
             }
-            t = ASTnode_NewUnary(A_PREDEC, t->type, t, NULL, 0);
+            t = ASTnode_NewUnary(A_PREDEC, t->ctype, t->type, t, NULL, 0);
             break;
         default:
-            t = primary(c, s, st, tok, ctx);
+            t = ASTnode_Postfix(c, s, st, tok, ctx);
     }
     return t;
 }
 
 static ASTnode ASTnode_Postfix(Compiler c, Scanner s, SymTable st, Token tok,
                                Context ctx) {
-    SymTableEntry enumPtr;
+    ASTnode n = primary(c, s, st, tok, ctx);
 
     // Converts enum to a specific int
-    if ((enumPtr = SymTable_FindEnumVal(st, s)) != NULL) {
-        // Scanner_Scan(s, tok);
-        debug("hit a enum word");
-        // ! bug: for some reason a extra token is consumed i think
-        //! semi colon is ignored
-        return ASTnode_NewLeaf(A_INTLIT, P_INT, NULL, enumPtr->posn);
-    }
 
-    SymTableEntry var;
-
-    Scanner_Scan(s, tok);
-    if (tok->token == T_LPAREN) return ASTnode_FuncCall(c, s, st, tok, ctx);
-    if (tok->token == T_LBRACKET) return ASTnode_ArrayRef(c, s, st, tok, ctx);
-    if (tok->token == T_DOT)
-        return ASTnode_MemberAccess(s, st, tok, ctx, false);
-    if (tok->token == T_ARROW)
-        return ASTnode_MemberAccess(s, st, tok, ctx, true);
-
-    // TODO: cant remember why i need to reject the token
-    Scanner_RejectToken(s, tok);
-
-    int rvalue = 0;
-
-    if ((var = SymTable_FindSymbol(st, s, ctx)) == NULL ||
-        var->stype != S_VAR) {
-        debug("fuck :(");
-        lfatala(s, "UndefinedError: Undefined variable %s", s->text);
-    }
-
-    switch (var->stype) {
-        case S_VAR:
-            break;
-        case S_ARRAY:
-            rvalue = 1;
-            break;
-        default:
-            lfatala(s, "TypeError: Identifier is not scalar or array, %s",
-                    s->text);
-    }
-
-    switch (tok->token) {
-        case T_INC:
-            if (rvalue == 1) {
-                lfatala(s, "SyntaxError: Cannot ++ on rvalue, %s", s->text);
-            }
-            Scanner_Scan(s, tok);
-            return ASTnode_NewLeaf(A_POSTINC, var->type, var, 0);
-        case T_DEC:
-            if (rvalue == 1) {
-                lfatala(s, "SyntaxError: Cannot --s on rvalue, %s", s->text);
-            }
-            Scanner_Scan(s, tok);
-            return ASTnode_NewLeaf(A_POSTDEC, var->type, var, 0);
-        default:
-            if (var->stype == S_ARRAY) {
-                ASTnode n = ASTnode_NewLeaf(A_ADDR, var->type, var, 0);
-                n->rvalue = rvalue;
+    while (1) {
+        switch (tok->token) {
+            case T_LBRACKET:
+                n = ASTnode_ArrayRef(c, s, st, tok, ctx, n);
+                break;
+            case T_DOT:
+                n = ASTnode_MemberAccess(s, st, tok, ctx, n, false);
+                break;
+            case T_ARROW:
+                n = ASTnode_MemberAccess(s, st, tok, ctx, n, true);
+                break;
+            case T_INC:
+                if (n->rvalue == 1) {
+                    lfatala(s, "SyntaxError: Cannot ++ on rvalue, %s", s->text);
+                }
+                Scanner_Scan(s, tok);
+                if (n->op == A_POSTINC || n->op == A_POSTDEC) {
+                    lfatala(
+                        s,
+                        "SyntaxError: Cannot ++ and/or -- more than once, %s",
+                        s->text);
+                }
+                n->op = A_POSTINC;
+                break;
+            case T_DEC:
+                if (n->rvalue == 1) {
+                    lfatala(s, "SyntaxError: Cannot -- on rvalue, %s", s->text);
+                }
+                Scanner_Scan(s, tok);
+                if (n->op == A_POSTINC || n->op == A_POSTDEC) {
+                    lfatala(
+                        s,
+                        "SyntaxError: Cannot ++ and/or -- more than once, %s",
+                        s->text);
+                }
+                n->op = A_POSTDEC;
+                break;
+            default:
                 return n;
-            } else {
-                return ASTnode_NewLeaf(A_IDENT, var->type, var, 0);
-            }
+        }
     }
 }
 
 static ASTnode ASTnode_MemberAccess(Scanner s, SymTable st, Token tok,
-                                    Context ctx, bool isPtr) {
-    ASTnode left, right;
+                                    Context ctx, ASTnode left, bool isPtr) {
+    ASTnode right;
     // the struct
-    SymTableEntry compVar;
     SymTableEntry typePtr;
 
     // the member
     SymTableEntry m = NULL;
 
-    if ((compVar = SymTable_FindSymbol(st, s, ctx)) == NULL) {
-        fatala("UndefinedError: Undefined variable %s", s->text);
-    }
-    if (isPtr && compVar->type != pointer_to(P_STRUCT) &&
-        compVar->type != pointer_to(P_UNION)) {
+    if (isPtr && left->type != pointer_to(P_STRUCT) &&
+        left->type != pointer_to(P_UNION)) {
         fatala("TypeError: %s is not a pointer to a struct/union", s->text);
     }
-    if (!isPtr && compVar->type != P_STRUCT && compVar->type != P_UNION) {
+    if (!isPtr && left->type != P_STRUCT && left->type != P_UNION) {
         fatala("TypeError: %s is not a struct/union", s->text);
     }
 
-    if (isPtr) {
-        left = ASTnode_NewLeaf(A_IDENT, pointer_to(P_STRUCT), compVar, 0);
-    } else {
-        left = ASTnode_NewLeaf(A_ADDR, P_STRUCT, compVar, 0);
+    if (!isPtr) {
+        if (left->type == P_STRUCT || left->type == P_UNION) {
+            left->op = A_ADDR;
+        } else {
+            lfatala(s, "TypeError: %s is not a struct/union", s->text);
+        }
     }
 
-    left->rvalue = 1;
+    typePtr = left->ctype;
 
-    typePtr = compVar->ctype;
-
+    // Consume . or ->
     Scanner_Scan(s, tok);
+
     ident(s, tok);
 
     for (m = typePtr->member; m != NULL; m = m->next) {
-        if (strcmp(m->name, s->text) == 0) break;
+        if (!strcmp(m->name, s->text)) break;
     }
-
-    debug("Member %s", s->text);
 
     if (m == NULL) fatala("UndefinedError: Undefined member %s", s->text);
 
-    right = ASTnode_NewLeaf(A_INTLIT, P_INT, NULL, m->posn);
+    left->rvalue = 1;
 
-    left = ASTnode_New(A_ADD, pointer_to(m->type), left, NULL, right, NULL, 0);
-    left = ASTnode_NewUnary(A_DEREF, m->type, left, NULL, 0);
+    right = ASTnode_NewLeaf(A_INTLIT, P_INT, NULL, NULL, m->posn);
 
-    debug("left struct access");
+    left = ASTnode_New(A_ADD, pointer_to(m->type), m->ctype, left, NULL, right,
+                       NULL, 0);
+    left = ASTnode_NewUnary(A_DEREF, m->type, m->ctype, left, NULL, 0);
+
     Scanner_RejectToken(s, tok);
+
     return left;
 }
 
@@ -604,7 +619,7 @@ static ASTnode peek_operator(Compiler c, Scanner s, SymTable st, Token tok,
     n->rvalue = true;
     rparen(s, tok);
     Scanner_RejectToken(s, tok);
-    return ASTnode_NewUnary(A_PEEK, P_INT, n, NULL, 0);
+    return ASTnode_NewUnary(A_PEEK, P_INT, n, NULL, NULL, 0);
 }
 
 static ASTnode sizeof_operator(Compiler c, Scanner s, SymTable st, Token tok,
@@ -623,5 +638,5 @@ static ASTnode sizeof_operator(Compiler c, Scanner s, SymTable st, Token tok,
     rparen(s, tok);
     Scanner_RejectToken(s, tok);
 
-    return ASTnode_NewLeaf(A_INTLIT, P_INT, NULL, size);
+    return ASTnode_NewLeaf(A_INTLIT, P_INT, NULL, NULL, size);
 }

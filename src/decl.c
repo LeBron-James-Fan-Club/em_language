@@ -20,7 +20,8 @@ static enum ASTPRIM typedef_type(Scanner s, SymTable st, Token tok,
 static int parse_literal(Compiler c, Scanner s, SymTable st, Token tok,
                          Context ctx, enum ASTPRIM type);
 SymTableEntry function_declare(Compiler c, Scanner s, SymTable st, Token tok,
-                               Context ctx, enum ASTPRIM type);
+                               Context ctx, enum ASTPRIM type,
+                               SymTableEntry cType);
 static SymTableEntry symbol_declare(Compiler c, Scanner s, SymTable st,
                                     Token tok, Context ctx, enum ASTPRIM type,
                                     SymTableEntry cType, enum STORECLASS class,
@@ -53,7 +54,7 @@ static SymTableEntry symbol_declare(Compiler c, Scanner s, SymTable st,
     if (tok->token == T_LPAREN) {
         debug("mama mia its a function");
         free(varName);
-        return function_declare(c, s, st, tok, ctx, type);
+        return function_declare(c, s, st, tok, ctx, type, cType);
     }
 
     switch (class) {
@@ -169,18 +170,19 @@ static SymTableEntry scalar_declare(Compiler c, Scanner s, SymTable st,
             sym->initList = calloc(1, sizeof(int));
             sym->initList[0] = parse_literal(c, s, st, tok, ctx, type);
         } else if (class == C_LOCAL) {
-            varNode = ASTnode_NewLeaf(A_IDENT, type, sym, 0);
+            varNode = ASTnode_NewLeaf(A_IDENT, sym->type, sym->ctype, sym, 0);
 
             exprNode = ASTnode_Order(c, s, st, tok, ctx);
             exprNode->rvalue = 1;
 
-            exprNode = modify_type(exprNode, type, A_NONE);
+            exprNode =
+                modify_type(exprNode, varNode->type, varNode->ctype, A_NONE);
             if (exprNode == NULL) {
                 fatal("TypeError: incompatible types in assignment\n");
             }
 
-            *tree = ASTnode_New(A_ASSIGN, exprNode->type, exprNode, NULL,
-                                varNode, NULL, 0);
+            *tree = ASTnode_New(A_ASSIGN, exprNode->type, exprNode->ctype,
+                                exprNode, NULL, varNode, NULL, 0);
         }
     }
 
@@ -350,9 +352,10 @@ enum ASTPRIM declare_list(Compiler c, Scanner s, SymTable st, Token tok,
         }
         debug("went over???");
 
-        *glueTree = (*glueTree == NULL) ? tree
-                                        : ASTnode_New(A_GLUE, P_NONE, *glueTree,
-                                                      NULL, tree, NULL, 0);
+        *glueTree = (*glueTree == NULL)
+                        ? tree
+                        : ASTnode_New(A_GLUE, P_NONE, *glueTree, NULL, tree,
+                                      NULL, NULL, 0);
 
         if (tok->token == end1 || tok->token == end2) {
             return type;
@@ -371,7 +374,8 @@ int parse_stars(Scanner s, Token tok, enum ASTPRIM type) {
 }
 
 SymTableEntry function_declare(Compiler c, Scanner s, SymTable st, Token tok,
-                               Context ctx, enum ASTPRIM type) {
+                               Context ctx, enum ASTPRIM type,
+                               SymTableEntry cType) {
     int paramCnt;
 
     SymTableEntry oldFuncSym, newFuncSym = NULL;
@@ -431,7 +435,7 @@ SymTableEntry function_declare(Compiler c, Scanner s, SymTable st, Token tok,
         }
     }
 
-    tree = ASTnode_NewUnary(A_FUNCTION, type, tree, oldFuncSym, 0);
+    tree = ASTnode_NewUnary(A_FUNCTION, type, cType, tree, oldFuncSym, 0);
 
     // optimise!!!
     tree = Optimise(tree);
@@ -541,12 +545,11 @@ enum ASTPRIM parse_type(Compiler c, Scanner s, SymTable st, Token tok,
 }
 
 enum ASTPRIM parse_cast(Compiler c, Scanner s, SymTable st, Token tok,
-                        Context ctx) {
+                        Context ctx, SymTableEntry *cType) {
     enum ASTPRIM type;
     enum STORECLASS class;
-    SymTableEntry cType;
 
-    type = parse_stars(s, tok, parse_type(c, s, st, tok, ctx, &cType, &class));
+    type = parse_stars(s, tok, parse_type(c, s, st, tok, ctx, cType, &class));
 
     if (type == P_STRUCT || type == P_UNION || type == P_VOID) {
         fatal("InvalidTypeError: invalid cast type");

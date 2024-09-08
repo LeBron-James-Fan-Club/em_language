@@ -34,7 +34,7 @@ static ASTnode opt_fold2(ASTnode n) {
     enum ASTPRIM type = n->type;
     ASTnode_Free(n);
 
-    return ASTnode_NewLeaf(A_INTLIT, type, NULL, val);
+    return ASTnode_NewLeaf(A_INTLIT, type, NULL, NULL, val);
 }
 
 // Fold for 1 child
@@ -59,7 +59,7 @@ static ASTnode opt_fold1(ASTnode n) {
     enum ASTPRIM type = n->type;
     ASTnode_Free(n);
 
-    return ASTnode_NewLeaf(A_INTLIT, type, NULL, val);
+    return ASTnode_NewLeaf(A_INTLIT, type, NULL, NULL, val);
 }
 
 static ASTnode opt_fold(ASTnode n) {
