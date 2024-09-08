@@ -58,6 +58,7 @@ static SymTableEntry symbol_declare(Compiler c, Scanner s, SymTable st,
 
     switch (class) {
         case C_EXTERN:
+        case C_STATIC:
         case C_GLOBAL:
             if (SymTable_FindGlob(st, s) != NULL) {
                 lfatala(s, "DuplicateError: Duplicate global variable %s",
@@ -129,6 +130,7 @@ static SymTableEntry scalar_declare(Compiler c, Scanner s, SymTable st,
     *tree = NULL;
 
     switch (class) {
+        case C_STATIC:
         case C_EXTERN:
         case C_GLOBAL:
             debug("adding global %s", varName);
@@ -154,15 +156,16 @@ static SymTableEntry scalar_declare(Compiler c, Scanner s, SymTable st,
 
     if (tok->token == T_ASSIGN) {
         debug("assigning %s nelems %d", varName, sym->nElems);
-        if (class != C_GLOBAL && class != C_LOCAL) {
+        if (class != C_GLOBAL && class != C_LOCAL && class != C_STATIC) {
             fatal(
-                "SyntaxError: initialization only allowed for local and global "
+                "SyntaxError: initialization only allowed for local, global "
+                "and static "
                 "variables\n");
         }
         // eat =
         Scanner_Scan(s, tok);
 
-        if (class == C_GLOBAL) {
+        if (class == C_GLOBAL || class == C_STATIC) {
             sym->initList = calloc(1, sizeof(int));
             sym->initList[0] = parse_literal(c, s, st, tok, ctx, type);
         } else if (class == C_LOCAL) {
@@ -220,10 +223,10 @@ static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
     }
 
     if (tok->token == T_ASSIGN) {
-        if (class != C_GLOBAL) {
-            lfatal(
-                s,
-                "SyntaxError: array initialization only allowed for globals");
+        if (class != C_GLOBAL && class != C_STATIC) {
+            lfatal(s,
+                   "SyntaxError: array initialization only allowed for global "
+                   "and static variables");
         }
         Scanner_Scan(s, tok);
 
@@ -337,7 +340,7 @@ enum ASTPRIM declare_list(Compiler c, Scanner s, SymTable st, Token tok,
         sym = symbol_declare(c, s, st, tok, ctx, type, *cType, class, &tree);
 
         if (sym->stype == S_FUNC) {
-            if (class != C_GLOBAL) {
+            if (class != C_GLOBAL && class != C_STATIC) {
                 lfatal(s,
                        "SyntaxError: function declaration only allowed at "
                        "global level");
@@ -457,8 +460,18 @@ enum ASTPRIM parse_type(Compiler c, Scanner s, SymTable st, Token tok,
     while (exstatic) {
         switch (tok->token) {
             case T_EXTERN:
+                if (*class == C_STATIC) {
+                    lfatal(s, "SyntaxError: Cannot have extern and static");
+                }
                 debug("extern hit");
                 *class = C_EXTERN;
+                Scanner_Scan(s, tok);
+                break;
+            case T_STATIC:
+                if (*class == C_EXTERN) {
+                    lfatal(s, "SyntaxError: Cannot have extern and static");
+                }
+                *class = C_STATIC;
                 Scanner_Scan(s, tok);
                 break;
             default:

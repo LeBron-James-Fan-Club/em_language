@@ -101,12 +101,14 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
 
     // 0 is $ra and 1 is $fp
 
+    fputs(".text\n", this->outfile);
+    if (ctx->functionId->class != C_STATIC) {
+        fprintf(this->outfile, "\t.globl %s\n", name);
+    }
     fprintf(this->outfile,
-            ".text\n"
-            "\t.globl %s\n"
             "\n"
             "%s:\n",
-            name, name);
+            name);
 
     debug("Function: %s", name);
 
@@ -586,7 +588,6 @@ void MIPS_GlobSym(Compiler this, SymTableEntry sym) {
                     fprintf(this->outfile, "\t.word anon_%d\n", initValue);
                 } else {
                     fprintf(this->outfile, "\t.word %d\n", initValue);
-
                 }
 
                 break;
@@ -783,7 +784,8 @@ void MIPS_RegPop(Compiler this, int r) {
 
 int MIPS_Address(Compiler this, SymTableEntry sym) {
     int r = allocReg(this);
-    if (sym->class == C_GLOBAL) {
+    if (sym->class == C_GLOBAL || sym->class == C_EXTERN ||
+        sym->class == C_STATIC) {
         fprintf(this->outfile, "\tla\t%s, %s\n", reglist[r], sym->name);
     } else {
         fprintf(this->outfile, "\tla\t%s, %d($sp)\n", reglist[r], sym->posn);

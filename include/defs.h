@@ -91,6 +91,7 @@ enum OPCODES {
 
     T_DEFAULT,
     T_SIZEOF,
+    T_STATIC,
     T_STRLIT,
 
     T_SEMI,
@@ -239,7 +240,8 @@ enum STORECLASS {
     C_ENUMTYPE,
     C_ENUMVAL,
     C_TYPEDEF,
-    C_EXTERN
+    C_EXTERN,
+    C_STATIC
 };
 
 struct token {

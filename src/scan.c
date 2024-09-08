@@ -10,16 +10,16 @@
 #include "misc.h"
 
 static char *TokStr[] = {
-    "<EOF>", "=",          "+=",     "-=",    "*=",      "/=",      "%%=",
-    "||",    "&&",         "|",      "^",     "&",       "==",      "!=",
-    "<",     ">",          "<=",     ">=",    "<<",      ">>",      "+",
-    "-",     "*",          "/",      "%%",    "++",      "--",      "~",
-    "!",     "intlit",     "void",   "i8",    "i32",     "print",   "input",
-    "peek",  "poke",       "if",     "else",  "label",   "goto",    "while",
-    "for",   "return",     "struct", "union", "enum",    "typedef", "extern",
-    "break", "continue",   "switch", "case",  "default", "sizeof",  "strlit",
-    ";",     "identifier", "{",      "}",     "(",       ")",       "[",
-    "]",     ",",          ".",      "->",    ":"};
+    "<EOF>",  "=",        "+=",         "-=",    "*=",      "/=",      "%%=",
+    "||",     "&&",       "|",          "^",     "&",       "==",      "!=",
+    "<",      ">",        "<=",         ">=",    "<<",      ">>",      "+",
+    "-",      "*",        "/",          "%%",    "++",      "--",      "~",
+    "!",      "intlit",   "void",       "i8",    "i32",     "print",   "input",
+    "peek",   "poke",     "if",         "else",  "label",   "goto",    "while",
+    "for",    "return",   "struct",     "union", "enum",    "typedef", "extern",
+    "break",  "continue", "switch",     "case",  "default", "sizeof",  "static",
+    "strlit", ";",        "identifier", "{",     "}",       "(",       ")",
+    "[",      "]",        ",",          ".",     "->",      ":"};
 
 static char next(Scanner);
 static void putback(Scanner, char c);
@@ -311,6 +311,7 @@ static int keyword(char *s) {
             break;
         case 's':
             if (!strcmp(s, "sizeof")) return T_SIZEOF;
+            if (!strcmp(s, "static")) return T_STATIC;
             if (!strcmp(s, "struct")) return T_STRUCT;
             if (!strcmp(s, "switch")) return T_SWITCH;
             break;

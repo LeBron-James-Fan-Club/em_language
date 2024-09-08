@@ -124,7 +124,8 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
             return MIPS_Load(this, n->intvalue);
         case A_IDENT:
             if (n->rvalue || parentASTop == A_DEREF) {
-                if (n->sym->class == C_GLOBAL) {
+                if (n->sym->class == C_GLOBAL || n->sym->class == C_EXTERN ||
+                    n->sym->class == C_STATIC) {
                     return MIPS_LoadGlob(this, n->sym, n->op);
                 } else {
                     return MIPS_LoadLocal(this, n->sym, n->op);
@@ -289,7 +290,9 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
             if (n->left == NULL) {
                 fatal("InternalError: Left side of preinc is NULL");
             }
-            if (n->left->sym->class == C_GLOBAL) {
+            if (n->left->sym->class == C_GLOBAL ||
+                n->left->sym->class == C_EXTERN ||
+                n->left->sym->class == C_STATIC) {
                 return MIPS_LoadGlob(this, n->left->sym, n->op);
             } else {
                 return MIPS_LoadLocal(this, n->left->sym, n->op);
@@ -297,7 +300,8 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
         case A_POSTINC:
         case A_POSTDEC:
             debug("Postinc/dec found :)");
-            if (n->sym->class == C_GLOBAL) {
+            if (n->sym->class == C_GLOBAL || n->sym->class == C_EXTERN ||
+                n->sym->class == C_STATIC) {
                 return MIPS_LoadGlob(this, n->sym, n->op);
             } else {
                 return MIPS_LoadLocal(this, n->sym, n->op);
