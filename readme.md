@@ -34,6 +34,7 @@
  - Local variable initialisation
  - Type casting
  - octal support
+ - Sizeof operator
 
 ## What will be added soon (Hopefully)
  - Local arrays
@@ -45,7 +46,6 @@
  - || and && operators
  - Inline assembly and registers
  - Scopes
- - Sizeof operator
  - scope creation
 
 ## Low chance of being added but I might try
