@@ -877,6 +877,41 @@ int MIPS_ToBool(Compiler this, enum ASTOP parentOp, int r, int label) {
     return r;
 }
 
+int MIPS_LogOr(Compiler this, int r1, int r2) {
+    int Ltrue = Compiler_GenLabel(this);
+    int Lend = Compiler_GenLabel(this);
+
+    fprintf(this->outfile, "\tbnez\t%s, L%d\n", reglist[r1], Ltrue);
+    fprintf(this->outfile, "\tbnez\t%s, L%d\n", reglist[r2], Ltrue);
+
+    fprintf(this->outfile, "\tli\t%s, 0\n", reglist[r1]);
+    fprintf(this->outfile, "\tb\tL%d\n", Lend);
+
+    MIPS_Label(this, Ltrue);
+    fprintf(this->outfile, "\tli\t%s, 1\n", reglist[r1]);
+    MIPS_Label(this, Lend);
+
+    freeReg(this, r2);
+    return r1;    
+}
+
+int MIPS_LogAnd(Compiler this, int r1, int r2) {
+    int Lfalse = Compiler_GenLabel(this);
+    int Lend = Compiler_GenLabel(this);
+
+    fprintf(this->outfile, "\tbeqz\t%s, L%d\n", reglist[r1], Lfalse);
+    fprintf(this->outfile, "\tbeqz\t%s, L%d\n", reglist[r2], Lfalse);
+
+    fprintf(this->outfile, "\tli\t%s, 1\n", reglist[r1]);
+    fprintf(this->outfile, "\tb\tL%d\n", Lend);
+
+    MIPS_Label(this, Lfalse);
+    fprintf(this->outfile, "\tli\t%s, 0\n", reglist[r1]);
+    MIPS_Label(this, Lend);
+    freeReg(this, r2);
+    return r1;
+}
+
 void MIPS_Poke(Compiler this, int r1, int r2) {
     fprintf(this->outfile, "\tsw\t%s, 0(%s)\n", reglist[r1], reglist[r2]);
 }

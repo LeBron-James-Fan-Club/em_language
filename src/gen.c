@@ -129,6 +129,10 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
                 return MIPS_LessThanEqualJump(this, leftReg, rightReg, ifLabel);
             else
                 return MIPS_GreaterThanEqualSet(this, leftReg, rightReg);
+        case A_LOGAND:
+            return MIPS_LogAnd(this, leftReg, rightReg);
+        case A_LOGOR:
+            return MIPS_LogOr(this, leftReg, rightReg);
         case A_INTLIT:
             return MIPS_Load(this, n->intvalue);
         case A_IDENT:

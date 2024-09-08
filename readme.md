@@ -36,6 +36,7 @@
  - octal support
  - Sizeof operator
  - Ternary operator
+ - || and && operators
 
 ## What will be added soon (Hopefully)
  - Local arrays
@@ -44,7 +45,6 @@
  - Compiler directives
     - Including the ability to manually name any label
  - Namespace
- - || and && operators
  - Inline assembly and registers
  - Scopes
  - scope creation

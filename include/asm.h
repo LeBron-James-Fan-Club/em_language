@@ -97,6 +97,8 @@ int MIPS_BitOR(Compiler, int r1, int r2);
 int MIPS_BitXOR(Compiler, int r1, int r2);
 
 int MIPS_ToBool(Compiler this, enum ASTOP parentOp, int r, int label);
+int MIPS_LogOr(Compiler this, int r1, int r2);
+int MIPS_LogAnd(Compiler this, int r1, int r2);
 
 void MIPS_Poke(Compiler this, int r1, int r2);
 int MIPS_Peek(Compiler this, int r1, int r2);

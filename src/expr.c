@@ -44,29 +44,33 @@ static int precedence(enum ASTOP op) {
         case T_GT:
         case T_LE:
         case T_GE:
-            return 10;
+            return 12;
         case T_EQ:
         case T_NE:
-            return 9;
+            return 11;
 
         case T_MODULO:
         case T_SLASH:
         case T_STAR:
-            return 8;
+            return 10;
 
         case T_PLUS:
         case T_MINUS:
-            return 7;
+            return 9;
 
         case T_LSHIFT:
         case T_RSHIFT:
-            return 6;
+            return 8;
         // BIT AND
         case T_AMPER:
-            return 5;
+            return 7;
         case T_XOR:
-            return 4;
+            return 6;
         case T_OR:
+            return 5;
+        case T_LOGAND:
+            return 4;
+        case T_LOGOR:
             return 3;
         case T_QUESTION:
             return 2;
