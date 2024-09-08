@@ -22,7 +22,8 @@ SymTableEntry function_declare(Compiler c, Scanner s, SymTable st, Token tok,
                                Context ctx, enum ASTPRIM type);
 static SymTableEntry symbol_declare(Compiler c, Scanner s, SymTable st,
                                     Token tok, Context ctx, enum ASTPRIM type,
-                                    SymTableEntry cType, enum STORECLASS class);
+                                    SymTableEntry cType, enum STORECLASS class,
+                                    ASTnode *tree);
 static int parse_stars(Scanner s, Token tok, enum ASTPRIM type);
 
 static int param_declare_list(Compiler c, Scanner s, SymTable st, Token tok,
@@ -35,12 +36,12 @@ static SymTableEntry array_declare(Scanner s, SymTable st, Token tok,
 static SymTableEntry scalar_declare(Scanner s, SymTable st, Token tok,
                                     Context ctx, char *varName,
                                     enum ASTPRIM type, SymTableEntry cType,
-                                    enum STORECLASS class);
+                                    enum STORECLASS class, ASTnode *tree);
 
 static SymTableEntry symbol_declare(Compiler c, Scanner s, SymTable st,
                                     Token tok, Context ctx, enum ASTPRIM type,
-                                    SymTableEntry cType,
-                                    enum STORECLASS class) {
+                                    SymTableEntry cType, enum STORECLASS class,
+                                    ASTnode *tree) {
     SymTableEntry sym = NULL;
     char *varName = strdup(s->text);
 
@@ -81,7 +82,8 @@ static SymTableEntry symbol_declare(Compiler c, Scanner s, SymTable st,
     if (tok->token == T_LBRACKET) {
         sym = array_declare(s, st, tok, varName, type, cType, class);
     } else {
-        sym = scalar_declare(s, st, tok, ctx, varName, type, cType, class);
+        sym =
+            scalar_declare(s, st, tok, ctx, varName, type, cType, class, tree);
     }
 
     free(varName);
@@ -123,8 +125,9 @@ static int parse_literal(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
 static SymTableEntry scalar_declare(Scanner s, SymTable st, Token tok,
                                     Context ctx, char *varName,
                                     enum ASTPRIM type, SymTableEntry cType,
-                                    enum STORECLASS class) {
+                                    enum STORECLASS class, ASTnode *tree) {
     SymTableEntry sym = NULL;
+    ASTnode varNode, exprNode;
     switch (class) {
         case C_EXTERN:
         case C_GLOBAL:
@@ -144,15 +147,37 @@ static SymTableEntry scalar_declare(Scanner s, SymTable st, Token tok,
             lfatal(s, "UnsupportedError: unsupported class");
     }
 
-    if (tok->token == C_GLOBAL) {
-        sym->initList = calloc(1, sizeof(int));
-        bool ignore;
-        int value = parse_literal(s, st, tok, type, &ignore);
-        if (!ignore) {
-            sym->initList[0] = value;
+    if (tok->token == T_ASSIGN) {
+        if (class != C_GLOBAL && class != C_LOCAL) {
+            fatal(
+                "SyntaxError: initialization only allowed for local and global "
+                "variables\n");
         }
-
+        // eat =
         Scanner_Scan(s, tok);
+
+        if (class == C_GLOBAL) {
+            sym->initList = calloc(1, sizeof(int));
+            bool ignore;
+            int value = parse_literal(s, st, tok, type, &ignore);
+            if (!ignore) {
+                sym->initList[0] = value;
+            }
+            Scanner_Scan(s, tok);
+        } else if (class == C_LOCAL) {
+            varNode = ASTnode_NewLeaf(A_IDENT, type, sym, 0);
+
+            exprNode = ASTnode_Order(s, st, tok, ctx);
+            exprNode->rvalue = 1;
+
+            exprNode = modify_type(exprNode, type, A_ASSIGN);
+            if (exprNode == NULL) {
+                fatal("TypeError: incompatible types in assignment\n");
+            }
+
+            *tree = ASTnode_New(A_ASSIGN, exprNode->type, exprNode, NULL,
+                                varNode, NULL, 0);
+        }
     }
 
     return sym;
@@ -260,7 +285,7 @@ static int param_declare_list(Compiler c, Scanner s, SymTable st, Token tok,
 
     while (tok->token != T_RPAREN) {
         type = declare_list(c, s, st, tok, ctx, &cType, C_PARAM, T_COMMA,
-                            T_RPAREN);
+                            T_RPAREN, NULL);
         if (type == -1) {
             lfatal(s, "InvalidTypeError: invalid parameter type");
         }
@@ -286,9 +311,11 @@ static int param_declare_list(Compiler c, Scanner s, SymTable st, Token tok,
 enum ASTPRIM declare_list(Compiler c, Scanner s, SymTable st, Token tok,
                           Context ctx, SymTableEntry *cType,
                           enum STORECLASS class, enum OPCODES end1,
-                          enum OPCODES end2) {
+                          enum OPCODES end2, ASTnode *glueTree) {
     enum ASTPRIM initType, type;
     SymTableEntry sym;
+    ASTnode tree;
+    *glueTree = NULL;
 
     if ((initType = parse_type(c, s, st, tok, ctx, cType, &class)) == -1) {
         return initType;
@@ -297,7 +324,7 @@ enum ASTPRIM declare_list(Compiler c, Scanner s, SymTable st, Token tok,
     while (true) {
         type = parse_stars(s, tok, initType);
 
-        sym = symbol_declare(c, s, st, tok, ctx, type, *cType, class);
+        sym = symbol_declare(c, s, st, tok, ctx, type, *cType, class, &tree);
 
         if (sym->stype == S_FUNC) {
             if (class != C_GLOBAL) {
@@ -309,6 +336,10 @@ enum ASTPRIM declare_list(Compiler c, Scanner s, SymTable st, Token tok,
             return type;
         }
         debug("went over???");
+
+        *glueTree = (*glueTree == NULL) ? tree
+                                        : ASTnode_New(A_GLUE, P_NONE, *glueTree,
+                                                      NULL, tree, NULL, 0);
 
         if (tok->token == end1 || tok->token == end2) {
             return type;
@@ -527,7 +558,8 @@ static SymTableEntry composite_declare(Compiler c, Scanner s, SymTable st,
     Scanner_Scan(s, tok);
 
     while (true) {
-        t = declare_list(c, s, st, tok, ctx, &memb, C_MEMBER, T_SEMI, T_RBRACE);
+        t = declare_list(c, s, st, tok, ctx, &memb, C_MEMBER, T_SEMI, T_RBRACE,
+                         NULL);
         if (t == -1) {
             lfatal(s, "SyntaxError: invalid member type");
         }
@@ -683,8 +715,9 @@ static enum ASTPRIM typedef_type(Scanner s, SymTable st, Token tok,
 void global_declare(Compiler c, Scanner s, SymTable st, Token tok,
                     Context ctx) {
     SymTableEntry cType;
+    ASTnode unused;
     while (tok->token != T_EOF) {
-        declare_list(c, s, st, tok, ctx, &cType, C_GLOBAL, T_SEMI, T_EOF);
+        declare_list(c, s, st, tok, ctx, &cType, C_GLOBAL, T_SEMI, T_EOF, &unused);
 
         if (tok->token == T_SEMI) {
             Scanner_Scan(s, tok);

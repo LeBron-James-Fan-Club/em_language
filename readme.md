@@ -30,6 +30,8 @@
  - break/continue
  - switch
  - macros
+ - Array initisaliation
+ - Local variable initialisation
 
 ## What will be added soon (Hopefully)
  - Local arrays
@@ -37,8 +39,6 @@
  - Function headings
  - Compiler directives
     - Including the ability to manually name any label
- - Array initisaliation
- - Local variable initialisation
  - Namespace
  - || and && operators
  - Inline assembly and registers

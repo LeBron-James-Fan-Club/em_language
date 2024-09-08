@@ -39,6 +39,8 @@
     - Perhaps it could be added as a prefix to the variable names
 - add octal support
 - add else if
+- ngl I think extern isnt needed cause of the way
+ - the compiler is gonna awfully stitch the code
 
 # BUGS:
 - make it so that multiple files are included

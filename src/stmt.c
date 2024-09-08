@@ -100,9 +100,9 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
         case T_UNION:
         case T_ENUM:
         case T_TYPEDEF:
-            declare_list(c, s, st, tok, ctx, &cType, C_LOCAL, T_SEMI, T_EOF);
+            declare_list(c, s, st, tok, ctx, &cType, C_LOCAL, T_SEMI, T_EOF, &stmt);
             semi(s, tok);
-            return NULL;
+            return stmt;
         case T_POKE:
             return poke_statement(s, st, tok, ctx);
         case T_INPUT:
