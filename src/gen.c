@@ -133,7 +133,48 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
                 debug("IDENT %s has NO_REG", n->sym->name);
                 return NO_REG;
             }
+        case A_ASPLUS:
+        case A_ASMINUS:
+        case A_ASSTAR:
+        case A_ASSLASH:
+        case A_ASMOD:
         case A_ASSIGN:
+            // left is the destination
+            // we move right cause it uses right of tree
+
+            switch (n->op) {
+                case A_ASPLUS:
+                    leftReg = MIPS_Add(this, leftReg, rightReg);
+                    free(n->right);
+                    n->right = n->left;
+                    n->left = NULL;
+                    break;
+                case A_ASMINUS:
+                    leftReg = MIPS_Sub(this, leftReg, rightReg);
+                    free(n->right);
+                    n->right = n->left;
+                    n->left = NULL;
+                    break;
+                case A_ASSTAR:
+                    leftReg = MIPS_Mul(this, leftReg, rightReg);
+                    free(n->right);
+                    n->right = n->left;
+                    n->left = NULL;
+                    break;
+                case A_ASSLASH:
+                    leftReg = MIPS_Div(this, leftReg, rightReg);
+                    free(n->right);
+                    n->right = n->left;
+                    n->left = NULL;
+                    break;
+                case A_ASMOD:
+                    leftReg = MIPS_Mod(this, leftReg, rightReg);
+                    free(n->right);
+                    n->right = n->left;
+                    n->left = NULL;
+                    break;
+            }
+
             if (n->right == NULL) {
                 fatal("InternalError: Right side of assignment is NULL");
             }

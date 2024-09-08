@@ -13,6 +13,11 @@ enum OPCODES {
     T_EOF,  // 0
 
     T_ASSIGN,  // 1
+    T_ASPLUS,
+    T_ASMINUS,
+    T_ASSTAR,
+    T_ASSLASH,
+    T_ASMOD,
 
     // Not supported yet
     T_LOGOR,
@@ -48,12 +53,6 @@ enum OPCODES {
 
     T_INTLIT,  // 13
     // 1:1 ends
-
-    T_ASSIGNADD,
-    T_ASSIGNSUB,
-    T_ASSIGNMUL,
-    T_ASSIGNDIV,
-    T_ASSIGNMOD,
 
     T_VOID,
     T_CHAR,
@@ -118,6 +117,11 @@ enum ASTOP {
 
     // START OF SEMI CHECKING
     A_ASSIGN,
+    A_ASPLUS,
+    A_ASMINUS,
+    A_ASSTAR,
+    A_ASSLASH,
+    A_ASMOD,
 
     // Not supported yet
     A_LOGOR,

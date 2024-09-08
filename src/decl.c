@@ -3,6 +3,7 @@
 #include "defs.h"
 #include "flags.h"
 #include "misc.h"
+#include "opt.h"
 
 static SymTableEntry composite_declare(Compiler c, Scanner s, SymTable st,
                                        Token tok, Context ctx,
@@ -460,6 +461,9 @@ SymTableEntry function_declare(Compiler c, Scanner s, SymTable st, Token tok,
     }
 
     tree = ASTnode_NewUnary(A_FUNCTION, type, tree, oldFuncSym, 0);
+    
+    // optimise!!!
+    tree = Optimise(tree);
 
     if (flags.dumpAST) {
         ASTnode_Dump(tree, st, NO_LABEL, 0);

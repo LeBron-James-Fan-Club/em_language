@@ -217,8 +217,8 @@ int MIPS_Mod(Compiler this, int r1, int r2) {
     // not communative
     fprintf(this->outfile, "\tmod\t%s, %s, %s\n", reglist[r2], reglist[r1],
             reglist[r2]);
-    freeReg(this, r2);
-    return r1;
+    freeReg(this, r1);
+    return r2;
 }
 
 void MIPS_PrintInt(Compiler this, int r) {

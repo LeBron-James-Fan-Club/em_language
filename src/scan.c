@@ -10,18 +10,16 @@
 #include "misc.h"
 
 static char *TokStr[] = {
-    "<EOF>",  "=",      "||",         "&&",     "|",     "^",
-    "&",      "==",     "!=",         "<",      ">",     "<=",
-    ">=",     "<<",     ">>",         "+",      "-",     "*",
-    "/",      "%%",     "++",         "--",     "~",     "!",
-    "intlit", "+=",     "-=",         "*=",     "/=",    "%%=",
-    "void",   "i8",     "i32",        "print",  "input", "peek",
-    "poke",   "if",     "else",       "label",  "goto",  "while",
-    "for",    "return", "struct",     "union",  "enum",  "typedef",
-    "extern", "break",  "continue",   "switch", "case",  "default",
-    "strlit", ";",      "identifier", "{",      "}",     "(",
-    ")",      "[",      "]",          ",",      ".",     "->",
-    ":"};
+    "<EOF>",      "=",        "+=",     "-=",    "*=",      "/=",      "%%=",
+    "||",         "&&",       "|",      "^",     "&",       "==",      "!=",
+    "<",          ">",        "<=",     ">=",    "<<",      ">>",      "+",
+    "-",          "*",        "/",      "%%",    "++",      "--",      "~",
+    "!",          "intlit",   "void",   "i8",    "i32",     "print",   "input",
+    "peek",       "poke",     "if",     "else",  "label",   "goto",    "while",
+    "for",        "return",   "struct", "union", "enum",    "typedef", "extern",
+    "break",      "continue", "switch", "case",  "default", "strlit",  ";",
+    "identifier", "{",        "}",      "(",     ")",       "[",       "]",
+    ",",          ".",        "->",     ":"};
 
 static char next(Scanner);
 static void putback(Scanner, char c);
@@ -119,7 +117,7 @@ void Scanner_Scan(Scanner this, Token t) {
             if ((c = next(this)) == '+') {
                 t->token = T_INC;
             } else if (c == '=') {
-                t->token = T_ASSIGNADD;
+                t->token = T_ASPLUS;
             } else {
                 putback(this, c);
                 t->token = T_PLUS;
@@ -129,9 +127,12 @@ void Scanner_Scan(Scanner this, Token t) {
             if ((c = next(this)) == '-') {
                 t->token = T_DEC;
             } else if (c == '=') {
-                t->token = T_ASSIGNSUB;
+                t->token = T_ASMINUS;
             } else if (c == '>') {
                 t->token = T_ARROW;
+            } else if (isdigit(c)) {
+                t->intvalue = -scanInt(this, c);
+                t->token = T_INTLIT;
             } else {
                 putback(this, c);
                 t->token = T_MINUS;
@@ -139,7 +140,7 @@ void Scanner_Scan(Scanner this, Token t) {
             break;
         case '*':
             if ((c = next(this)) == '=') {
-                t->token = T_ASSIGNMUL;
+                t->token = T_ASSTAR;
             } else {
                 putback(this, c);
                 t->token = T_STAR;
@@ -147,7 +148,7 @@ void Scanner_Scan(Scanner this, Token t) {
             break;
         case '/':
             if ((c = next(this)) == '=') {
-                t->token = T_ASSIGNDIV;
+                t->token = T_ASSLASH;
             } else {
                 putback(this, c);
                 t->token = T_SLASH;
@@ -155,7 +156,7 @@ void Scanner_Scan(Scanner this, Token t) {
             break;
         case '%':
             if ((c = next(this)) == '=') {
-                t->token = T_ASSIGNMOD;
+                t->token = T_ASMOD;
             } else {
                 putback(this, c);
                 t->token = T_MODULO;

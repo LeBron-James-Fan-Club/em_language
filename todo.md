@@ -1,13 +1,10 @@
 # TODO
-- Have ownership system - hardest?
 - defer functions
 - Add headings in beginning of every function
     - Frame, uses, clobbers
     - Will need to use a tmp txt file to cache assembly beforehand
      to write the reg uses
 - Add structure comment
-- all int is explicit - done
-    - u8, i8, u16, i16, u32, i32
 
 - implement 16 bit integers
 
@@ -26,6 +23,8 @@
 - add a style flag
 - add error recovery
 
+- use saved registers for most used variables ($s0-$s7)
+
 - maybe instead make a pseudo stack and push
  and pop from the stack instead of calculating offsets
  (inefficient but it would go with style)
@@ -41,6 +40,8 @@
 - add else if
 - ngl I think extern isnt needed cause of the way
  - the compiler is gonna awfully stitch the code
+- get unions to work in a struct
+- get structs to work in a struct
 
 # BUGS:
 - make it so that multiple files are included
@@ -69,4 +70,5 @@
 - unncessary space created when creating union
 
 - (BUG) - caused by non initialised variables - fixed
-- annyomous strings need to declared first (probs iterate the whole global first for annoymous)
+- annyomous strings need to declared first (probs iterate the whole global first for annoymous) - fixed
+- mod might be a bit broken - fixed

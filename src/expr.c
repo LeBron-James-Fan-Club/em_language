@@ -32,9 +32,7 @@ static ASTnode ASTnode_MemberAccess(Scanner s, SymTable st, Token tok,
 
 // * 1:1 baby
 static enum ASTOP arithOp(Scanner s, enum OPCODES tok) {
-    if ((tok > T_EOF && tok < T_INTLIT) ||
-        (tok >= T_ASSIGNADD && tok <= T_ASSIGNMOD))
-        return (enum ASTOP)tok;
+    if (tok > T_EOF && tok < T_INTLIT) return (enum ASTOP)tok;
     lfatala(s, "SyntaxError: %d", tok);
 }
 
@@ -69,11 +67,11 @@ static int precedence(enum ASTOP op) {
         case T_OR:
             return 2;
         case T_ASSIGN:
-        case T_ASSIGNADD:
-        case T_ASSIGNSUB:
-        case T_ASSIGNMUL:
-        case T_ASSIGNDIV:
-        case T_ASSIGNMOD:
+        case T_ASPLUS:
+        case T_ASMINUS:
+        case T_ASSTAR:
+        case T_ASSLASH:
+        case T_ASMOD:
             return 1;
         default:
             fatala("InternalError: No proper precedence for operator %d", op);
@@ -81,8 +79,7 @@ static int precedence(enum ASTOP op) {
 }
 
 static bool rightAssoc(enum ASTOP op) {
-    return op == T_ASSIGN || op == T_ASSIGNADD || op == T_ASSIGNSUB ||
-           op == T_ASSIGNMOD || op == T_ASSIGNDIV || op == T_ASSIGNMUL;
+    return op >= T_ASSIGN && op <= T_ASMOD;
 }
 
 static ASTnode primary(Compiler c, Scanner s, SymTable st, Token t,
@@ -116,6 +113,7 @@ static ASTnode primary(Compiler c, Scanner s, SymTable st, Token t,
             n = peek_statement(c, s, st, t, ctx);
             break;
         case T_IDENT:
+            debug("IDENT %s", s->text);
             return ASTnode_Postfix(c, s, st, t, ctx);
         case T_LPAREN:
             // eat (
@@ -190,6 +188,7 @@ static void orderOp(Scanner s, ASTnode *stack, enum ASTOP *opStack, int *top,
         lfatal(s, "SyntaxError: (top < 1)");
     }
 
+    debug("%d top", *top);
     ASTnode right = stack[(*top)--];
     ASTnode left = stack[(*top)--];
 
@@ -216,6 +215,7 @@ static void orderOp(Scanner s, ASTnode *stack, enum ASTOP *opStack, int *top,
         if (rtemp != NULL) right = rtemp;
     }
     stack[++(*top)] = ASTnode_New(op, left->type, left, NULL, right, NULL, 0);
+    debug("%d top", *top);
 }
 
 ASTnode ASTnode_Order(Compiler c, Scanner s, SymTable st, Token t,
@@ -230,7 +230,9 @@ ASTnode ASTnode_Order(Compiler c, Scanner s, SymTable st, Token t,
 
     debug("GET IN ORDER");
 
-    do {
+do {
+        debug("token %s", t->tokstr);
+
         switch (t->token) {
             case T_SEMI:
             case T_EOF:
@@ -258,13 +260,6 @@ ASTnode ASTnode_Order(Compiler c, Scanner s, SymTable st, Token t,
                     stack[++top] = ASTnode_Prefix(c, s, st, t, ctx);
                     break;
                 }
-                curOp = arithOp(s, t->token);
-                while (opTop != -1 &&
-                       (precedence(opStack[opTop]) >= precedence(curOp) ||
-                        (rightAssoc(opStack[opTop]) &&
-                         precedence(opStack[opTop]) == precedence(curOp)))) {
-                    orderOp(s, stack, opStack, &top, &opTop);
-                }
 
                 //! THE 1:1 THING HAPPENS HERE
 
@@ -273,40 +268,16 @@ ASTnode ASTnode_Order(Compiler c, Scanner s, SymTable st, Token t,
                 // The last node added
                 // Should be a identifier
                 // If not, then it's a syntax error
-                if (curOp >= T_ASSIGNADD && curOp <= T_ASSIGNMOD) {
-                    if (stack[top] == NULL) {
-                        fatal("InternalError: stack[top] is NULL");
-                    }
 
-                    if (stack[top]->op != A_IDENT) {
-                        lfatal(s, "SyntaxError: Expected identifier");
-                    }
-
-                    opStack[++opTop] = A_ASSIGN;
-                    SymTableEntry sym = stack[top]->sym;
-                    enum ASTPRIM type = stack[top]->type;
-                    stack[++top] = ASTnode_NewLeaf(A_IDENT, type, sym, 0);
+                curOp = arithOp(s, t->token);
+                while (opTop != -1 &&
+                       (precedence(opStack[opTop]) >= precedence(curOp) ||
+                        (rightAssoc(opStack[opTop]) &&
+                         precedence(opStack[opTop]) == precedence(curOp)))) {
+                    orderOp(s, stack, opStack, &top, &opTop);
                 }
+                opStack[++opTop] = curOp;
 
-                switch (curOp) {
-                    case T_ASSIGNADD:
-                        opStack[++opTop] = A_ADD;
-                        break;
-                    case T_ASSIGNSUB:
-                        opStack[++opTop] = A_SUBTRACT;
-                        break;
-                    case T_ASSIGNMUL:
-                        opStack[++opTop] = A_MULTIPLY;
-                        break;
-                    case T_ASSIGNDIV:
-                        opStack[++opTop] = A_DIVIDE;
-                        break;
-                    case T_ASSIGNMOD:
-                        opStack[++opTop] = A_MODULO;
-                        break;
-                    default:
-                        opStack[++opTop] = curOp;
-                }
                 expectPreOp = true;
         }
 
@@ -314,6 +285,7 @@ ASTnode ASTnode_Order(Compiler c, Scanner s, SymTable st, Token t,
     } while (true);
 out:
 
+    printf("opTop %d\n", opTop);
     while (opTop != -1) {
         orderOp(s, stack, opStack, &top, &opTop);
     }
