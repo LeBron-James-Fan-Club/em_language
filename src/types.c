@@ -7,7 +7,7 @@
 #include "defs.h"
 #include "misc.h"
 
-bool inttype(enum ASTPRIM type) { return (type & 0xf) == 0 && type >= P_CHAR; }
+bool inttype(enum ASTPRIM type) { return (type & 0xf) == 0 && type >= P_CHAR && type <= P_INT; }
 
 bool ptrtype(enum ASTPRIM type) { return (type & 0xf) != 0; }
 
@@ -59,7 +59,9 @@ ASTnode modify_type(ASTnode tree, enum ASTPRIM rtype, enum ASTOP op) {
             return tree;
         }
 
-        if (op == A_NONE && (ltype == rtype || rtype == pointer_to(P_VOID))) {
+        debug("op %d ltype %d, rtype %d, pointer_to(P_VOID) %d", op, ltype, rtype, pointer_to(P_VOID));
+
+        if (op == A_NONE && (ltype == rtype || ltype == pointer_to(P_VOID))) {
             return tree;
         }
     }

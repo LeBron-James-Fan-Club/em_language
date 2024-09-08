@@ -24,8 +24,10 @@ static ASTnode ASTnode_Prefix(Compiler c, Scanner s, SymTable st, Token tok,
 static ASTnode ASTnode_Postfix(Compiler c, Scanner s, SymTable st, Token tok,
                                Context ctx);
 
-static ASTnode peek_statement(Compiler c, Scanner s, SymTable st, Token tok,
-                              Context ctx);
+static ASTnode peek_operator(Compiler c, Scanner s, SymTable st, Token tok,
+                             Context ctx);
+static ASTnode sizeof_operator(Compiler c, Scanner s, SymTable st, Token tok,
+                               Context ctx);
 
 static ASTnode ASTnode_MemberAccess(Scanner s, SymTable st, Token tok,
                                     Context ctx, bool isPtr);
@@ -110,11 +112,15 @@ static ASTnode primary(Compiler c, Scanner s, SymTable st, Token t,
             break;
         case T_PEEK:
             // printf("PEEK\n");
-            n = peek_statement(c, s, st, t, ctx);
+            n = peek_operator(c, s, st, t, ctx);
+            break;
+        case T_SIZEOF:
+            n = sizeof_operator(c, s, st, t, ctx);
             break;
         case T_IDENT:
             debug("IDENT %s", s->text);
             return ASTnode_Postfix(c, s, st, t, ctx);
+
         case T_LPAREN:
             // eat (
             Scanner_Scan(s, t);
@@ -147,9 +153,6 @@ static ASTnode primary(Compiler c, Scanner s, SymTable st, Token t,
             if (type == P_NONE) {
                 rparen(s, t);
             } else {
-                debug("type %d", type);
-                debug("tree %p", n);
-                ASTnode_Dump(n, st, 0, 0);
                 n = ASTnode_NewUnary(A_CAST, type, n, NULL, 0);
             }
 
@@ -195,7 +198,8 @@ static void orderOp(Scanner s, ASTnode *stack, enum ASTOP *opStack, int *top,
 
     if (op == A_ASSIGN) {
         right->rvalue = 1;
-        right = modify_type(right, left->type, 0);
+        debug("The assign called it");
+        right = modify_type(right, left->type, A_NONE);
         if (right == NULL) {
             lfatal(s, "SyntaxError: incompatible types in assignment");
         }
@@ -203,6 +207,7 @@ static void orderOp(Scanner s, ASTnode *stack, enum ASTOP *opStack, int *top,
         left = right;
         right = ltemp;
     } else {
+        debug("The assign did not call it");
         right->rvalue = 1;
         left->rvalue = 1;
         ltemp = modify_type(left, right->type, op);
@@ -231,7 +236,7 @@ ASTnode ASTnode_Order(Compiler c, Scanner s, SymTable st, Token t,
 
     debug("GET IN ORDER");
 
-do {
+    do {
         debug("token %s", t->tokstr);
 
         switch (t->token) {
@@ -251,6 +256,7 @@ do {
             case T_IDENT:
             case T_STRLIT:
             case T_PEEK:
+            case T_SIZEOF:
                 stack[++top] = primary(c, s, st, t, ctx);
                 expectPreOp = false;
                 break;
@@ -548,14 +554,34 @@ static ASTnode ASTnode_MemberAccess(Scanner s, SymTable st, Token tok,
     return left;
 }
 
-static ASTnode peek_statement(Compiler c, Scanner s, SymTable st, Token tok,
-                              Context ctx) {
-    ASTnode t;
+static ASTnode peek_operator(Compiler c, Scanner s, SymTable st, Token tok,
+                             Context ctx) {
+    ASTnode n;
     match(s, tok, T_PEEK, "peek");
     lparen(s, tok);
-    t = ASTnode_Order(c, s, st, tok, ctx);
-    t->rvalue = true;
+    n = ASTnode_Order(c, s, st, tok, ctx);
+    n->rvalue = true;
     rparen(s, tok);
     Scanner_RejectToken(s, tok);
-    return ASTnode_NewUnary(A_PEEK, P_INT, t, NULL, 0);
+    return ASTnode_NewUnary(A_PEEK, P_INT, n, NULL, 0);
+}
+
+static ASTnode sizeof_operator(Compiler c, Scanner s, SymTable st, Token tok,
+                               Context ctx) {
+    enum ASTPRIM type;
+    enum STORECLASS class;
+    int size;
+    SymTableEntry cType;
+
+    ASTnode n;
+    debug("sizeof");
+    match(s, tok, T_SIZEOF, "sizeof");
+    lparen(s, tok);
+    type = parse_stars(s, tok, parse_type(c, s, st, tok, ctx, &cType, &class));
+    debug("cType %p", cType);
+    size = type_size(type, cType);
+    rparen(s, tok);
+    Scanner_RejectToken(s, tok);
+    
+    return ASTnode_NewLeaf(A_INTLIT, P_INT, NULL, size);
 }

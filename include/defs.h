@@ -90,6 +90,7 @@ enum OPCODES {
     T_CASE,
 
     T_DEFAULT,
+    T_SIZEOF,
     T_STRLIT,
 
     T_SEMI,

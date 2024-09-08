@@ -1,4 +1,5 @@
 #include "ast.h"
+#include "misc.h"
 
 static ASTnode opt_fold2(ASTnode n);
 static ASTnode opt_fold1(ASTnode n);

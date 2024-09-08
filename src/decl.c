@@ -25,7 +25,6 @@ static SymTableEntry symbol_declare(Compiler c, Scanner s, SymTable st,
                                     Token tok, Context ctx, enum ASTPRIM type,
                                     SymTableEntry cType, enum STORECLASS class,
                                     ASTnode *tree);
-static int parse_stars(Scanner s, Token tok, enum ASTPRIM type);
 
 static int param_declare_list(Compiler c, Scanner s, SymTable st, Token tok,
                               Context ctx, SymTableEntry oldFuncSym,
@@ -172,7 +171,7 @@ static SymTableEntry scalar_declare(Compiler c, Scanner s, SymTable st,
             exprNode = ASTnode_Order(c, s, st, tok, ctx);
             exprNode->rvalue = 1;
 
-            exprNode = modify_type(exprNode, type, A_ASSIGN);
+            exprNode = modify_type(exprNode, type, A_NONE);
             if (exprNode == NULL) {
                 fatal("TypeError: incompatible types in assignment\n");
             }
@@ -360,7 +359,7 @@ enum ASTPRIM declare_list(Compiler c, Scanner s, SymTable st, Token tok,
     }
 }
 
-static int parse_stars(Scanner s, Token tok, enum ASTPRIM type) {
+int parse_stars(Scanner s, Token tok, enum ASTPRIM type) {
     while (tok->token == T_STAR) {
         type = pointer_to(type);
         Scanner_Scan(s, tok);
@@ -551,6 +550,7 @@ static SymTableEntry composite_declare(Compiler c, Scanner s, SymTable st,
 
     int offset;
     enum ASTPRIM t;
+    ASTnode unused;
 
     Scanner_Scan(s, tok);
 
@@ -591,7 +591,7 @@ static SymTableEntry composite_declare(Compiler c, Scanner s, SymTable st,
 
     while (true) {
         t = declare_list(c, s, st, tok, ctx, &memb, C_MEMBER, T_SEMI, T_RBRACE,
-                         NULL);
+                         &unused);
         if (t == -1) {
             lfatal(s, "SyntaxError: invalid member type");
         }

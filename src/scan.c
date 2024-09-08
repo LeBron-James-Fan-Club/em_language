@@ -10,16 +10,16 @@
 #include "misc.h"
 
 static char *TokStr[] = {
-    "<EOF>",      "=",        "+=",     "-=",    "*=",      "/=",      "%%=",
-    "||",         "&&",       "|",      "^",     "&",       "==",      "!=",
-    "<",          ">",        "<=",     ">=",    "<<",      ">>",      "+",
-    "-",          "*",        "/",      "%%",    "++",      "--",      "~",
-    "!",          "intlit",   "void",   "i8",    "i32",     "print",   "input",
-    "peek",       "poke",     "if",     "else",  "label",   "goto",    "while",
-    "for",        "return",   "struct", "union", "enum",    "typedef", "extern",
-    "break",      "continue", "switch", "case",  "default", "strlit",  ";",
-    "identifier", "{",        "}",      "(",     ")",       "[",       "]",
-    ",",          ".",        "->",     ":"};
+    "<EOF>", "=",          "+=",     "-=",    "*=",      "/=",      "%%=",
+    "||",    "&&",         "|",      "^",     "&",       "==",      "!=",
+    "<",     ">",          "<=",     ">=",    "<<",      ">>",      "+",
+    "-",     "*",          "/",      "%%",    "++",      "--",      "~",
+    "!",     "intlit",     "void",   "i8",    "i32",     "print",   "input",
+    "peek",  "poke",       "if",     "else",  "label",   "goto",    "while",
+    "for",   "return",     "struct", "union", "enum",    "typedef", "extern",
+    "break", "continue",   "switch", "case",  "default", "sizeof",  "strlit",
+    ";",     "identifier", "{",      "}",     "(",       ")",       "[",
+    "]",     ",",          ".",      "->",    ":"};
 
 static char next(Scanner);
 static void putback(Scanner, char c);
@@ -39,10 +39,6 @@ Scanner Scanner_New(void) {
     n->line = 1;
     n->putback = '\n';
 
-    // n->infile = fopen(name, "r");
-    // if (n->infile == NULL) {
-    //     fatala("OSError: Unable to open file %s", name);
-    // }
     return n;
 }
 
@@ -314,6 +310,7 @@ static int keyword(char *s) {
             if (!strcmp(s, "label")) return T_LABEL;
             break;
         case 's':
+            if (!strcmp(s, "sizeof")) return T_SIZEOF;
             if (!strcmp(s, "struct")) return T_STRUCT;
             if (!strcmp(s, "switch")) return T_SWITCH;
             break;

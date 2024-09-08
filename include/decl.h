@@ -22,5 +22,5 @@ enum ASTPRIM declare_list(Compiler c, Scanner s, SymTable st, Token tok,
 void global_declare(Compiler c, Scanner s, SymTable st, Token tok, Context ctx);
 enum ASTPRIM parse_cast(Compiler c, Scanner s, SymTable st, Token tok,
                         Context ctx);
-
+int parse_stars(Scanner s, Token tok, enum ASTPRIM type);
 #endif
