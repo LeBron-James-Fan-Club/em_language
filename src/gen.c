@@ -415,8 +415,8 @@ static int genSWITCHAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
             debug("op (SWITCH) %d", ca->op);
             caseCount++;
         }
-
-        genAST(this, st, ctx, ca->left, NO_LABEL, NO_LABEL, Lend, A_NONE);
+        if (ca->left)
+            genAST(this, st, ctx, ca->left, NO_LABEL, NO_LABEL, Lend, A_NONE);
         Compiler_FreeAllReg(this, NO_REG);
     }
 

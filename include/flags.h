@@ -6,6 +6,7 @@
 struct flags {
     bool dumpAST;
     bool debug;
+    bool dumpSym;
     // Stick to 4 params (we use $a0-$a3)
     bool paramFix;
 };

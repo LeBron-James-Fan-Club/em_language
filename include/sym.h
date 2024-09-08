@@ -112,4 +112,6 @@ void SymTable_SetText(SymTable this, Scanner s, SymTableEntry e);
 void SymTable_FreeLocls(SymTable this);
 void SymTable_FreeParams(SymTable this);
 
+void SymTable_Dump(SymTable this);
+
 #endif

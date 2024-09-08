@@ -218,6 +218,45 @@ void ASTnode_Dump(ASTnode n, SymTable st, int label, int level) {
         case A_POKE:
             printf("A_POKE\n");
             return;
+        case A_BREAK:
+            printf("A_BREAK\n");
+            return;
+        case A_CONTINUE:
+            printf("A_CONTINUE\n");
+            return;
+        case A_SWITCH:
+            printf("A_SWITCH\n");
+            return;
+        case A_CASE:
+            printf("A_CASE %d\n", n->intvalue);
+            return;
+        case A_DEFAULT:
+            printf("A_DEFAULT\n");
+            return;
+        case A_CAST:
+            printf("A_CAST %d\n", n->type);
+            return;
+        case A_ASPLUS:
+            printf("A_ASPLUS\n");
+            return;
+        case A_ASMINUS:
+            printf("A_ASMINUS\n");
+            return;
+        case A_ASSTAR:
+            printf("A_ASMULTIPLY\n");
+            return;
+        case A_ASSLASH:
+            printf("A_ASDIVIDE\n");
+            return;
+        case A_ASMOD:
+            printf("A_ASMOD\n");
+            return;
+        case A_LOGAND:
+            printf("A_LOGAND\n");
+            return;
+        case A_LOGOR:
+            printf("A_LOGOR\n");
+            return;
         default:
             fatala("InternalError: Unknown AST node %d", n->op);
     }

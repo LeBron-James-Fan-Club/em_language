@@ -19,6 +19,8 @@ static SymTableEntry SymTableEntryNew(char *name, enum ASTPRIM type,
                                       enum STORECLASS class, int nElems,
                                       int posn);
 static void pushSym(SymTableEntry *head, SymTableEntry *tail, SymTableEntry e);
+static void dumpSym(SymTableEntry sym, int indent);
+static void dumpTable(SymTableEntry head, char *name, int indent);
 
 static SymTableEntry SymTableEntryNew(char *name, enum ASTPRIM type,
                                       SymTableEntry ctype,
@@ -270,4 +272,147 @@ void SymTable_SetText(SymTable this, Scanner s, SymTableEntry e) {
     e->size = strlen(s->text) + 1;
     e->isStr = true;
     e->strValue = strdup(s->text);
+}
+
+static void dumpSym(SymTableEntry sym, int indent) {
+    for (int i = 0; i < ident; i++) printf(" ");
+
+    switch (sym->type & (~0xf)) {
+        case P_VOID:
+            printf("void ");
+            break;
+        case P_CHAR:
+            printf("i8 ");
+            break;
+        case P_INT:
+            printf("i32 ");
+            break;
+        case P_STRUCT:
+            if (sym->ctype != NULL) {
+                printf("struct %s ", sym->ctype->name);
+            } else {
+                printf("struct %s ", sym->name);
+            }
+            break;
+        case P_UNION:
+            if (sym->ctype != NULL) {
+                printf("union %s ", sym->ctype->name);
+            } else {
+                printf("union %s ", sym->name);
+            }
+            break;
+        default:
+            printf("unknown type ");
+            break;
+    }
+    for (int i = 0; i < (sym->type & 0xf); i++) printf("*");
+    printf("%s", sym->name);
+
+    switch (sym->stype) {
+        case S_VAR:
+            break;
+        case S_FUNC:
+            printf("()");
+            break;
+        case S_LABEL:
+            printf("(label)");
+            break;
+        case S_ARRAY:
+            printf("[]");
+            break;
+        default:
+            printf("(unknown)");
+            break;
+    }
+
+    switch (sym->class) {
+        case C_GLOBAL:
+            printf(": global");
+            break;
+        case C_EXTERN:
+            printf(": extern");
+            break;
+        case C_STATIC:
+            printf(": static");
+            break;
+        case C_LOCAL:
+            printf(": local");
+            break;
+        case C_PARAM:
+            printf(": param");
+            break;
+        case C_STRUCT:
+            printf(": struct");
+            break;
+        case C_UNION:
+            printf(": union");
+            break;
+        case C_ENUMTYPE:
+            printf(": enumtype");
+            break;
+        case C_ENUMVAL:
+            printf(": enumval");
+            break;
+        case C_TYPEDEF:
+            printf(": typedef");
+            break;
+        case C_MEMBER:
+            printf(": member");
+            break;
+        case C_NONE:
+            printf(": none");
+            break;
+        default:
+            printf(": unknown");
+            break;
+    }
+
+    switch (sym->stype) {
+        case S_VAR:
+            if (sym->class == C_ENUMVAL) {
+                printf(", value %d\n", sym->posn);
+            } else {
+                printf(", size %d\n", sym->size);
+            }
+            break;
+        case S_FUNC:
+            printf(", %d params\n", sym->nElems);
+            break;
+        case S_ARRAY:
+            printf(", %d elements, size %d\n", sym->nElems, sym->size);
+            break;
+    }
+
+    switch (sym->stype & (~0xf)) {
+        case P_STRUCT:
+        case P_UNION:
+            dumpTable(sym->member, NULL, indent + 4);
+            break;
+    }
+
+    switch (sym->stype) {
+        case S_FUNC:
+            dumpTable(sym->member, NULL, indent + 4);
+
+            break;
+    }
+}
+
+static void dumpTable(SymTableEntry head, char *name, int indent) {
+    if (head != NULL && name != NULL) {
+        printf("%s\n-------------\n", name);
+    }
+
+    for (SymTableEntry sym = head; sym != NULL; sym = sym->next) {
+        dumpSym(sym, indent);
+    }
+}
+
+
+void SymTable_Dump(SymTable this) {
+    dumpTable(this->globHead, "Globals", 0);
+    printf("\n");
+    dumpTable(this->enumHead, "Enums", 0);
+    printf("\n");
+    dumpTable(this->typeHead, "Typedefs", 0);
 }

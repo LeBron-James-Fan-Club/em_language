@@ -1,10 +1,8 @@
 #define _GNU_SOURCE
-#include <stdio.h>
-
-#include <stdlib.h>
-
-#include <unistd.h>
 #include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "ast.h"
 #include "context.h"
@@ -33,7 +31,8 @@ static int argParse(int argc, char *argv[]) {
         usage(argv[0]);
     }
 
-    flags = (Flags){.dumpAST = false, .debug = false, .paramFix = false};
+    flags = (Flags){
+        .dumpAST = false, .debug = false, .paramFix = false, .dumpSym = false};
 
     int i;
 
@@ -66,12 +65,12 @@ static void preprocess(Scanner s, char *filename) {
     asprintf(&cmd, "%s %s %s", CPPCMD, INCDIR, filename);
 
     if ((s->infile = popen(cmd, "r")) == NULL) {
-        fatala("OSError: Unable to open pipe to cpp %s, error: %s", filename, strerror(errno));
+        fatala("OSError: Unable to open pipe to cpp %s, error: %s", filename,
+               strerror(errno));
     }
     s->infilename = filename;
 
     debug("Preprocessing %s", filename);
-    
 
     free(cmd);
 }
@@ -104,6 +103,11 @@ int main(int argc, char *argv[]) {
     MIPS_Post(c);
 
     Compiler_GenData(c, st);
+
+    if (flags.dumpSym) {
+        printf("SYM TABLE\n");
+        SymTable_Dump(st);
+    }
 
     Scanner_Free(s);
     Compiler_Free(c);
