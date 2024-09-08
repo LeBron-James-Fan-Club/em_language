@@ -28,8 +28,8 @@ static char skip(Scanner this);
 static int scanIdent(Scanner this, char c);
 static int scanChr(Scanner this);
 static int scanInt(Scanner, char c);
-static int scanHex(Scanner, char c);
 static int scanStr(Scanner this);
+static int hexChar(Scanner this);
 static int keyword(char *s);
 
 static int chrpos(char *s, int c);
@@ -105,13 +105,11 @@ void Scanner_Scan(Scanner this, Token t) {
         case EOF:
             t->token = T_EOF;
             debug("<EOF>");
-            t->tokstr = TokStr[t->token];
             break;
         case ';':
             // equv to eof
             // Need to manage putback of characters
             t->token = T_SEMI;
-            t->tokstr = TokStr[t->token];
             break;
         case '+':
             if ((c = next(this)) == '+') {
@@ -260,18 +258,7 @@ void Scanner_Scan(Scanner this, Token t) {
             break;
         default:
             if (isdigit(c)) {
-                if (c == '0') {
-                    c = next(this);
-                    if (c == 'x') {
-                        c = next(this);
-                        t->intvalue = scanHex(this, c);
-                    } else {
-                        putback(this, c);
-                        t->intvalue = scanInt(this, c);
-                    }
-                } else {
-                    t->intvalue = scanInt(this, c);
-                }
+                t->intvalue = scanInt(this, c);
                 t->token = T_INTLIT;
                 break;
             } else if (isalpha(c) || c == '_') {
@@ -381,10 +368,22 @@ static int scanIdent(Scanner this, char c) {
 }
 
 static int scanInt(Scanner this, char c) {
-    int i, val = 0;
+    int i, val = 0, base = 10;
 
-    while ((i = chrpos("0123456789", c)) >= 0) {
-        val = val * 10 + i;
+    if (c == '0') {
+        if ((c = next(this)) == 'x') {
+            base = 16;
+            c = next(this);
+        } else {
+            base = 8;
+        }
+    }
+
+    while ((i = chrpos("0123456789abcdef", tolower(c))) >= 0) {
+        if (i >= base) {
+            lfatal(this, "SyntaxError: Invalid digit in number");
+        }
+        val = val * base + i;
         c = next(this);
     }
 
@@ -392,20 +391,27 @@ static int scanInt(Scanner this, char c) {
     return val;
 }
 
-static int scanHex(Scanner this, char c) {
-    int i, val = 0;
+static int hexChar(Scanner this) {
+    bool sawHex = false;
+    int c, h, n = 0;
 
-    while ((i = chrpos("0123456789ABCDEF", toupper(c))) >= 0) {
-        val = val * 16 + i;
-        c = next(this);
+    while (isxdigit(c = next(this))) {
+        h = chrpos("0123456789abcdef", tolower(c));
+        n = n * 16 + h;
+        sawHex = true;
+    }
+    putback(this, c);
+    if (!sawHex) {
+        lfatal(this, "SyntaxError: Missing digits after \\x");
+    } else if (n > 255) {
+        lfatal(this, "SyntaxError: Hex value out of range after \\x");
     }
 
-    putback(this, c);
-    return val;
+    return n;
 }
 
 static int scanChr(Scanner this) {
-    char c = next(this);
+    char c = next(this), c2;
     if (c == '\\') {
         switch (c = next(this)) {
             case 'n':
@@ -424,6 +430,22 @@ static int scanChr(Scanner this) {
                 return '\'';
             case '\"':
                 return '\"';
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+                for (int i = c2 = 0; isdigit(c) && c < '8'; c = next(this)) {
+                    if (++i > 3) break;
+                    c2 = c2 * 8 + (c - '0');
+                }
+                putback(this, c);
+                return c2;
+            case 'x':
+                return hexChar(this);
             default:
                 lfatal(this, "SyntaxError: Unknown escape sequence");
         }

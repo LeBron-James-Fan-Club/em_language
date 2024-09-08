@@ -36,7 +36,7 @@
 - add comments - done
 - add namespaces
     - Perhaps it could be added as a prefix to the variable names
-- add octal support
+- add octal support - done
 - add else if
 - ngl I think extern isnt needed cause of the way
  - the compiler is gonna awfully stitch the code
@@ -72,3 +72,6 @@
 - (BUG) - caused by non initialised variables - fixed
 - annyomous strings need to declared first (probs iterate the whole global first for annoymous) - fixed
 - mod might be a bit broken - fixed
+
+# REGRETS:
+- why didn't I use global variables

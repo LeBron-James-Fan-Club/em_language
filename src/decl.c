@@ -284,6 +284,17 @@ static int param_declare_list(Compiler c, Scanner s, SymTable st, Token tok,
     }
 
     while (tok->token != T_RPAREN) {
+        // i32 main(void)
+        if (tok->token == T_VOID) {
+            Scanner_Scan(s, tok);
+            if (tok->token == T_RPAREN) {
+                paramCnt = 0;
+                break;
+            } else {
+                Scanner_RejectToken(s, tok);
+            }
+        }
+
         type = declare_list(c, s, st, tok, ctx, &cType, C_PARAM, T_COMMA,
                             T_RPAREN, NULL);
         if (type == -1) {
