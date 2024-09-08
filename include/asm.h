@@ -9,6 +9,7 @@
 // forward declarations
 bool ptrtype(enum ASTPRIM type);
 enum ASTPRIM value_at(enum ASTPRIM type);
+enum ASTPRIM pointer_to(enum ASTPRIM type);
 int type_size(enum ASTPRIM type, SymTableEntry cType);
 // end
 
@@ -40,7 +41,6 @@ int MIPS_StoreRef(Compiler this, int r1, int r2, enum ASTPRIM type);
 int MIPS_LoadLocal(Compiler this, SymTableEntry sym, enum ASTOP op);
 int MIPS_StoreLocal(Compiler this, int r1, SymTableEntry sym);
 
-int MIPS_Widen(Compiler this, int r1, enum ASTPRIM newType);
 int MIPS_Align( enum ASTPRIM type, int offset, int dir);
 
 int MIPS_EqualSet(Compiler, int r1, int r2);
@@ -73,7 +73,7 @@ void MIPS_ReturnJump(Compiler this, Context ctx);
 
 void MIPS_Return(Compiler, int r, Context ctx);
 int MIPS_Call(Compiler, SymTableEntry sym);
-void MIPS_ArgCopy(Compiler this, int r, int argPos, int maxArg);
+void MIPS_ArgCopy(Compiler this, int r, int argPos);
 
 void MIPS_RegPush(Compiler this, int r);
 void MIPS_RegPop(Compiler this, int r);

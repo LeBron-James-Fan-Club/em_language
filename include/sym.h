@@ -27,19 +27,22 @@ struct symTableEntry {
 
     union {
         int nElems;    // params
-        int offset;    // offset from stack
+        int posn;
         int paramReg;  // param register if first 4
     };
 
     // is the first 4 parameters?
-    bool isFirstFour;
+    union {
+        bool isFirstFour;
+        bool isStr;
+    };
 
     int size;  // Number of elements in the symbol
 
     // for annoymous strings, for now
     char *strValue;
-    bool hasValue;
-    int value;
+
+    int *initList;
 
     struct symTableEntry *next;
 
@@ -70,27 +73,22 @@ void SymTable_Free(SymTable);
 
 SymTableEntry SymTable_AddGlob(SymTable this, char *name, enum ASTPRIM type,
                                SymTableEntry ctype, enum STRUCTTYPE stype,
-                               enum STORECLASS class, int size, bool isAnon);
+                               enum STORECLASS class, int nelems, int posn);
 SymTableEntry SymTable_AddLocl(SymTable this, char *name, enum ASTPRIM type,
                                SymTableEntry ctype, enum STRUCTTYPE stype,
-                               int size);
+                               int nelems);
 SymTableEntry SymTable_AddParam(SymTable this, char *name, enum ASTPRIM type,
-                                SymTableEntry ctype, enum STRUCTTYPE stype,
-                                int size);
+                                SymTableEntry ctype, enum STRUCTTYPE stype);
 SymTableEntry SymTable_AddMemb(SymTable this, char *name, enum ASTPRIM type,
                                SymTableEntry ctype, enum STRUCTTYPE stype,
-                               int size);
-SymTableEntry SymTable_AddStruct(SymTable this, char *name, enum ASTPRIM type,
-                                 SymTableEntry ctype, enum STRUCTTYPE stype,
-                                 int size);
-SymTableEntry SymTable_AddUnion(SymTable this, char *name, enum ASTPRIM type,
-                                SymTableEntry ctype, enum STRUCTTYPE stype,
-                                int size);
+                               int nelems);
+SymTableEntry SymTable_AddStruct(SymTable this, char *name);
+SymTableEntry SymTable_AddUnion(SymTable this, char *name);
 SymTableEntry SymTable_AddEnum(SymTable this, char *name, enum STORECLASS class,
                                int value);
 SymTableEntry SymTable_AddTypeDef(SymTable this, char *name, enum ASTPRIM type,
-                                  SymTableEntry ctype, enum STRUCTTYPE stype,
-                                  int size);
+                                  SymTableEntry ctype);
+char *SymTableEntry_MakeAnon(SymTable this, int *anon);
 
 SymTableEntry SymTable_FindGlob(SymTable this, Scanner s);
 SymTableEntry SymTable_FindLocl(SymTable this, Scanner s, Context c);
@@ -104,7 +102,6 @@ SymTableEntry SymTable_FindEnumType(SymTable st, Scanner s);
 SymTableEntry SymTable_FindEnumVal(SymTable st, Scanner s);
 SymTableEntry SymTable_FindTypeDef(SymTable this, Scanner s);
 
-void SymTable_SetValue(SymTable this, SymTableEntry e, int intvalue);
 void SymTable_SetText(SymTable this, Scanner s, SymTableEntry e);
 void SymTable_FreeLocls(SymTable this);
 void SymTable_FreeParams(SymTable this);

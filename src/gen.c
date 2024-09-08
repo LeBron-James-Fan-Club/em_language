@@ -192,7 +192,8 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
             MIPS_GotoJump(this, n->sym);
             return NO_REG;
         case A_WIDEN:
-            return MIPS_Widen(this, leftReg, n->type);
+            // Unused - might remove later ngl
+            return leftReg;
         case A_RETURN:
             MIPS_Return(this, leftReg, ctx);
             return NO_REG;
@@ -371,13 +372,12 @@ static int genSWITCHAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
 static int genFUNCCALLAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
     ASTnode tree = n->left;
     int reg, numArgs = 0;
-    int maxArg = tree ? tree->size : 0;
 
     while (tree) {
         reg = genAST(this, st, ctx, tree->right, NO_LABEL, NO_LABEL, NO_LABEL,
                      n->op);
 
-        MIPS_ArgCopy(this, reg, tree->size, maxArg);
+        MIPS_ArgCopy(this, reg, tree->size);
 
         if (numArgs == 0) numArgs = tree->size;
         Compiler_FreeAllReg(this);

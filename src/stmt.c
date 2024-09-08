@@ -16,8 +16,7 @@ static ASTnode poke_statement(Scanner s, SymTable st, Token tok, Context ctx);
 
 static ASTnode print_statement(Scanner s, SymTable st, Token tok, Context ctx);
 static ASTnode input_statement(Scanner s, SymTable st, Token tok, Context ctx);
-static ASTnode if_statement(Compiler c, Scanner s, SymTable st, Token tok,
-                            Context ctx);
+static ASTnode if_statement(Compiler c, Scanner s, SymTable st, Token tok, Context ctx);
 
 static ASTnode label_statement(Scanner s, SymTable st, Token tok);
 static ASTnode goto_statement(Scanner s, SymTable st, Token tok);
@@ -28,8 +27,8 @@ static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok,
                              Context ctx);
 static ASTnode return_statement(Scanner s, SymTable st, Token tok, Context ctx);
 
-static ASTnode break_statement(Scanner s, SymTable st, Token tok, Context ctx);
-static ASTnode continue_statement(Scanner s, SymTable st, Token tok,
+static ASTnode break_statement(Scanner s, Token tok, Context ctx);
+static ASTnode continue_statement(Scanner s, Token tok,
                                   Context ctx);
 static ASTnode switch_statement(Compiler c, Scanner s, SymTable st, Token tok,
                                 Context ctx);
@@ -45,14 +44,6 @@ ASTnode Compound_Statement(Compiler c, Scanner s, SymTable st, Token tok,
     ASTnode left = NULL;
     ASTnode tree = NULL;
 
-    //lbrace(s, tok);
-
-    // Edge case: its empty
-    if (tok->token == T_RBRACE) {
-        rbrace(s, tok);
-        return NULL;
-    }
-
     while (true) {
         // TODO:  Compiler directive will be checked here
         tree = single_statement(c, s, st, tok, ctx);
@@ -60,11 +51,12 @@ ASTnode Compound_Statement(Compiler c, Scanner s, SymTable st, Token tok,
         if (tree != NULL) {
             debug("op %d", tree->op);
         }
-        if (tree != NULL && ((tree->op >= A_ASSIGN && tree->op <= A_IDENT) ||
-                             tree->op == A_INPUT || tree->op == A_RETURN ||
-                             tree->op == A_FUNCCALL || tree->op == A_LABEL ||
-                             tree->op == A_GOTO || tree->op == A_POKE ||
-                             tree->op == A_BREAK || tree->op == A_CONTINUE)) {
+        if (tree != NULL &&
+            (/*(tree->op >= A_ASSIGN && tree->op <= A_IDENT) ||*/
+             tree->op == A_INPUT || tree->op == A_RETURN ||
+             tree->op == A_FUNCCALL || tree->op == A_LABEL ||
+             tree->op == A_GOTO || tree->op == A_POKE || tree->op == A_BREAK ||
+             tree->op == A_CONTINUE)) {
             debug("consume semi");
             semi(s, tok);
         }
@@ -76,10 +68,11 @@ ASTnode Compound_Statement(Compiler c, Scanner s, SymTable st, Token tok,
         }
 
         if (tok->token == T_RBRACE) {
-            //rbrace(s, tok);
+            // rbrace(s, tok);
+            debug("GTFO");
             return left;
         }
-        
+
         if (inSwitch && (tok->token == T_CASE || tok->token == T_DEFAULT)) {
             return left;
         }
@@ -88,8 +81,7 @@ ASTnode Compound_Statement(Compiler c, Scanner s, SymTable st, Token tok,
 
 static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
                                 Context ctx) {
-    enum ASTPRIM type;
-    enum STORECLASS class = C_LOCAL;
+    ASTnode stmt;
 
     SymTableEntry cType;
 
@@ -98,24 +90,18 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
             return print_statement(s, st, tok, ctx);
         case T_IDENT:
             if (SymTable_FindTypeDef(st, s) == NULL) {
-                debug("Went through here");
-                return ASTnode_Order(s, st, tok, ctx);
+                stmt = ASTnode_Order(s, st, tok, ctx);
+                semi(s, tok);
+                return stmt;
             }
-            debug("pass through");
         case T_CHAR:
         case T_INT:
         case T_STRUCT:
         case T_UNION:
         case T_ENUM:
         case T_TYPEDEF:
-            type = parse_type(s, st, tok, &cType, &class);
-            ident(s, tok);
-            debug("class %d", class);
-            var_declare(s, st, tok, type, cType, class, false);
-            // ! check if this fucks up anything
-            debug("before semi consume");
+            declare_list(c, s, st, tok, ctx, &cType, C_LOCAL, T_SEMI, T_EOF);
             semi(s, tok);
-            debug("out of here");
             return NULL;
         case T_POKE:
             return poke_statement(s, st, tok, ctx);
@@ -135,19 +121,25 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
         case T_RETURN:
             return return_statement(s, st, tok, ctx);
         case T_BREAK:
-            return break_statement(s, st, tok, ctx);
+            return break_statement(s, tok, ctx);
         case T_CONTINUE:
-            return continue_statement(s, st, tok, ctx);
+            return continue_statement(s, tok, ctx);
         case T_SWITCH:
             return switch_statement(c, s, st, tok, ctx);
-        case T_RBRACE:
+        case T_LBRACE:
             lbrace(s, tok);
-            ASTnode stmt = Compound_Statement(c, s, st, tok, ctx, false);
+            // Edgecase: Empty
+            if (tok->token == T_RBRACE) {
+                rbrace(s, tok);
+                return NULL;
+            }
+            stmt = Compound_Statement(c, s, st, tok, ctx, false);
             rbrace(s, tok);
             return stmt;
         default:
-            debug("in here 2, token %d", tok->token);
-            return ASTnode_Order(s, st, tok, ctx);
+            stmt = ASTnode_Order(s, st, tok, ctx);
+            semi(s, tok);
+            return stmt;
     }
 }
 
@@ -156,7 +148,7 @@ static ASTnode poke_statement(Scanner s, SymTable st, Token tok, Context ctx) {
     match(s, tok, T_POKE, "poke");
     lparen(s, tok);
     param1 = ASTnode_Order(s, st, tok, ctx);
-    match(s, tok, T_COMMA, ",");
+    comma(s, tok);
     param2 = ASTnode_Order(s, st, tok, ctx);
     rparen(s, tok);
     return ASTnode_New(A_POKE, P_NONE, param2, NULL, param1, NULL, 0);
@@ -296,7 +288,7 @@ static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok,
     }
     semi(s, tok);
 
-    postopAST = expression_list( s, st, tok, ctx, T_RPAREN);
+    postopAST = expression_list(s, st, tok, ctx, T_RPAREN);
     rparen(s, tok);
 
     Context_IncLoopLevel(ctx);
@@ -365,7 +357,7 @@ static ASTnode return_statement(Scanner s, SymTable st, Token tok,
     return ASTnode_NewUnary(A_RETURN, P_NONE, t, NULL, 0);
 }
 
-static ASTnode break_statement(Scanner s, SymTable st, Token tok, Context ctx) {
+static ASTnode break_statement(Scanner s, Token tok, Context ctx) {
     if (Context_GetLoopLevel(ctx) == 0) {
         lfatal(s, "SyntaxError: break outside of loop");
     }
@@ -373,7 +365,7 @@ static ASTnode break_statement(Scanner s, SymTable st, Token tok, Context ctx) {
     return ASTnode_NewLeaf(A_BREAK, P_NONE, NULL, 0);
 }
 
-static ASTnode continue_statement(Scanner s, SymTable st, Token tok,
+static ASTnode continue_statement(Scanner s, Token tok,
                                   Context ctx) {
     if (Context_GetLoopLevel(ctx) == 0) {
         lfatal(s, "SyntaxError: continue outside of loop");
@@ -458,7 +450,13 @@ static ASTnode switch_statement(Compiler c, Scanner s, SymTable st, Token tok,
                 }
                 match(s, tok, T_COLON, ":");
 
-                left = Compound_Statement(c, s, st, tok, ctx, true);
+                // Edge case : empty
+                if (tok->token != T_CASE) {
+                    left = Compound_Statement(c, s, st, tok, ctx, true);
+                } else {
+                    left = NULL;
+                }
+
                 debug("left the case");
                 caseCount++;
 

@@ -10,13 +10,15 @@
 #include "stmt.h"
 #include "sym.h"
 
-enum ASTPRIM parse_type(Scanner s, SymTable st, Token tok,
-                        SymTableEntry *ctype, enum STORECLASS *class);
+#define TABLE_INCREMENT 10
 
-void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
-                 SymTableEntry cType, enum STORECLASS class, bool ignoreEnd);
+enum ASTPRIM parse_type(Compiler c, Scanner s, SymTable st, Token tok,
+                        Context ctx, SymTableEntry *ctype,
+                        enum STORECLASS *class);
+enum ASTPRIM declare_list(Compiler c, Scanner s, SymTable st, Token tok,
+                                 Context ctx, SymTableEntry *cType,
+                                 enum STORECLASS class, enum OPCODES end1,
+                                 enum OPCODES end2);
 void global_declare(Compiler c, Scanner s, SymTable st, Token tok, Context ctx);
-ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
-                         Context ctx, enum ASTPRIM type);
 
 #endif

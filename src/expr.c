@@ -9,7 +9,7 @@
 static enum ASTOP arithOp(Scanner s, enum OPCODES tok);
 static int precedence(enum ASTOP op);
 static ASTnode primary(Scanner s, SymTable st, Token t, Context ctx);
-static void orderOp(Scanner s, SymTable st, Token t, ASTnode *stack,
+static void orderOp(Scanner s, ASTnode *stack,
                     enum ASTOP *opStack, int *top, int *opTop);
 
 static ASTnode ASTnode_FuncCall(Scanner s, SymTable st, Token tok, Context ctx);
@@ -82,10 +82,16 @@ static ASTnode primary(Scanner s, SymTable st, Token t, Context ctx) {
     SymTableEntry var;
     switch (t->token) {
         case T_STRLIT:
-            var = SymTable_AddGlob(st, s->text, pointer_to(P_CHAR), NULL, S_VAR,
-                                   C_GLOBAL, 1, true);
-            SymTable_SetText(st, s, var);
-            return ASTnode_NewLeaf(A_STRLIT, pointer_to(P_CHAR), var, 0);
+            // Compiler being schizo about name for some reason
+            // cause name is declared as soon after case
+            {
+                char *name = SymTableEntry_MakeAnon(st, NULL);
+                var = SymTable_AddGlob(st, name, pointer_to(P_CHAR), NULL,
+                                       S_VAR, C_GLOBAL, 1, 0);
+                free(name);
+                SymTable_SetText(st, s, var);
+                return ASTnode_NewLeaf(A_STRLIT, pointer_to(P_CHAR), var, 0);
+            }
         case T_INTLIT:
             if (t->intvalue >= 0 && t->intvalue < 256) {
                 return ASTnode_NewLeaf(A_INTLIT, P_CHAR, NULL, t->intvalue);
@@ -104,7 +110,7 @@ static ASTnode primary(Scanner s, SymTable st, Token t, Context ctx) {
     return NULL;
 }
 
-static void orderOp(Scanner s, SymTable st, Token t, ASTnode *stack,
+static void orderOp(Scanner s, ASTnode *stack,
                     enum ASTOP *opStack, int *top, int *opTop) {
     ASTnode ltemp, rtemp;
     if (*opTop < 0) {
@@ -158,7 +164,7 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t, Context ctx) {
     int test = 0;
     do {
         debug("%d time iterated", ++test);
-        debug("Token %d", t->token);
+        debug("Token %s", t->tokstr);
 
         switch (t->token) {
             case T_SEMI:
@@ -181,7 +187,7 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t, Context ctx) {
                 break;
             case T_RPAREN:
                 while (opTop != -1 && opStack[opTop] != A_STARTPAREN) {
-                    orderOp(s, st, t, stack, opStack, &top, &opTop);
+                    orderOp(s, stack, opStack, &top, &opTop);
                 }
                 opTop--;  // Delete the left parenthesis
                 parenCount--;
@@ -199,7 +205,7 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t, Context ctx) {
                        (precedence(opStack[opTop]) >= precedence(curOp) ||
                         (rightAssoc(opStack[opTop]) &&
                          precedence(opStack[opTop]) == precedence(curOp)))) {
-                    orderOp(s, st, t, stack, opStack, &top, &opTop);
+                    orderOp(s, stack, opStack, &top, &opTop);
                 }
 
                 //! THE 1:1 THING HAPPENS HERE
@@ -250,7 +256,7 @@ ASTnode ASTnode_Order(Scanner s, SymTable st, Token t, Context ctx) {
 out:
 
     while (opTop != -1) {
-        orderOp(s, st, t, stack, opStack, &top, &opTop);
+        orderOp(s, stack, opStack, &top, &opTop);
     }
 
     debug("Top: %d line %d", top, s->line);
@@ -413,7 +419,7 @@ static ASTnode ASTnode_Postfix(Scanner s, SymTable st, Token tok, Context ctx) {
         debug("hit a enum word");
         // ! bug: for some reason a extra token is consumed i think
         //! semi colon is ignored
-        return ASTnode_NewLeaf(A_INTLIT, P_INT, NULL, enumPtr->value);
+        return ASTnode_NewLeaf(A_INTLIT, P_INT, NULL, enumPtr->posn);
     }
 
     SymTableEntry var;
@@ -495,7 +501,7 @@ static ASTnode ASTnode_MemberAccess(Scanner s, SymTable st, Token tok,
 
     if (m == NULL) fatala("UndefinedError: Undefined member %s", s->text);
 
-    right = ASTnode_NewLeaf(A_INTLIT, P_INT, NULL, m->offset);
+    right = ASTnode_NewLeaf(A_INTLIT, P_INT, NULL, m->posn);
 
     left = ASTnode_New(A_ADD, pointer_to(m->type), left, NULL, right, NULL, 0);
     left = ASTnode_NewUnary(A_DEREF, m->type, left, NULL, 0);

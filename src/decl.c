@@ -4,152 +4,248 @@
 #include "flags.h"
 #include "misc.h"
 
-static int var_declare_list(Scanner s, SymTable st, Token tok,
-                            SymTableEntry funcSym, enum STORECLASS store,
-                            enum OPCODES sep, enum OPCODES end);
-
-static SymTableEntry composite_declare(Scanner s, SymTable st, Token tok,
+static SymTableEntry composite_declare(Compiler c, Scanner s, SymTable st,
+                                       Token tok, Context ctx,
                                        enum ASTPRIM type);
 
 static void enum_declare(Scanner s, SymTable st, Token tok);
 
-static enum ASTPRIM typedef_declare(Scanner s, SymTable st, Token tok,
+static enum ASTPRIM typedef_declare(Compiler c, Scanner s, SymTable st,
+                                    Token tok, Context ctx,
                                     SymTableEntry *cType);
 
 static enum ASTPRIM typedef_type(Scanner s, SymTable st, Token tok,
                                  SymTableEntry *cType);
+static int parse_literal(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
+                         bool *ignore);
+SymTableEntry function_declare(Compiler c, Scanner s, SymTable st, Token tok,
+                               Context ctx, enum ASTPRIM type);
+static SymTableEntry symbol_declare(Compiler c, Scanner s, SymTable st,
+                                    Token tok, Context ctx, enum ASTPRIM type,
+                                    SymTableEntry cType, enum STORECLASS class);
+static int parse_stars(Scanner s, Token tok, enum ASTPRIM type);
 
-void var_declare(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
-                 SymTableEntry cType, enum STORECLASS class, bool ignoreEnd) {
-    //* int x[2], a;
+static int param_declare_list(Compiler c, Scanner s, SymTable st, Token tok,
+                              Context ctx, SymTableEntry oldFuncSym,
+                              SymTableEntry newFuncSym);
 
-    // TODO : Support array initialisation
-    // TODO : Support multi-dimensional arrays
+static SymTableEntry array_declare(Scanner s, SymTable st, Token tok,
+                                   char *varName, enum ASTPRIM type,
+                                   SymTableEntry cType, enum STORECLASS class);
+static SymTableEntry scalar_declare(Scanner s, SymTable st, Token tok,
+                                    Context ctx, char *varName,
+                                    enum ASTPRIM type, SymTableEntry cType,
+                                    enum STORECLASS class);
 
-    // ! Broken with other types for local variables (fix later)
+static SymTableEntry symbol_declare(Compiler c, Scanner s, SymTable st,
+                                    Token tok, Context ctx, enum ASTPRIM type,
+                                    SymTableEntry cType,
+                                    enum STORECLASS class) {
+    SymTableEntry sym = NULL;
+    char *varName = strdup(s->text);
 
-    while (true) {
-        if (tok->token == T_LBRACKET) {
-            //! Unsure about this for local variables
-            //! I don't think i calculated the offset for the size yet
+    ident(s, tok);
 
-            Scanner_Scan(s, tok);
-            if (class == C_LOCAL || class == C_PARAM || class == C_MEMBER) {
-                lfatal(s, "UnsupportedError: only globals can be arrays");
-            }
-
-            SymTable_AddGlob(st, s->text, pointer_to(type), cType, S_ARRAY,
-                             class,
-                             tok->token == T_INTLIT ? tok->intvalue : 1, false);
-            Scanner_Scan(s, tok);
-            match(s, tok, T_RBRACKET, "]");
-        } else if (tok->token == T_ASSIGN) {
-            if (class == C_LOCAL || class == C_PARAM || class == C_MEMBER) {
-                lfatal(s,
-                       "UnsupportedError: only globals can"
-                       "be initialised");
-            }
-
-            Scanner_Scan(s, tok);
-
-            // Only for scalar types
-            SymTableEntry sym = SymTable_AddGlob(st, s->text, type, cType,
-                                                 S_VAR, C_GLOBAL, 0, false);
-
-            // For now until lazy evaluation is implemented
-            // we stick with singular values
-
-            // initialisation weird with local vars - doesnt work as of yet
-
-            //! implemented initialiation for local vars
-            //! but disabled for now just in case
-
-            if (tok->token == T_INTLIT) {
-                SymTable_SetValue(st, sym, tok->intvalue);
-            } else {
-                lfatal(s,
-                       "UnsupportedError: only integer literals are supported");
-            }
-            Scanner_Scan(s, tok);
-
-            // TODO : check if there is wrong syntax?
-            // TODO: NVM it does it below
-        } else {
-            debug("Adding variable %s class %d", s->text, class);
-            switch (class) {
-                case C_STRUCT:
-                    fatala("InternalError: C_STRUCT shouldn't be here");
-                case C_UNION:
-                    fatala("InternalError: C_UNION shouldn't be here");
-                case C_NONE:
-                    fatala("InternalError: C_NONE shouldn't be here");
-                case C_ENUMTYPE:
-                    fatala("InternalError: C_ENUMTYPE shouldn't be here");
-                case C_TYPEDEF:
-                    fatala("InternalError: C_TYPEDEF shouldn't be here");
-                case C_ENUMVAL:
-                    fatala("InternalError: C_ENUMVAL shouldn't be here");
-                case C_EXTERN:
-                case C_GLOBAL:
-                    debug("Adding global variable %s", s->text);
-                    // ! this might create bugs for extern
-                    // ! check later
-                    if (SymTable_AddGlob(st, s->text, type, cType, S_VAR,
-                                         class, 1, false) == NULL) {
-                        lfatala(s,
-                                "DuplicateError: Duplicate global variable %s",
-                                s->text);
-                    }
-                    break;
-                case C_PARAM:
-                    debug("Adding parameter %s", s->text);
-                    if (SymTable_AddParam(st, s->text, type, cType, S_VAR, 1) ==
-                        NULL) {
-                        lfatala(s, "DuplicateError: Duplicate parameter %s",
-                                s->text);
-                    }
-                    break;
-                case C_MEMBER:
-                    debug("Adding member %s", s->text);
-                    if (SymTable_AddMemb(st, s->text, type, cType, S_VAR, 1) ==
-                        NULL) {
-                        lfatala(s, "DuplicateError: Duplicate member %s",
-                                s->text);
-                    }
-                    break;
-                case C_LOCAL:
-                    debug("Adding local variable %s", s->text);
-                    if (SymTable_AddLocl(st, s->text, type, cType, S_VAR, 1) ==
-                        NULL) {
-                        lfatala(s,
-                                "DuplicateError: Duplicate local variable %s",
-                                s->text);
-                    }
-                    break;
-            }
-        }
-
-        if (class == C_PARAM &&
-            (tok->token == T_COMMA || tok->token == T_RPAREN)) {
-            return;
-        }
-
-        if (tok->token == T_SEMI || tok->token == T_EOF) {
-            //if (!ignoreEnd) Scanner_Scan(s, tok);
-            return;
-        }
-
-        if (tok->token != T_COMMA) {
-            lfatala(s, "SyntaxError: expected comma got %d", tok->token);
-        }
-        Scanner_Scan(s, tok);
-        ident(s, tok);
+    debug("symbol_declare %s", varName);
+    debug("token %s", tok->tokstr);
+    if (tok->token == T_LPAREN) {
+        debug("mama mia its a function");
+        free(varName);
+        return function_declare(c, s, st, tok, ctx, type);
     }
+
+    switch (class) {
+        case C_EXTERN:
+        case C_GLOBAL:
+            if (SymTable_FindGlob(st, s) != NULL) {
+                lfatala(s, "DuplicateError: Duplicate global variable %s",
+                        s->text);
+            }
+            break;
+        case C_LOCAL:
+        case C_PARAM:
+            if (SymTable_FindLocl(st, s, ctx) != NULL) {
+                lfatala(s, "DuplicateError: Duplicate local variable %s",
+                        s->text);
+            }
+            break;
+        case C_MEMBER:
+            if (SymTable_FindMember(st, s) != NULL) {
+                lfatala(s, "DuplicateError: Duplicate member %s", s->text);
+            }
+            break;
+        default:
+            lfatal(s, "UnsupportedError: Unsupported class");
+    }
+
+    if (tok->token == T_LBRACKET) {
+        sym = array_declare(s, st, tok, varName, type, cType, class);
+    } else {
+        sym = scalar_declare(s, st, tok, ctx, varName, type, cType, class);
+    }
+
+    free(varName);
+
+    return sym;
 }
 
-static int var_declare_list(Scanner s, SymTable st, Token tok,
-                            SymTableEntry funcSym, enum STORECLASS class,
-                            enum OPCODES sep, enum OPCODES end) {
+static int parse_literal(Scanner s, SymTable st, Token tok, enum ASTPRIM type,
+                         bool *ignore) {
+    if (type == pointer_to(P_CHAR) && tok->token == T_STRLIT) {
+        int anon;
+        char *name = SymTableEntry_MakeAnon(st, &anon);
+        SymTableEntry var =
+            SymTable_AddGlob(st, name, type, NULL, S_VAR, C_GLOBAL, 1, 0);
+        SymTable_SetText(st, s, var);
+        free(name);
+        if (ignore != NULL) *ignore = true;
+        return anon;
+    }
+
+    if (tok->token == T_INTLIT) {
+        switch (type) {
+            case P_CHAR:
+                if (tok->intvalue < 0 || tok->intvalue > 255) {
+                    lfatal(s, "InvalidValueError: char literal out of range");
+                }
+            case P_INT:
+                break;
+            default:
+                fatal("InvalidTypeError: invalid type for integer literal\n");
+        }
+    } else {
+        lfatal(s, "SyntaxError: expected integer literal");
+    }
+
+    return tok->intvalue;
+}
+
+static SymTableEntry scalar_declare(Scanner s, SymTable st, Token tok,
+                                    Context ctx, char *varName,
+                                    enum ASTPRIM type, SymTableEntry cType,
+                                    enum STORECLASS class) {
+    SymTableEntry sym = NULL;
+    switch (class) {
+        case C_EXTERN:
+        case C_GLOBAL:
+            sym = SymTable_AddGlob(st, varName, type, cType, S_VAR, class, 1,
+                                   false);
+            break;
+        case C_LOCAL:
+            sym = SymTable_AddLocl(st, varName, type, cType, S_VAR, 1);
+            break;
+        case C_PARAM:
+            sym = SymTable_AddParam(st, varName, type, cType, S_VAR);
+            break;
+        case C_MEMBER:
+            sym = SymTable_AddMemb(st, varName, type, cType, S_VAR, 1);
+            break;
+        default:
+            lfatal(s, "UnsupportedError: unsupported class");
+    }
+
+    if (tok->token == C_GLOBAL) {
+        sym->initList = calloc(1, sizeof(int));
+        bool ignore;
+        int value = parse_literal(s, st, tok, type, &ignore);
+        if (!ignore) {
+            sym->initList[0] = value;
+        }
+
+        Scanner_Scan(s, tok);
+    }
+
+    return sym;
+}
+
+static SymTableEntry array_declare(Scanner s, SymTable st, Token tok,
+                                   char *varName, enum ASTPRIM type,
+                                   SymTableEntry cType, enum STORECLASS class) {
+    SymTableEntry sym;
+    int nelems = -1;
+    int maxElems;
+    int *initList;
+    int i = 0;
+
+    // eat [
+    Scanner_Scan(s, tok);
+
+    if (tok->token == T_INTLIT) {
+        if (tok->intvalue < 0) {
+            lfatala(s, "InvalidValueError: negative array size: %d",
+                    tok->intvalue);
+        }
+        nelems = tok->intvalue;
+        Scanner_Scan(s, tok);
+    }
+
+    // eat [
+    match(s, tok, T_RBRACKET, "]");
+
+    switch (class) {
+        case C_EXTERN:
+        case C_GLOBAL:
+            sym = SymTable_AddGlob(st, varName, pointer_to(type), cType,
+                                   S_ARRAY, class, 0, 0);
+            break;
+        default:
+            lfatal(s,
+                   "UnsupportedError: array declaration only supported for "
+                   "globals");
+    }
+
+    if (tok->token == T_ASSIGN) {
+        if (class != C_GLOBAL) {
+            lfatal(
+                s,
+                "SyntaxError: array initialization only allowed for globals");
+        }
+        Scanner_Scan(s, tok);
+
+        match(s, tok, T_LBRACE, "{");
+
+        maxElems = (nelems == -1) ? TABLE_INCREMENT : nelems;
+
+        initList = calloc(maxElems, sizeof(int));
+
+        while (true) {
+            if (nelems != -1 && i == maxElems) {
+                fatal(
+                    "ArraySizeError: too many elements in array initializer\n");
+            }
+
+            // TODO: Figure out how the fuck I'm going to handle custom
+            // TODO: LABELS
+            initList[i++] = parse_literal(s, st, tok, type, NULL);
+            Scanner_Scan(s, tok);
+
+            if (nelems == -1 && i == maxElems) {
+                maxElems += TABLE_INCREMENT;
+                initList = realloc(initList, maxElems * sizeof(int));
+            }
+
+            if (tok->token == T_RBRACE) {
+                Scanner_Scan(s, tok);
+                break;
+            }
+
+            comma(s, tok);
+        }
+
+        for (int j = i; j < sym->nElems; j++) initList[j] = 0;
+        if (i > nelems) nelems = i;
+        sym->initList = initList;
+    }
+
+    sym->nElems = nelems;
+    sym->size = sym->nElems * type_size(type, cType);
+
+    return sym;
+}
+
+static int param_declare_list(Compiler c, Scanner s, SymTable st, Token tok,
+                              Context ctx, SymTableEntry oldFuncSym,
+                              SymTableEntry newFuncSym) {
     enum ASTPRIM type;
     int paramCnt = 0;
 
@@ -158,21 +254,18 @@ static int var_declare_list(Scanner s, SymTable st, Token tok,
 
     // * if a proto, member exists
 
-    if (funcSym != NULL) {
-        protoPtr = funcSym->member;
+    if (oldFuncSym != NULL) {
+        protoPtr = oldFuncSym->member;
     }
 
-    while (tok->token != end) {
-        // debug("before type check");
-        type = parse_type(s, st, tok, &cType, &class);
-        // debug("after type check");
-
-        // debug("before ident check");
-        ident(s, tok);
-        // debug("after ident check");
+    while (tok->token != T_RPAREN) {
+        type = declare_list(c, s, st, tok, ctx, &cType, C_PARAM, T_COMMA,
+                            T_RPAREN);
+        if (type == -1) {
+            lfatal(s, "InvalidTypeError: invalid parameter type");
+        }
 
         if (protoPtr != NULL) {
-            debug("1:%d 2:%d", protoPtr->type, type);
             if (type != protoPtr->type) {
                 lfatal(s,
                        "InvalidParamsError: parameter type mismatch for proto");
@@ -180,87 +273,61 @@ static int var_declare_list(Scanner s, SymTable st, Token tok,
             protoPtr = protoPtr->next;
         }
 
-        var_declare(s, st, tok, type, cType, class, true);
         paramCnt++;
-
-        debug("token %d", tok->token);
-
-        if (tok->token != sep && tok->token != end) {
-            lfatala(s,
-                    "SyntaxError: expected comma or right parenthesis got %d",
-                    tok->token);
-        }
-        if (tok->token == sep) {
-            debug("sep met");
-            Scanner_Scan(s, tok);
-        }
     }
 
-    debug("end %d", tok->token);
-
-    // Swallow end?
-    // Scanner_Scan(s, tok);
-    if (funcSym != NULL && paramCnt != funcSym->nElems) {
-        debug("param count is %d", paramCnt);
-        debug("funcSym is %d", funcSym->nElems);
+    if (oldFuncSym != NULL && paramCnt != oldFuncSym->nElems) {
         lfatal(s, "InvalidParamsError: parameter count mismatch for proto");
     }
 
     return paramCnt;
 }
 
-void global_declare(Compiler c, Scanner s, SymTable st, Token tok,
-                    Context ctx) {
-    ASTnode tree;
-    enum ASTPRIM type;
-    enum STORECLASS class = C_GLOBAL;
-    SymTableEntry cType;
+enum ASTPRIM declare_list(Compiler c, Scanner s, SymTable st, Token tok,
+                          Context ctx, SymTableEntry *cType,
+                          enum STORECLASS class, enum OPCODES end1,
+                          enum OPCODES end2) {
+    enum ASTPRIM initType, type;
+    SymTableEntry sym;
+
+    if ((initType = parse_type(c, s, st, tok, ctx, cType, &class)) == -1) {
+        return initType;
+    }
 
     while (true) {
-        // SymTable_ResetLocls(st);
+        type = parse_stars(s, tok, initType);
 
-        debug("token 1 %d", tok->token);
+        sym = symbol_declare(c, s, st, tok, ctx, type, *cType, class);
 
-        type = parse_type(s, st, tok, &cType, &class);
+        if (sym->stype == S_FUNC) {
+            if (class != C_GLOBAL) {
+                lfatal(s,
+                       "SyntaxError: function declaration only allowed at "
+                       "global level");
+            }
+            debug("FUNCTION DECLARATION");
+            return type;
+        }
+        debug("went over???");
 
-        if (type == -1) {
-            semi(s, tok);
-            continue;
+        if (tok->token == end1 || tok->token == end2) {
+            return type;
         }
 
-        debug("is ident? %d", tok->token == T_IDENT);
-        ident(s, tok);
-
-        debug("token 2 %d", tok->token);
-
-        if (tok->token == T_LPAREN) {
-            debug("type is %d", type);
-            tree = function_declare(c, s, st, tok, ctx, type);
-
-            // Proto is a no go
-            if (tree == NULL) {
-                continue;
-            }
-
-            if (flags.dumpAST) {
-                ASTnode_Dump(tree, st, NO_LABEL, 0);
-            }
-
-            Compiler_Gen(c, st, ctx, tree);
-            ASTnode_Free(tree);
-
-            SymTable_FreeLocls(st);
-            Context_SetFunctionId(ctx, NULL);
-
-        } else {
-            var_declare(s, st, tok, type, cType, class, false);
-        }
-        if (tok->token == T_EOF) break;
+        comma(s, tok);
     }
 }
 
-ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
-                         Context ctx, enum ASTPRIM type) {
+static int parse_stars(Scanner s, Token tok, enum ASTPRIM type) {
+    while (tok->token == T_STAR) {
+        type = pointer_to(type);
+        Scanner_Scan(s, tok);
+    }
+    return type;
+}
+
+SymTableEntry function_declare(Compiler c, Scanner s, SymTable st, Token tok,
+                               Context ctx, enum ASTPRIM type) {
     int paramCnt;
 
     SymTableEntry oldFuncSym, newFuncSym = NULL;
@@ -279,8 +346,8 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
     }
 
     lparen(s, tok);
-    paramCnt =
-        var_declare_list(s, st, tok, oldFuncSym, C_PARAM, T_COMMA, T_RPAREN);
+    debug("GOING IN DA PARAM LIST");
+    paramCnt = param_declare_list(c, s, st, tok, ctx, oldFuncSym, newFuncSym);
     rparen(s, tok);
 
     if (newFuncSym) {
@@ -297,29 +364,47 @@ ASTnode function_declare(Compiler c, Scanner s, SymTable st, Token tok,
     if (tok->token == T_SEMI) {
         debug("proto");
         Scanner_Scan(s, tok);
-        return NULL;
+        return oldFuncSym;
     }
 
     Context_SetFunctionId(ctx, oldFuncSym);
     Context_ResetLoopLevel(ctx);
 
+    lbrace(s, tok);
     tree = Compound_Statement(c, s, st, tok, ctx, false);
+    rbrace(s, tok);
+
     if (type != P_VOID) {
+        if (tree == NULL) {
+            fatal("NoReturnError: non-void function must return a value\n");
+        }
         finalstmt = tree->op == A_GLUE ? tree->right : tree;
         if (finalstmt == NULL || finalstmt->op != A_RETURN) {
             fatal("NoReturnError: non-void function must return a value\n");
         }
     }
 
-    return ASTnode_NewUnary(A_FUNCTION, P_VOID, tree, NULL, 0);
+    tree = ASTnode_NewUnary(A_FUNCTION, type, tree, oldFuncSym, 0);
+
+    if (flags.dumpAST) {
+        ASTnode_Dump(tree, st, NO_LABEL, 0);
+    }
+
+    Compiler_Gen(c, st, ctx, tree);
+    ASTnode_Free(tree);
+
+    SymTable_FreeLocls(st);
+    Context_SetFunctionId(ctx, NULL);
+
+    return oldFuncSym;
 }
 
-enum ASTPRIM parse_type(Scanner s, SymTable st, Token tok,
-                        SymTableEntry *ctype, enum STORECLASS *class) {
+enum ASTPRIM parse_type(Compiler c, Scanner s, SymTable st, Token tok,
+                        Context ctx, SymTableEntry *ctype,
+                        enum STORECLASS *class) {
     debug("parse_type");
     enum ASTPRIM type;
     bool exstatic = true;
-
 
     // extern extern extern extern extern ...
     while (exstatic) {
@@ -355,12 +440,14 @@ enum ASTPRIM parse_type(Scanner s, SymTable st, Token tok,
         case T_STRUCT:
             debug("type is struct");
             type = P_STRUCT;
-            *ctype = composite_declare(s, st, tok, P_STRUCT);
+            *ctype = composite_declare(c, s, st, tok, ctx, P_STRUCT);
+            if (tok->token == T_SEMI) type = -1;
             break;
         case T_UNION:
             debug("type is union");
             type = P_UNION;
-            *ctype = composite_declare(s, st, tok, P_UNION);
+            *ctype = composite_declare(c, s, st, tok, ctx, P_UNION);
+            if (tok->token == T_SEMI) type = -1;
             break;
         case T_ENUM:
             type = P_INT;
@@ -370,7 +457,7 @@ enum ASTPRIM parse_type(Scanner s, SymTable st, Token tok,
             break;
         case T_TYPEDEF:
             debug("type is typedef");
-            type = typedef_declare(s, st, tok, ctype);
+            type = typedef_declare(c, s, st, tok, ctx, ctype);
             if (tok->token == T_SEMI) type = -1;
             break;
         case T_IDENT:  // typedef
@@ -393,12 +480,15 @@ enum ASTPRIM parse_type(Scanner s, SymTable st, Token tok,
     return type;
 }
 
-static SymTableEntry composite_declare(Scanner s, SymTable st, Token tok,
+static SymTableEntry composite_declare(Compiler c, Scanner s, SymTable st,
+                                       Token tok, Context ctx,
                                        enum ASTPRIM type) {
     SymTableEntry cType = NULL;
     SymTableEntry memb;
 
     int offset;
+    enum ASTPRIM t;
+
     Scanner_Scan(s, tok);
 
     if (tok->token == T_IDENT) {
@@ -425,9 +515,9 @@ static SymTableEntry composite_declare(Scanner s, SymTable st, Token tok,
     }
 
     if (type == P_STRUCT) {
-        cType = SymTable_AddStruct(st, s->text, P_STRUCT, NULL, S_VAR, 0);
+        cType = SymTable_AddStruct(st, s->text);
     } else if (type == P_UNION) {
-        cType = SymTable_AddUnion(st, s->text, P_UNION, NULL, S_VAR, 0);
+        cType = SymTable_AddUnion(st, s->text);
     } else {
         fatal("InternalError: Unknown composite type");
     }
@@ -436,15 +526,30 @@ static SymTableEntry composite_declare(Scanner s, SymTable st, Token tok,
 
     Scanner_Scan(s, tok);
 
-    var_declare_list(s, st, tok, NULL, C_MEMBER, T_SEMI, T_RBRACE);
+    while (true) {
+        t = declare_list(c, s, st, tok, ctx, &memb, C_MEMBER, T_SEMI, T_RBRACE);
+        if (t == -1) {
+            lfatal(s, "SyntaxError: invalid member type");
+        }
+        if (tok->token == T_SEMI) {
+            Scanner_Scan(s, tok);
+        }
+        if (tok->token == T_RBRACE) {
+            break;
+        }
+    }
+
     rbrace(s, tok);
-    // semi(s, tok);
+    if (st->membHead == NULL) {
+        fatala("EmptyStructError: struct/union has no members, %s",
+               cType->name);
+    }
 
     cType->member = st->membHead;
     st->membHead = st->membTail = NULL;
 
     memb = cType->member;
-    memb->offset = 0;
+    memb->posn = 0;
     offset = type_size(memb->type, memb->ctype);
 
     // for union
@@ -452,11 +557,11 @@ static SymTableEntry composite_declare(Scanner s, SymTable st, Token tok,
 
     for (memb = memb->next; memb != NULL; memb = memb->next) {
         if (type == P_STRUCT) {
-            memb->offset = MIPS_Align(memb->type, offset, 1);
+            memb->posn = MIPS_Align(memb->type, offset, 1);
             // Calculates offset of next free byte
             offset += type_size(memb->type, memb->ctype);
         } else {
-            memb->offset = 0;
+            memb->posn = 0;
             int size = type_size(memb->type, memb->ctype);
             debug("Size of %s: %d", memb->name, size);
             // We only store the largest byte size
@@ -535,7 +640,8 @@ static void enum_declare(Scanner s, SymTable st, Token tok) {
     Scanner_Scan(s, tok);
 }
 
-static enum ASTPRIM typedef_declare(Scanner s, SymTable st, Token tok,
+static enum ASTPRIM typedef_declare(Compiler c, Scanner s, SymTable st,
+                                    Token tok, Context ctx,
                                     SymTableEntry *cType) {
     enum ASTPRIM type;
     enum STORECLASS class = C_NONE;
@@ -544,7 +650,7 @@ static enum ASTPRIM typedef_declare(Scanner s, SymTable st, Token tok,
     Scanner_Scan(s, tok);
     // a ident should be here
 
-    type = parse_type(s, st, tok, cType, &class);
+    type = parse_type(c, s, st, tok, ctx, cType, &class);
     if (class != C_NONE) {
         lfatal(s, "TypeError: typedef cannot have extern");
     }
@@ -553,7 +659,7 @@ static enum ASTPRIM typedef_declare(Scanner s, SymTable st, Token tok,
         lfatala(s, "DuplicateError: typedef %s already defined", s->text);
     }
 
-    SymTable_AddTypeDef(st, s->text, type, *cType, S_VAR, 0);
+    SymTable_AddTypeDef(st, s->text, type, *cType);
     Scanner_Scan(s, tok);
 
     return type;
@@ -572,4 +678,16 @@ static enum ASTPRIM typedef_type(Scanner s, SymTable st, Token tok,
     Scanner_Scan(s, tok);
     *cType = type->ctype;
     return type->type;
+}
+
+void global_declare(Compiler c, Scanner s, SymTable st, Token tok,
+                    Context ctx) {
+    SymTableEntry cType;
+    while (tok->token != T_EOF) {
+        declare_list(c, s, st, tok, ctx, &cType, C_GLOBAL, T_SEMI, T_EOF);
+
+        if (tok->token == T_SEMI) {
+            Scanner_Scan(s, tok);
+        }
+    }
 }

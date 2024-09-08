@@ -10,16 +10,18 @@
 #include "misc.h"
 
 static char *TokStr[] = {
-    "<EOF>",  "=",     "||",      "&&",      "|",      "^",          "&",
-    "==",     "!=",    "<",       ">",       "<=",     ">=",         "<<",
-    ">>",     "+",     "-",       "*",       "/",      "%%",         "++",
-    "--",     "~",     "!",       "intlit",  "+=",     "-=",         "*=",
-    "/=",     "%%=",   "void",    "i8",      "i32",    "print",      "input",
-    "peek",   "poke",  "if",      "else",    "while",  "for",        "return",
-    "struct", "union", "enum",    "typedef", "extern", "break",      "continue",
-    "switch", "case",  "default", "strlit",  ";",      "identifier", "{",
-    "}",      "(",     ")",       "[",       "]",      ",",          ".",
-    "->",     ":"};
+    "<EOF>",  "=",      "||",         "&&",     "|",     "^",
+    "&",      "==",     "!=",         "<",      ">",     "<=",
+    ">=",     "<<",     ">>",         "+",      "-",     "*",
+    "/",      "%%",     "++",         "--",     "~",     "!",
+    "intlit", "+=",     "-=",         "*=",     "/=",    "%%=",
+    "void",   "i8",     "i32",        "print",  "input", "peek",
+    "poke",   "if",     "else",       "label",  "goto",  "while",
+    "for",    "return", "struct",     "union",  "enum",  "typedef",
+    "extern", "break",  "continue",   "switch", "case",  "default",
+    "strlit", ";",      "identifier", "{",      "}",     "(",
+    ")",      "[",      "]",          ",",      ".",     "->",
+    ":"};
 
 static char next(Scanner);
 static void putback(Scanner, char c);
@@ -107,6 +109,7 @@ bool Scanner_Scan(Scanner this, Token t) {
     switch (c) {
         case EOF:
             t->token = T_EOF;
+            debug("<EOF>");
             t->tokstr = TokStr[t->token];
             return false;
         case ';':
@@ -290,6 +293,8 @@ bool Scanner_Scan(Scanner this, Token t) {
             // occurs only probs when unicode
             lfatala(this, "SyntaxError: Invalid character %c", c);
     }
+
+    //debug("token %d", t->token);
 
     t->tokstr = TokStr[t->token];
     return true;

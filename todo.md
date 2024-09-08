@@ -38,9 +38,13 @@
 - add namespaces
     - Perhaps it could be added as a prefix to the variable names
 - add octal support
+- add else if
 
 # BUGS:
 - make it so that multiple files are included
+    - if in include directory, automatically include the file
+    - (crappy solution) append each file to each other and hope to god that
+    - the preprocessor solves it somehow
 
 - recursive typedef not supported
 
@@ -48,7 +52,7 @@
     - sp offset by 4 (main) and 8 (deez nuts function)
     (HORRIBLE FIX BUT IT WORKS)
 
-- parameters with same names collide with other functions :(
+- parameters with same names collide with other functions :( - fixed
     - need to add a prefix to the parameters - fixed? (idk)
 
 - doesn't check for parameter count

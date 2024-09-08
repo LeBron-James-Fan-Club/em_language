@@ -55,6 +55,7 @@ void MIPS_Pre(Compiler this) {
         "\nfail:\n"
         "\taddi\t$t1, $t1, -1\n"
         "\tbgtz\t$t1, next\n"
+        "\taddi\t$a1, $a1, 4\n"
         // last is just label so scan that
         // and go to default
         "\tlw\t$t3, 0($a1)\n"
@@ -128,12 +129,12 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
         // same thing but for local
         // We subtract 4 cause its 1 off
         // e.g. a[0] instead of a[1]
-        loclCurr->offset = Compiler_GetLocalOffset(this, loclCurr->type) - 4;
+        loclCurr->posn = Compiler_GetLocalOffset(this, loclCurr->type) - 4;
     }
 
     for (; paramCurr != NULL; paramCurr = paramCurr->next) {
         // for remaining params they get pushed on stack
-        paramCurr->offset =
+        paramCurr->posn =
             this->localOffset + Compiler_GetParamOffset(this, paramCurr->type);
     }
 
@@ -146,6 +147,7 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
     // Actual offset for locals if have been initialised
     if (st->loclHead) {
         fprintf(this->outfile, "\taddiu\t$sp, $sp, %d\n", -this->localOffset);
+        /*
         for (loclCurr = st->loclHead; loclCurr != NULL;
              loclCurr = loclCurr->next) {
             if (loclCurr->hasValue) {
@@ -154,6 +156,8 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
                 freeReg(this, r);
             }
         }
+        */
+        // unimplemented for now
     }
 
     fputs("\n", this->outfile);
@@ -347,12 +351,12 @@ int MIPS_LoadLocal(Compiler this, SymTableEntry sym, enum ASTOP op) {
     switch (sym->type) {
         case P_INT:
             fprintf(this->outfile, "\tlw\t%s, %d($sp)\n", reglist[r],
-                    sym->offset);
+                    sym->posn);
             if (op == A_PREINC || op == A_PREDEC) {
                 fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r],
                         reglist[r], op == A_PREINC ? "1" : "-1");
                 fprintf(this->outfile, "\tsw\t%s, %d($sp)\n", reglist[r],
-                        sym->offset);
+                        sym->posn);
             }
 
             if (op == A_POSTINC || op == A_POSTDEC) {
@@ -362,20 +366,20 @@ int MIPS_LoadLocal(Compiler this, SymTableEntry sym, enum ASTOP op) {
                 fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r2],
                         reglist[r2], op == A_POSTINC ? "1" : "-1");
                 fprintf(this->outfile, "\tsw\t%s, %d($sp)\n", reglist[r2],
-                        sym->offset);
+                        sym->posn);
                 freeReg(this, r2);
             }
 
             break;
         case P_CHAR:
             fprintf(this->outfile, "\tlbu\t%s, %d($sp)\n", reglist[r],
-                    sym->offset);
+                    sym->posn);
 
             if (op == A_PREINC || op == A_PREDEC) {
                 fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r],
                         reglist[r], op == A_PREINC ? "1" : "-1");
                 fprintf(this->outfile, "\tsb\t%s, %d($sp)\n", reglist[r],
-                        sym->offset);
+                        sym->posn);
             }
 
             if (op == A_POSTINC || op == A_POSTDEC) {
@@ -385,7 +389,7 @@ int MIPS_LoadLocal(Compiler this, SymTableEntry sym, enum ASTOP op) {
                 fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r2],
                         reglist[r2], op == A_POSTINC ? "1" : "-1");
                 fprintf(this->outfile, "\tsb\t%s, %d($sp)\n", reglist[r2],
-                        sym->offset);
+                        sym->posn);
                 freeReg(this, r2);
             }
 
@@ -398,13 +402,13 @@ int MIPS_LoadLocal(Compiler this, SymTableEntry sym, enum ASTOP op) {
                 fatala("InternalError: Unknown type %d", sym->type);
             }
             fprintf(this->outfile, "\tlw\t%s, %d($sp)\n", reglist[r],
-                    sym->offset);
+                    sym->posn);
 
             if (op == A_PREINC || op == A_PREDEC) {
                 fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r],
                         reglist[r], op == A_PREINC ? "1" : "-1");
                 fprintf(this->outfile, "\tsw\t%s, %d($sp)\n", reglist[r],
-                        sym->offset);
+                        sym->posn);
             }
 
             if (op == A_POSTINC || op == A_POSTDEC) {
@@ -414,7 +418,7 @@ int MIPS_LoadLocal(Compiler this, SymTableEntry sym, enum ASTOP op) {
                 fprintf(this->outfile, "\taddi\t%s, %s, %s\n", reglist[r2],
                         reglist[r2], op == A_POSTINC ? "1" : "-1");
                 fprintf(this->outfile, "\tsw\t%s, %d($sp)\n", reglist[r2],
-                        sym->offset);
+                        sym->posn);
                 freeReg(this, r2);
             }
             break;
@@ -469,11 +473,11 @@ int MIPS_StoreLocal(Compiler this, int r1, SymTableEntry sym) {
     switch (sym->type) {
         case P_INT:
             fprintf(this->outfile, "\tsw\t%s, %d($sp)\n", reglist[r1],
-                    sym->offset);
+                    sym->posn);
             break;
         case P_CHAR:
             fprintf(this->outfile, "\tsb\t%s, %d($sp)\n", reglist[r1],
-                    sym->offset);
+                    sym->posn);
             break;
         default:
             if (!ptrtype(sym->type)) {
@@ -482,7 +486,7 @@ int MIPS_StoreLocal(Compiler this, int r1, SymTableEntry sym) {
             }
 
             fprintf(this->outfile, "\tsw\t%s, %d($sp)\n", reglist[r1],
-                    sym->offset);
+                    sym->posn);
             break;
     }
 
@@ -517,11 +521,6 @@ int MIPS_StoreRef(Compiler this, int r1, int r2, enum ASTPRIM type) {
     return r1;
 }
 
-int MIPS_Widen(Compiler this, int r1, enum ASTPRIM newType) {
-    // nothing to do, its already done by zero extending
-    return r1;
-}
-
 int MIPS_Align(enum ASTPRIM type, int offset, int dir) {
     int align;
 
@@ -546,34 +545,53 @@ int MIPS_Align(enum ASTPRIM type, int offset, int dir) {
 
 // Needs to be below .data
 void MIPS_GlobSym(Compiler this, SymTableEntry sym) {
-    int size = type_size(sym->type, sym->ctype);
+    int size;
+    int initValue;
+    enum ASTPRIM type;
 
-    // Might work idk?
-    if ((sym->type & P_CHAR) && ptrtype(sym->type) && sym->hasValue) {
-        fprintf(this->outfile, "\t%s:\t.asciiz \"%s\"\n", sym->name,
+    // ! For annoymous strings only
+    if ((sym->type & P_CHAR) && ptrtype(sym->type) && sym->isStr) {
+        fprintf(this->outfile, "%s:\n\t.asciiz \"%s\"\n", sym->name,
                 sym->strValue);
         return;
     }
 
-    switch (size) {
-        case 1:
-            fprintf(this->outfile, "\t%s:\t.byte %d\n", sym->name, sym->value);
-            fputs("\t.align 2\n", this->outfile);
-            break;
-        case 4:
-            fprintf(this->outfile, "\t%s:\t.word %d\n", sym->name, sym->value);
-            break;
-        default:
-            // ! won't work on multi-dimensional arrays
-            debug("sym type %d", sym->type);
-            debug("sym size %d", sym->size);
-            debug("other %d", (sym->type == P_STRUCT || sym->type == P_UNION)
-                                  ? size
-                                  : PrimSize(sym->type));
-            fprintf(this->outfile, "\t%s:\t.space %d\n", sym->name,
-                    (sym->type == P_STRUCT || sym->type == P_UNION)
-                        ? size
-                        : PrimSize(sym->type) * sym->size);
+    if (sym->stype == S_ARRAY) {
+        size = type_size(value_at(sym->type), sym->ctype);
+        type = value_at(sym->type);
+    } else {
+        size = sym->size;
+        type = sym->type;
+    }
+
+    // Array shit
+    // * DEFAULT CASE IS FOR STRUCTS OR UNIONS
+
+    fprintf(this->outfile, "%s:\n", sym->name);
+
+    for (int i = 0; i < sym->nElems; i++) {
+        initValue = 0;
+        if (sym->initList != NULL) initValue = sym->initList[i];
+        switch (size) {
+            case 1:
+                fprintf(this->outfile, "\t.byte %d\n",
+                        initValue);
+                fputs("\t.align 2\n", this->outfile);
+                break;
+            case 4:
+                if (type == pointer_to(P_CHAR)) {
+                    fprintf(this->outfile, "\t.word anon_%d\n",
+                            initValue);
+                } else {
+                    fprintf(this->outfile, "\t.word %d\n",
+                            initValue);
+                }
+
+                break;
+            default:
+                // structs and unions baby
+                fprintf(this->outfile, "\t.space %d\n", size);
+        }
     }
 }
 
@@ -732,7 +750,7 @@ int MIPS_Call(Compiler this, SymTableEntry sym) {
     return outr;
 }
 
-void MIPS_ArgCopy(Compiler this, int r, int argPos, int maxArg) {
+void MIPS_ArgCopy(Compiler this, int r, int argPos) {
     /*
     Stack:
     (params)
@@ -766,7 +784,7 @@ int MIPS_Address(Compiler this, SymTableEntry sym) {
     if (sym->class == C_GLOBAL) {
         fprintf(this->outfile, "\tla\t%s, %s\n", reglist[r], sym->name);
     } else {
-        fprintf(this->outfile, "\tla\t%s, %d($sp)\n", reglist[r], sym->offset);
+        fprintf(this->outfile, "\tla\t%s, %d($sp)\n", reglist[r], sym->posn);
     }
     return r;
 }

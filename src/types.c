@@ -7,7 +7,7 @@
 #include "defs.h"
 #include "misc.h"
 
-bool inttype(enum ASTPRIM type) { return (type & 0xf) == 0; }
+bool inttype(enum ASTPRIM type) { return (type & 0xf) == 0 && type >= P_CHAR; }
 
 bool ptrtype(enum ASTPRIM type) { return (type & 0xf) != 0; }
 
