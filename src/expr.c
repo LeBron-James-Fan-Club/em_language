@@ -319,7 +319,6 @@ out:
     }
 
     ASTnode n = stack[top];
-     
 
     free(stack);
     free(opStack);
@@ -379,23 +378,31 @@ static ASTnode ASTnode_ArrayRef(Compiler c, Scanner s, SymTable st, Token tok,
     if ((var = SymTable_FindSymbol(st, s, ctx)) == NULL) {
         fatala("UndefinedError: Undefined array %s", s->text);
     }
-    left = ASTnode_NewLeaf(A_ADDR, var->type, var, 0);
+    if (var->stype != S_ARRAY && (var->stype == S_VAR && !ptrtype(var->type))) {
+        lfatala(s, "TypeError: %s is not an array or pointer", s->text);
+    }
+
+    if (var->stype == S_ARRAY) {
+        left = ASTnode_NewLeaf(A_ADDR, var->type, var, 0);
+    } else {
+        left = ASTnode_NewLeaf(A_IDENT, var->type, var, 0);
+        left->rvalue = 1;
+    }
+
     Scanner_Scan(s, tok);
     right = ASTnode_Order(c, s, st, tok, ctx);
-    right->rvalue = 1;
 
     match(s, tok, T_RBRACKET, "]");
-
-    debug("outta array");
 
     if (!inttype(right->type)) {
         fatal("TypeError: Array index must be an integer");
     }
+
     right = modify_type(right, left->type, A_ADD);
 
     left = ASTnode_New(A_ADD, var->type, left, NULL, right, NULL, 0);
-
     Scanner_RejectToken(s, tok);
+    
     return ASTnode_NewUnary(A_DEREF, value_at(left->type), left, NULL, 0);
 }
 
@@ -493,27 +500,46 @@ static ASTnode ASTnode_Postfix(Compiler c, Scanner s, SymTable st, Token tok,
     // TODO: cant remember why i need to reject the token
     Scanner_RejectToken(s, tok);
 
+    int rvalue = 0;
+
     if ((var = SymTable_FindSymbol(st, s, ctx)) == NULL ||
         var->stype != S_VAR) {
         debug("fuck :(");
         lfatala(s, "UndefinedError: Undefined variable %s", s->text);
     }
 
-    debug("Variable %p", var);
-
-    // * Doesn't work for a++++ i think
+    switch (var->stype) {
+        case S_VAR:
+            break;
+        case S_ARRAY:
+            rvalue = 1;
+            break;
+        default:
+            lfatala(s, "TypeError: Identifier is not scalar or array, %s",
+                    s->text);
+    }
 
     switch (tok->token) {
         case T_INC:
+            if (rvalue == 1) {
+                lfatal(s, "SyntaxError: Cannot ++ on rvalue, %s", s->text);
+            }
             Scanner_Scan(s, tok);
-            debug("inc");
             return ASTnode_NewLeaf(A_POSTINC, var->type, var, 0);
         case T_DEC:
+            if (rvalue == 1) {
+                lfatal(s, "SyntaxError: Cannot --s on rvalue, %s", s->text);
+            }
             Scanner_Scan(s, tok);
             return ASTnode_NewLeaf(A_POSTDEC, var->type, var, 0);
         default:
-            debug("variable %d %p", var->type, var);
-            return ASTnode_NewLeaf(A_IDENT, var->type, var, 0);
+            if (var->stype == S_ARRAY) {
+                ASTnode n = ASTnode_NewLeaf(A_ADDR, var->type, var, 0);
+                n->rvalue = rvalue;
+                return n;
+            } else {
+                return ASTnode_NewLeaf(A_IDENT, var->type, var, 0);
+            }
     }
 }
 
