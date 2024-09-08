@@ -23,6 +23,7 @@ struct scanner {
 
     char text[TEXTLEN + 1];
 
+    Token rejToken;
 };
 
 typedef struct scanner *Scanner;
