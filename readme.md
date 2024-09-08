@@ -32,6 +32,7 @@
  - macros
  - Array initisaliation
  - Local variable initialisation
+ - Type casting
 
 ## What will be added soon (Hopefully)
  - Local arrays
@@ -44,7 +45,6 @@
  - Inline assembly and registers
  - Scopes
  - Sizeof operator
- - Type casting
  - octal support
  - scope creation
 

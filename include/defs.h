@@ -199,8 +199,7 @@ enum ASTOP {
     A_CASE,
     A_DEFAULT,
 
-    // misc so the compiler stops complaining
-    A_STARTPAREN
+    A_CAST,
 
 };
 

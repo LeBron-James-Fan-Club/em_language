@@ -67,3 +67,6 @@
     - will need to push then pop - fixed
 
 - unncessary space created when creating union
+
+- (BUG) - caused by non initialised variables - fixed
+- annyomous strings need to declared first (probs iterate the whole global first for annoymous)

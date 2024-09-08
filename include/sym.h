@@ -12,6 +12,9 @@
 
 // forward declaration
 typedef struct context *Context;
+bool ptrtype(enum ASTPRIM type);
+bool inttype(enum ASTPRIM type);
+
 
 #define MAX_SYMBOLS 1024
 
@@ -26,7 +29,6 @@ struct symTableEntry {
     enum STRUCTTYPE stype;
 
     union {
-        int nElems;    // params
         int posn;
         int paramReg;  // param register if first 4
     };
@@ -37,6 +39,7 @@ struct symTableEntry {
         bool isStr;
     };
 
+    int nElems;
     int size;  // Number of elements in the symbol
 
     // for annoymous strings, for now
@@ -51,6 +54,9 @@ struct symTableEntry {
 };
 
 typedef struct symTableEntry *SymTableEntry;
+
+// another forward decl
+int type_size(enum ASTPRIM type, SymTableEntry cType);
 
 struct symTable {
     SymTableEntry globHead, globTail;

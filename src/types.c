@@ -19,8 +19,17 @@ int type_size(enum ASTPRIM type, SymTableEntry cType) {
 ASTnode modify_type(ASTnode tree, enum ASTPRIM rtype, enum ASTOP op) {
     enum ASTPRIM ltype;
     int lsize, rsize;
+
     ltype = tree->type;
 
+    if (ltype == P_STRUCT || ltype == P_UNION) {
+        fatal("InternalError: Struct/Union type in modify_type");
+    }
+    if (rtype == P_STRUCT || rtype == P_UNION) {
+        fatal("InternalError: Struct/Union type in modify_type");
+    }
+
+    // TODO: Change this and see if anything breaks
     if ((inttype(ltype) && inttype(rtype)) ||
         // For assignment operator
         (ptrtype(ltype) && ptrtype(rtype))) {
@@ -36,8 +45,21 @@ ASTnode modify_type(ASTnode tree, enum ASTPRIM rtype, enum ASTOP op) {
         }
     }
 
+/*
     if (ptrtype(rtype)) {
         if (op == A_NONE && ptrtype(rtype)) {
+            return tree;
+        }
+    }
+*/
+
+    if (ptrtype(ltype) && ptrtype(rtype)) {
+        debug ("Comparing two pointers");
+        if (op >= A_EQ && op <= A_GE) {
+            return tree;
+        }
+
+        if (op == A_NONE && (ltype == rtype || rtype == pointer_to(P_VOID))) {
             return tree;
         }
     }
@@ -47,6 +69,8 @@ ASTnode modify_type(ASTnode tree, enum ASTPRIM rtype, enum ASTOP op) {
         // Pointer -> left, Value -> right
 
         if (inttype(ltype) && ptrtype(rtype)) {
+            // can be compared
+
             rsize = PrimSize(value_at(rtype));
             if (rsize > 1) {
                 return ASTnode_NewUnary(A_SCALE, rtype, tree, NULL, rsize);

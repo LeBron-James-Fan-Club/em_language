@@ -38,6 +38,9 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
         return NO_REG;
     }
 
+    debug("AST mem: %p OP: %d left %p right %p mid %p", n, n->op, n->left,
+          n->right, n->mid);
+
     switch (n->op) {
         case A_IF:
             return genIFAST(this, st, ctx, n, loopTopLabel, loopEndLabel);
@@ -266,6 +269,8 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
         case A_CONTINUE:
             MIPS_Jump(this, loopTopLabel);
             return NO_REG;
+        case A_CAST:
+            return leftReg;
         default:
             fatala("InternalError: Unknown AST operator %d", n->op);
     }

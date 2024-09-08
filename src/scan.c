@@ -88,7 +88,7 @@ static char skip(Scanner this) {
     return c;
 }
 
-bool Scanner_Scan(Scanner this, Token t) {
+void Scanner_Scan(Scanner this, Token t) {
     char c, tokenType;
 
     if (this->rejToken) {
@@ -96,10 +96,7 @@ bool Scanner_Scan(Scanner this, Token t) {
         t->token = this->rejToken->token;
         t->intvalue = this->rejToken->intvalue;
         this->rejToken = NULL;
-        if (t->token == T_EOF || t->token == T_SEMI || t->token == T_RPAREN ||
-            t->token == T_RBRACKET)
-            return false;
-        return true;
+        return;
     }
 
     c = skip(this);
@@ -111,13 +108,13 @@ bool Scanner_Scan(Scanner this, Token t) {
             t->token = T_EOF;
             debug("<EOF>");
             t->tokstr = TokStr[t->token];
-            return false;
+            break;
         case ';':
             // equv to eof
             // Need to manage putback of characters
             t->token = T_SEMI;
             t->tokstr = TokStr[t->token];
-            return false;
+            break;
         case '+':
             if ((c = next(this)) == '+') {
                 t->token = T_INC;
@@ -210,22 +207,20 @@ bool Scanner_Scan(Scanner this, Token t) {
             t->token = T_LPAREN;
             break;
         case ')':
-            // TODO NEED TO CHANGE THIS LATER ON
-            // TODO WHEN WE USE PARENS - fixed? (its kinda shitty tho)
             t->token = T_RPAREN;
             t->tokstr = TokStr[t->token];
-            return false;
+            break;
         case '[':
             t->token = T_LBRACKET;
             break;
         case ']':
             t->token = T_RBRACKET;
             t->tokstr = TokStr[t->token];
-            return false;
+            break;
         case ',':
             t->token = T_COMMA;
             t->tokstr = TokStr[t->token];
-            return false;
+            break;
         case '&':
             if ((c = next(this)) == '&') {
                 t->token = T_LOGAND;
@@ -294,10 +289,7 @@ bool Scanner_Scan(Scanner this, Token t) {
             lfatala(this, "SyntaxError: Invalid character %c", c);
     }
 
-    //debug("token %d", t->token);
-
     t->tokstr = TokStr[t->token];
-    return true;
 }
 
 static int keyword(char *s) {

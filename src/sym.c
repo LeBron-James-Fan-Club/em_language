@@ -16,19 +16,21 @@ static void freeList(SymTableEntry head);
 static SymTableEntry SymTableEntryNew(char *name, enum ASTPRIM type,
                                       SymTableEntry ctype,
                                       enum STRUCTTYPE stype,
-                                      enum STORECLASS class, int size,
-                                      int offset);
+                                      enum STORECLASS class, int nElems,
+                                      int posn);
 static void pushSym(SymTableEntry *head, SymTableEntry *tail, SymTableEntry e);
 
 static SymTableEntry SymTableEntryNew(char *name, enum ASTPRIM type,
                                       SymTableEntry ctype,
                                       enum STRUCTTYPE stype,
-                                      enum STORECLASS class, int size,
+                                      enum STORECLASS class, int nElems,
                                       int posn) {
     SymTableEntry e = calloc(1, sizeof(struct symTableEntry));
     if (e == NULL) {
         fatal("InternalError: Unable to allocate memory for SymTableEntry");
     }
+
+    debug("Adding symbol %s, nElems %d", name, nElems);
 
     e->name = strdup(name);
     e->type = type;
@@ -37,7 +39,13 @@ static SymTableEntry SymTableEntryNew(char *name, enum ASTPRIM type,
     e->stype = stype;
     e->class = class;
 
-    e->size = size;
+    e->nElems = nElems;
+
+    if (ptrtype(type) || inttype(type)) {
+        e->size = nElems * type_size(type, ctype);
+    }
+
+    debug("nElems %d, size %d", e->nElems, e->size);
     e->posn = posn;
 
     return e;
@@ -62,7 +70,7 @@ char *SymTableEntry_MakeAnon(SymTable this, int *anon) {
     if (anon != NULL) {
         *anon = this->anon;
     }
-    
+
     char *name;
     asprintf(&name, "anon_%d", this->anon++);
     return name;
@@ -71,8 +79,10 @@ char *SymTableEntry_MakeAnon(SymTable this, int *anon) {
 SymTableEntry SymTable_AddGlob(SymTable this, char *name, enum ASTPRIM type,
                                SymTableEntry ctype, enum STRUCTTYPE stype,
                                enum STORECLASS class, int nelems, int posn) {
+    debug("Adding global symbol %s %d", name, nelems);
     SymTableEntry e =
         SymTableEntryNew(name, type, ctype, stype, class, nelems, posn);
+    debug("Added global symbol %s %d", name, nelems);
 
     pushSym(&this->globHead, &this->globTail, e);
 
@@ -202,6 +212,7 @@ SymTable SymTable_New(void) {
     if (g == NULL) {
         fatal("InternalError: Unable to allocate memory for SymTable");
     }
+    g->anon = 1;
 
     return g;
 }

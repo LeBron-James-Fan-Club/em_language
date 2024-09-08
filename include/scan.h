@@ -30,7 +30,7 @@ typedef struct scanner *Scanner;
 
 Scanner Scanner_New(void);
 void Scanner_Free(Scanner);
-bool Scanner_Scan(Scanner, Token t);
+void Scanner_Scan(Scanner this, Token t);
 void Scanner_Putback(Scanner this, char c);
 void Scanner_RejectToken(Scanner this, Token t);
 

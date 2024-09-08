@@ -69,6 +69,8 @@ static void preprocess(Scanner s, char *filename) {
         fatala("OSError: Unable to open pipe to cpp %s, error: %s", filename, strerror(errno));
     }
     s->infilename = filename;
+
+    debug("Preprocessing %s", filename);
     
 
     free(cmd);

@@ -12,11 +12,15 @@ void rbrace(Scanner s, Token t);
 void lparen(Scanner s, Token t);
 void rparen(Scanner s, Token t);
 
-static ASTnode poke_statement(Scanner s, SymTable st, Token tok, Context ctx);
+static ASTnode poke_statement(Compiler c, Scanner s, SymTable st, Token tok,
+                              Context ctx);
 
-static ASTnode print_statement(Scanner s, SymTable st, Token tok, Context ctx);
-static ASTnode input_statement(Scanner s, SymTable st, Token tok, Context ctx);
-static ASTnode if_statement(Compiler c, Scanner s, SymTable st, Token tok, Context ctx);
+static ASTnode print_statement(Compiler c, Scanner s, SymTable st, Token tok,
+                               Context ctx);
+static ASTnode input_statement(Scanner s, SymTable st, Token tok,
+                               Context ctx);
+static ASTnode if_statement(Compiler c, Scanner s, SymTable st, Token tok,
+                            Context ctx);
 
 static ASTnode label_statement(Scanner s, SymTable st, Token tok);
 static ASTnode goto_statement(Scanner s, SymTable st, Token tok);
@@ -25,11 +29,11 @@ static ASTnode while_statement(Compiler c, Scanner s, SymTable st, Token tok,
 
 static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok,
                              Context ctx);
-static ASTnode return_statement(Scanner s, SymTable st, Token tok, Context ctx);
+static ASTnode return_statement(Compiler c, Scanner s, SymTable st, Token tok,
+                                Context ctx);
 
 static ASTnode break_statement(Scanner s, Token tok, Context ctx);
-static ASTnode continue_statement(Scanner s, Token tok,
-                                  Context ctx);
+static ASTnode continue_statement(Scanner s, Token tok, Context ctx);
 static ASTnode switch_statement(Compiler c, Scanner s, SymTable st, Token tok,
                                 Context ctx);
 
@@ -87,10 +91,10 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
 
     switch (tok->token) {
         case T_PRINT:
-            return print_statement(s, st, tok, ctx);
+            return print_statement(c, s, st, tok, ctx);
         case T_IDENT:
             if (SymTable_FindTypeDef(st, s) == NULL) {
-                stmt = ASTnode_Order(s, st, tok, ctx);
+                stmt = ASTnode_Order(c, s, st, tok, ctx);
                 semi(s, tok);
                 return stmt;
             }
@@ -100,11 +104,12 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
         case T_UNION:
         case T_ENUM:
         case T_TYPEDEF:
-            declare_list(c, s, st, tok, ctx, &cType, C_LOCAL, T_SEMI, T_EOF, &stmt);
+            declare_list(c, s, st, tok, ctx, &cType, C_LOCAL, T_SEMI, T_EOF,
+                         &stmt);
             semi(s, tok);
             return stmt;
         case T_POKE:
-            return poke_statement(s, st, tok, ctx);
+            return poke_statement(c, s, st, tok, ctx);
         case T_INPUT:
             return input_statement(s, st, tok, ctx);
         case T_IF:
@@ -119,7 +124,7 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
             // Basically a while loop wrapper
             return for_statement(c, s, st, tok, ctx);
         case T_RETURN:
-            return return_statement(s, st, tok, ctx);
+            return return_statement(c, s, st, tok, ctx);
         case T_BREAK:
             return break_statement(s, tok, ctx);
         case T_CONTINUE:
@@ -137,24 +142,26 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
             rbrace(s, tok);
             return stmt;
         default:
-            stmt = ASTnode_Order(s, st, tok, ctx);
+            stmt = ASTnode_Order(c, s, st, tok, ctx);
             semi(s, tok);
             return stmt;
     }
 }
 
-static ASTnode poke_statement(Scanner s, SymTable st, Token tok, Context ctx) {
+static ASTnode poke_statement(Compiler c, Scanner s, SymTable st, Token tok,
+                              Context ctx) {
     ASTnode param1, param2;
     match(s, tok, T_POKE, "poke");
     lparen(s, tok);
-    param1 = ASTnode_Order(s, st, tok, ctx);
+    param1 = ASTnode_Order(c, s, st, tok, ctx);
     comma(s, tok);
-    param2 = ASTnode_Order(s, st, tok, ctx);
+    param2 = ASTnode_Order(c, s, st, tok, ctx);
     rparen(s, tok);
     return ASTnode_New(A_POKE, P_NONE, param2, NULL, param1, NULL, 0);
 }
 
-static ASTnode print_statement(Scanner s, SymTable st, Token tok, Context ctx) {
+static ASTnode print_statement(Compiler c, Scanner s, SymTable st, Token tok,
+                               Context ctx) {
     ASTnode t;
 
     match(s, tok, T_PRINT, "print");
@@ -169,7 +176,7 @@ static ASTnode print_statement(Scanner s, SymTable st, Token tok, Context ctx) {
         if (parent) {
             Scanner_Scan(s, tok);
         }
-        t = ASTnode_Order(s, st, tok, ctx);
+        t = ASTnode_Order(c, s, st, tok, ctx);
 
         int rightType = t->type;
         t->rvalue = true;
@@ -228,7 +235,7 @@ static ASTnode if_statement(Compiler c, Scanner s, SymTable st, Token tok,
     match(s, tok, T_IF, "if");
     lparen(s, tok);
 
-    condAST = ASTnode_Order(s, st, tok, ctx);
+    condAST = ASTnode_Order(c, s, st, tok, ctx);
 
     // Might remove this guard later
     if (condAST->op < A_EQ || condAST->op > A_GE) {
@@ -254,7 +261,7 @@ static ASTnode while_statement(Compiler c, Scanner s, SymTable st, Token tok,
     match(s, tok, T_WHILE, "while");
     lparen(s, tok);
 
-    condAST = ASTnode_Order(s, st, tok, ctx);
+    condAST = ASTnode_Order(c, s, st, tok, ctx);
     if (condAST->op < A_EQ || condAST->op > A_GE) {
         fprintf(stderr, "Error: Bad comparison operator\n");
         exit(-1);
@@ -278,17 +285,22 @@ static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok,
     match(s, tok, T_FOR, "for");
     lparen(s, tok);
 
-    preopAST = expression_list(s, st, tok, ctx, T_SEMI);
+    preopAST = expression_list(c, s, st, tok, ctx, T_SEMI);
     semi(s, tok);
 
-    condAST = ASTnode_Order(s, st, tok, ctx);
+    debug("WE ARE COND :L");
+
+    condAST = ASTnode_Order(c, s, st, tok, ctx);
     if (condAST->op < A_EQ || condAST->op > A_GE) {
         fprintf(stderr, "Error: Bad comparison operator\n");
         exit(-1);
     }
+    debug("EATING THE SEMMI :L");
     semi(s, tok);
 
-    postopAST = expression_list(s, st, tok, ctx, T_RPAREN);
+    debug("WE ARE POST :L");
+
+    postopAST = expression_list(c, s, st, tok, ctx, T_RPAREN);
     rparen(s, tok);
 
     Context_IncLoopLevel(ctx);
@@ -327,7 +339,7 @@ static ASTnode goto_statement(Scanner s, SymTable st, Token tok) {
     return t;
 }
 
-static ASTnode return_statement(Scanner s, SymTable st, Token tok,
+static ASTnode return_statement(Compiler c, Scanner s, SymTable st, Token tok,
                                 Context ctx) {
     ASTnode t;
     SymTableEntry func = Context_GetFunctionId(ctx);
@@ -344,7 +356,7 @@ static ASTnode return_statement(Scanner s, SymTable st, Token tok,
 
     match(s, tok, T_RETURN, "return");
 
-    t = ASTnode_Order(s, st, tok, ctx);
+    t = ASTnode_Order(c, s, st, tok, ctx);
     t->rvalue = 1;
 
     debug("func type %d, t type %d", func->type, t->type);
@@ -365,8 +377,7 @@ static ASTnode break_statement(Scanner s, Token tok, Context ctx) {
     return ASTnode_NewLeaf(A_BREAK, P_NONE, NULL, 0);
 }
 
-static ASTnode continue_statement(Scanner s, Token tok,
-                                  Context ctx) {
+static ASTnode continue_statement(Scanner s, Token tok, Context ctx) {
     if (Context_GetLoopLevel(ctx) == 0) {
         lfatal(s, "SyntaxError: continue outside of loop");
     }
@@ -386,7 +397,7 @@ static ASTnode switch_statement(Compiler c, Scanner s, SymTable st, Token tok,
     Scanner_Scan(s, tok);
 
     lparen(s, tok);
-    left = ASTnode_Order(s, st, tok, ctx);
+    left = ASTnode_Order(c, s, st, tok, ctx);
     rparen(s, tok);
 
     lbrace(s, tok);
@@ -427,7 +438,7 @@ static ASTnode switch_statement(Compiler c, Scanner s, SymTable st, Token tok,
                     debug("A CASE");
                     op = A_CASE;
                     Scanner_Scan(s, tok);
-                    left = ASTnode_Order(s, st, tok, ctx);
+                    left = ASTnode_Order(c, s, st, tok, ctx);
 
                     if (left->op != A_INTLIT) {
                         lfatal(

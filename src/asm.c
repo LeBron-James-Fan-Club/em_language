@@ -569,22 +569,24 @@ void MIPS_GlobSym(Compiler this, SymTableEntry sym) {
 
     fprintf(this->outfile, "%s:\n", sym->name);
 
+    debug("allocating global variable %s nElems: %d", sym->name, sym->nElems);
+
     for (int i = 0; i < sym->nElems; i++) {
         initValue = 0;
         if (sym->initList != NULL) initValue = sym->initList[i];
         switch (size) {
             case 1:
-                fprintf(this->outfile, "\t.byte %d\n",
-                        initValue);
+                fprintf(this->outfile, "\t.byte %d\n", initValue);
                 fputs("\t.align 2\n", this->outfile);
                 break;
             case 4:
-                if (type == pointer_to(P_CHAR)) {
-                    fprintf(this->outfile, "\t.word anon_%d\n",
-                            initValue);
+                // Quick fix but will have to figure out literal values later
+                if (sym->initList != NULL && type == pointer_to(P_CHAR) &&
+                    initValue != 0) {
+                    fprintf(this->outfile, "\t.word anon_%d\n", initValue);
                 } else {
-                    fprintf(this->outfile, "\t.word %d\n",
-                            initValue);
+                    fprintf(this->outfile, "\t.word %d\n", initValue);
+
                 }
 
                 break;
@@ -943,12 +945,23 @@ void Compiler_GenData(Compiler this, SymTable st) {
     bool found = false;
     debug("Generating globs");
 
+    // Generate annyomous strings
+    for (SymTableEntry curr = st->globHead; curr != NULL; curr = curr->next) {
+        if (curr->isStr) {
+            MIPS_GlobSym(this, curr);
+        }
+        if (!found) fputs("\n.data\n", this->outfile);
+        found = true;
+    }
+
     for (SymTableEntry curr = st->globHead; curr != NULL; curr = curr->next) {
         // TODO: Remove these lines below (2)
         // TODO: and see if it fucks up anything
 
         if (curr->stype == S_FUNC) continue;
         if (curr->class != C_GLOBAL) continue;
+        if (curr->isStr) continue;
+
         if (!found) fputs("\n.data\n", this->outfile);
         found = true;
         MIPS_GlobSym(this, curr);
