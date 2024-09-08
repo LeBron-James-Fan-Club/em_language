@@ -57,7 +57,7 @@ ASTnode Compound_Statement(Compiler c, Scanner s, SymTable st, Token tok,
         }
         if (tree != NULL &&
             (/*(tree->op >= A_ASSIGN && tree->op <= A_IDENT) ||*/
-             tree->op == A_INPUT || tree->op == A_RETURN ||
+             tree->op == A_RETURN ||
              tree->op == A_FUNCCALL || tree->op == A_LABEL ||
              tree->op == A_GOTO || tree->op == A_POKE || tree->op == A_BREAK ||
              tree->op == A_CONTINUE)) {
@@ -224,6 +224,8 @@ static ASTnode input_statement(Scanner s, SymTable st, Token tok, Context ctx) {
 
     tree = ASTnode_New(A_ASSIGN, P_NONE, left, NULL, tree, NULL, 0);
     rparen(s, tok);
+
+    semi(s, tok);
 
     return tree;
 }
