@@ -37,17 +37,19 @@
  - Sizeof operator
  - Ternary operator
  - || and && operators
+ - Function headings (WIP)
 
 ## What will be added soon (Hopefully)
  - Local arrays
  - Multidimensional arrays
- - Function headings
+
  - Compiler directives
     - Including the ability to manually name any label
  - Namespace
  - Inline assembly and registers
  - Scopes
  - scope creation
+ - string inputs
 
 ## Low chance of being added but I might try
  - Heap support

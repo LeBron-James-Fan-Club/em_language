@@ -20,6 +20,9 @@
 struct compiler {
     bool regUsed[MAX_REG];
 
+    bool styleRegUsed[MAX_REG];
+    int styleSeek;
+
     int paramRegCount;
 
     FILE *outfile;

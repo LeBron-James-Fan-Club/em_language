@@ -1,13 +1,15 @@
 #include "asm.h"
 
+#include <stdio.h>
+
 #include "misc.h"
 
 static char *reglist[MAX_REG] = {"$t0", "$t1", "$t2", "$t3", "$t4",
                                  "$t5", "$t6", "$t7", "$t8", "$t9",
                                  "$a0", "$a1", "$a2", "$a3"};
 
-
 static void freeReg(Compiler this, int reg1);
+static void Compiler_FreeAllStyleReg(Compiler this);
 
 int PrimSize(enum ASTPRIM type) {
     if (ptrtype(type)) {
@@ -64,6 +66,7 @@ void MIPS_Pre(Compiler this) {
 }
 
 void MIPS_Post(Compiler this) {
+    Compiler_FreeAllStyleReg(this);
     /*fputs(
         "\tli\t$v0, 10\n"
         "\tsyscall\n",
@@ -110,6 +113,57 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
             "%s:\n",
             name);
 
+    // ! STYLE HEADER IS CREATED HERE
+    fputs("\n# Frame:\t", this->outfile);
+    int skip = 0;
+    for (SymTableEntry curr = ctx->functionId->member; curr != NULL;
+         curr = curr->next) {
+        if (skip++ < 4) {
+            // skip if first four
+            continue;
+        }
+        fprintf(this->outfile, "%s, ", curr->name);
+    }
+
+    fputs("$fp, $ra", this->outfile);
+
+    if (st->loclHead != NULL) {
+        fputs(", ", this->outfile);
+    }
+
+    for (SymTableEntry curr = st->loclHead; curr != NULL; curr = curr->next) {
+        fprintf(this->outfile, "%s", curr->name);
+        if (curr->next != NULL) {
+            fputs(", ", this->outfile);
+        }
+    }
+
+    fputs("\n# Uses:\t\t", this->outfile);
+
+    if (skip > 4) skip = 4;
+
+    debug("skip is %d", skip);
+
+    for (int i = 0; i < skip; i++) {
+        fprintf(this->outfile, "%s", reglist[FIRST_PARAM_REG + i]);
+        if ((i + 1) < skip) {
+            fputs(", ", this->outfile);
+        }
+    }
+
+    fputs("\n# Clobbers:\t", this->outfile);
+
+    for (int i = 0; i < skip; i++) {
+        fprintf(this->outfile, "%s", reglist[FIRST_PARAM_REG + i]);
+        if ((i + 1) < skip) {
+            fputs(", ", this->outfile);
+        }
+    }
+
+    // this->styleSeek = ftell(this->outfile);
+
+    fputs("\n\n", this->outfile);
+
     debug("Function: %s", name);
 
     SymTableEntry paramCurr = ctx->functionId->member;
@@ -142,6 +196,13 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
 
     // need to add local offset to all offsets somehow
 
+    fputs("\n# Locals:\n", this->outfile);
+    for (SymTableEntry curr = st->loclHead; curr != NULL; curr = curr->next) {
+        fprintf(this->outfile, "#\t-`%s` in %d($sp)\n", curr->name, curr->posn);
+    }
+
+    fputs("\n\n", this->outfile);
+
     fprintf(this->outfile,
             "\tbegin\n\n"
             "\tpush\t$ra\n");
@@ -166,6 +227,33 @@ void MIPS_PostFunc(Compiler this, Context ctx) {
         "\tend\n"
         "\tjr\t$ra\n\n",
         this->outfile);
+
+    /*
+    int toSeek = this->styleSeek;
+    this->styleSeek = ftell(this->outfile);
+    fseek(this->outfile, toSeek, SEEK_SET);
+
+    int charactersAdded = 0;
+    if (ctx->functionId->member) {
+        fputs(", ", this->outfile);
+        charactersAdded += 2;
+    }
+
+    for (int i = 0; i < MAX_REG; i++) {
+        if (this->styleRegUsed[i]) {
+            fprintf(this->outfile, "%s", reglist[i]);
+            charactersAdded += 3;
+        }
+        if ((i + 1) < MAX_REG && this->styleRegUsed[i + 1]) {
+            fputs(", ", this->outfile);
+            charactersAdded += 2;
+        }
+    }
+    fputs("\n", this->outfile);
+    charactersAdded += 1;
+
+    fseek(this->outfile, this->styleSeek + charactersAdded, SEEK_SET);
+    */
 }
 
 int MIPS_Load(Compiler this, int value) {
@@ -892,7 +980,7 @@ int MIPS_LogOr(Compiler this, int r1, int r2) {
     MIPS_Label(this, Lend);
 
     freeReg(this, r2);
-    return r1;    
+    return r1;
 }
 
 int MIPS_LogAnd(Compiler this, int r1, int r2) {
@@ -950,6 +1038,7 @@ void MIPS_Switch(Compiler this, int r, int caseCount, int topLabel,
 int allocReg(Compiler this) {
     for (int i = 0; i < MAX_REG; i++) {
         if (!this->regUsed[i]) {
+            this->styleRegUsed[i] = true;
             this->regUsed[i] = true;
             return i;
         }
@@ -969,6 +1058,12 @@ int Compiler_GenLabel(Compiler this) { return this->label++; }
 void Compiler_FreeAllReg(Compiler this, int keepReg) {
     for (int i = 0; i < MAX_REG; i++) {
         if (i != keepReg) this->regUsed[i] = false;
+    }
+}
+
+static void Compiler_FreeAllStyleReg(Compiler this) {
+    for (int i = 0; i < MAX_REG; i++) {
+        this->styleRegUsed[i] = false;
     }
 }
 
