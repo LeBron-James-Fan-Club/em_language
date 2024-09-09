@@ -301,8 +301,12 @@ static int param_declare_list(Compiler c, Scanner s, SymTable st, Token tok,
             }
         }
 
+
         type = declare_list(c, s, st, tok, ctx, &cType, C_PARAM, T_COMMA,
                             T_RPAREN, &unused);
+
+        debug("WE GOT THE TYPE FROM PARAM %d", type);
+
         if (type == -1) {
             lfatal(s, "InvalidTypeError: invalid parameter type");
         }
@@ -316,6 +320,12 @@ static int param_declare_list(Compiler c, Scanner s, SymTable st, Token tok,
         }
 
         paramCnt++;
+        
+        if (tok->token == T_RPAREN) {
+            break;
+        } else {
+            comma(s, tok);
+        }
     }
 
     if (oldFuncSym != NULL && paramCnt != oldFuncSym->nElems) {
@@ -484,6 +494,8 @@ enum ASTPRIM parse_type(Compiler c, Scanner s, SymTable st, Token tok,
                 exstatic = false;
         }
     }
+
+    debug("token (PARSE TYPE) %s", tok->tokstr);
 
     switch (tok->token) {
         case T_INT:

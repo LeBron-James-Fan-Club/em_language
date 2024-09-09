@@ -64,10 +64,10 @@ void MIPS_Pre(Compiler this) {
 }
 
 void MIPS_Post(Compiler this) {
-    fputs(
+    /*fputs(
         "\tli\t$v0, 10\n"
         "\tsyscall\n",
-        this->outfile);
+        this->outfile);*/
 }
 
 /**
