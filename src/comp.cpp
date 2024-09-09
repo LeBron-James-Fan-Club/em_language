@@ -1,26 +1,25 @@
 #include "comp.h"
 #include "misc.h"
 
-void Compiler_ResetOffset(Compiler self) {
-
-    self->localOffset = 0;
+void compiler::Compiler_ResetOffset() {
+    this->localOffset = 0;
     // 4 because its like accessing a[0] instead of a[1]
-    self->paramOffset = 4;
-    self->paramRegCount = 0;
+    this->paramOffset = 4;
+    this->paramRegCount = 0;
 }
 
-int Compiler_GetLocalOffset(Compiler self, enum ASTPRIM type) {
-    debug("the local offset is %d", self->localOffset);
-    self->localOffset += (PrimSize(type) > 4) ? PrimSize(type) : 4;
-    debug("after the local offset is %d", self->localOffset);
-    return self->localOffset;
+int compiler::Compiler_GetLocalOffset(enum ASTPRIM type) {
+    debug("the local offset is %d", this->localOffset);
+    this->localOffset += (PrimSize(type) > 4) ? PrimSize(type) : 4;
+    debug("after the local offset is %d", this->localOffset);
+    return this->localOffset;
 }
 
-int Compiler_GetParamOffset(Compiler self, enum ASTPRIM type) {
-    debug("the param offset is %d", self->paramOffset);
-    self->paramOffset += (PrimSize(type) > 4) ? PrimSize(type) : 4;
-    debug("after the param offset is %d", self->paramOffset);
-    return self->paramOffset;
+int compiler::Compiler_GetParamOffset(enum ASTPRIM type) {
+    debug("the param offset is %d", this->paramOffset);
+    this->paramOffset += (PrimSize(type) > 4) ? PrimSize(type) : 4;
+    debug("after the param offset is %d", this->paramOffset);
+    return this->paramOffset;
 }
 
 compiler::compiler(char *outfile) {

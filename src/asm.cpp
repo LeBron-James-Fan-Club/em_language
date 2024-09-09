@@ -97,7 +97,7 @@ void MIPS_PreFunc(Compiler self, SymTable st, Context ctx) {
 
     int paramReg = FIRST_PARAM_REG;
 
-    Compiler_ResetOffset(self);
+    self->Compiler_ResetOffset();
 
     // 0 is $ra and 1 is $fp
 
@@ -182,13 +182,13 @@ void MIPS_PreFunc(Compiler self, SymTable st, Context ctx) {
         // same thing but for local
         // We subtract 4 cause its 1 off
         // e.g. a[0] instead of a[1]
-        loclCurr->posn = Compiler_GetLocalOffset(self, loclCurr->type) - 4;
+        loclCurr->posn = self->Compiler_GetLocalOffset(loclCurr->type) - 4;
     }
 
     for (; paramCurr != nullptr; paramCurr = paramCurr->next) {
         // for remaining params they get pushed on stack
         paramCurr->posn =
-            self->localOffset + Compiler_GetParamOffset(self, paramCurr->type);
+            self->localOffset + self->Compiler_GetParamOffset(paramCurr->type);
     }
 
     // need to add local offset to all offsets somehow

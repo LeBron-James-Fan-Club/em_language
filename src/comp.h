@@ -32,15 +32,15 @@ struct compiler {
 
     explicit compiler(char *outfile);
     ~compiler();
+
+    void Compiler_ResetOffset();
+    int Compiler_GetLocalOffset(enum ASTPRIM type);
+    int Compiler_GetParamOffset(enum ASTPRIM type);
 };
 
 // forward declaration
 int PrimSize(enum ASTPRIM type);
 
 typedef struct compiler *Compiler;
-
-void Compiler_ResetOffset(Compiler self);
-int Compiler_GetLocalOffset(Compiler self, enum ASTPRIM type);
-int Compiler_GetParamOffset(Compiler self, enum ASTPRIM type);
 
 #endif
