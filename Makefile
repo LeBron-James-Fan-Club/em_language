@@ -1,7 +1,7 @@
 # Compiler and flags
 CC = clang
 INCDIR = ./bin/include
-CFLAGS = -MMD -MP -Wall -Wextra -g -I./include -fsanitize=address,undefined -DINCDIR=\"$(INCDIR)\"
+CFLAGS = -MMD -MP -Wall -Wextra -g -fsanitize=address,undefined -DINCDIR=\"$(INCDIR)\"
 LDFLAGS = -fsanitize=address,undefined
 
 # Directories
