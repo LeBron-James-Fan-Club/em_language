@@ -17,7 +17,7 @@
  - Pre/Post increment/decrement
  - Pointers
  - String literals
- - Input (integer only)/Print
+ - Input (String, Char, Int)/Print
  - Normal mathy stuff and negation
     - \- \+ % / \*
  - Bodmas
@@ -48,7 +48,6 @@
  - Inline assembly and registers
  - Scopes
  - scope creation
- - string inputs
 
 ## Low chance of being added but I might try
  - Heap support
