@@ -90,7 +90,7 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
         case T_PRINT:
             return print_statement(c, s, st, tok, ctx);
         case T_IDENT:
-            if (SymTable_FindTypeDef(st, s) == nullptr) {
+            if (st->SymTable_FindTypeDef(s) == nullptr) {
                 stmt = ASTnode_Order(c, s, st, tok, ctx);
                 semi(s, tok);
                 return stmt;
@@ -212,7 +212,7 @@ static ASTnode input_statement(Scanner s, SymTable st, Token tok, Context ctx) {
 
     ident(s, tok);
     
-    if ((var = SymTable_FindSymbol(st, s, ctx)) == nullptr) {
+    if ((var = st->SymTable_FindSymbol(s, ctx)) == nullptr) {
         lfatala(s, "UndefinedError: Undefined variable %s", s->text);
     }
 
@@ -350,7 +350,7 @@ static ASTnode label_statement(Scanner s, SymTable st, Token tok) {
     match(s, tok, T_LABEL, "label");
     ident(s, tok);
 
-    SymTableEntry var = SymTable_AddGlob(st, s->text, P_NONE, nullptr, S_LABEL,
+    SymTableEntry var = st->SymTable_AddGlob(s->text, P_NONE, nullptr, S_LABEL,
                                          C_GLOBAL, 0, false);
 
     ASTnode t = ASTnode_NewLeaf(A_LABEL, P_NONE, nullptr, var, 0);
@@ -364,7 +364,7 @@ static ASTnode goto_statement(Scanner s, SymTable st, Token tok) {
     match(s, tok, T_GOTO, "goto");
     // ! Might be buggy?
     ident(s, tok);
-    if ((var = SymTable_FindGlob(st, s)) == nullptr) {
+    if ((var = st->SymTable_FindGlob(s)) == nullptr) {
         lfatala(s, "UndefinedError: Undefined label %s", s->text);
     }
 

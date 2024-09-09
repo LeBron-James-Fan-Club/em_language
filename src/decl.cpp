@@ -63,20 +63,20 @@ static SymTableEntry symbol_declare(Compiler c, Scanner s, SymTable st,
         case C_EXTERN:
         case C_STATIC:
         case C_GLOBAL:
-            if (SymTable_FindGlob(st, s) != nullptr) {
+            if (st->SymTable_FindGlob(s) != nullptr) {
                 lfatala(s, "DuplicateError: Duplicate global variable %s",
                         s->text);
             }
             break;
         case C_LOCAL:
         case C_PARAM:
-            if (SymTable_FindLocl(st, s, ctx) != nullptr) {
+            if (st->SymTable_FindLocl(s, ctx) != nullptr) {
                 lfatala(s, "DuplicateError: Duplicate local variable %s",
                         s->text);
             }
             break;
         case C_MEMBER:
-            if (SymTable_FindMember(st, s) != nullptr) {
+            if (st->SymTable_FindMember(s) != nullptr) {
                 lfatala(s, "DuplicateError: Duplicate member %s", s->text);
             }
             break;
@@ -138,20 +138,20 @@ static SymTableEntry scalar_declare(Compiler c, Scanner s, SymTable st,
         case C_GLOBAL:
             debug("adding global %s", varName);
             sym =
-                SymTable_AddGlob(st, varName, type, cType, S_VAR, _class, 1, 0);
+                    st->SymTable_AddGlob(varName, type, cType, S_VAR, _class, 1, 0);
             debug("nelems %d", sym->nElems);
             break;
         case C_LOCAL:
             debug("a");
-            sym = SymTable_AddLocl(st, varName, type, cType, S_VAR, 1);
+            sym = st->SymTable_AddLocl(varName, type, cType, S_VAR, 1);
             break;
         case C_PARAM:
             debug("b");
-            sym = SymTable_AddParam(st, varName, type, cType, S_VAR);
+            sym = st->SymTable_AddParam(varName, type, cType, S_VAR);
             break;
         case C_MEMBER:
             debug("c");
-            sym = SymTable_AddMemb(st, varName, type, cType, S_VAR, 1);
+            sym = st->SymTable_AddMemb(varName, type, cType, S_VAR, 1);
             break;
         default:
             lfatal(s, "UnsupportedError: unsupported _class");
@@ -217,7 +217,7 @@ static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
     switch (_class) {
         case C_EXTERN:
         case C_GLOBAL:
-            sym = SymTable_AddGlob(st, varName, pointer_to(type), cType,
+            sym = st->SymTable_AddGlob(varName, pointer_to(type), cType,
                                    S_ARRAY, _class, 0, 0);
             break;
         default:
@@ -402,14 +402,14 @@ SymTableEntry function_declare(Compiler c, Scanner s, SymTable st, Token tok,
 
     debug("DECLARING FUNCTION");
 
-    if ((oldFuncSym = SymTable_FindSymbol(st, s, ctx)) != nullptr) {
+    if ((oldFuncSym = st->SymTable_FindSymbol(s, ctx)) != nullptr) {
         if (oldFuncSym->stype != S_FUNC) {
             oldFuncSym = nullptr;
         }
     }
 
     if (oldFuncSym == nullptr) {
-        newFuncSym = SymTable_AddGlob(st, s->text, type, nullptr, S_FUNC, C_GLOBAL,
+        newFuncSym = st->SymTable_AddGlob(s->text, type, nullptr, S_FUNC, C_GLOBAL,
                                       1, false);
     }
 
@@ -424,7 +424,7 @@ SymTableEntry function_declare(Compiler c, Scanner s, SymTable st, Token tok,
         newFuncSym->member = st->paramHead;
         oldFuncSym = newFuncSym;
     } else {
-        SymTable_FreeParams(st);
+        st->SymTable_FreeParams();
     }
 
     st->paramHead = st->paramTail = nullptr;
@@ -465,7 +465,7 @@ SymTableEntry function_declare(Compiler c, Scanner s, SymTable st, Token tok,
     Compiler_Gen(c, st, ctx, tree);
     ASTnode_Free(tree);
 
-    SymTable_FreeLocls(st);
+    st->SymTable_FreeLocls();
     Context_SetFunctionId(ctx, nullptr);
 
     return oldFuncSym;
@@ -592,9 +592,9 @@ static SymTableEntry composite_declare(Compiler c, Scanner s, SymTable st,
 
     if (tok->token == T_IDENT) {
         if (type == P_STRUCT) {
-            cType = SymTable_FindStruct(st, s);
+            cType = st->SymTable_FindStruct(s);
         } else if (type == P_UNION) {
-            cType = SymTable_FindUnion(st, s);
+            cType = st->SymTable_FindUnion(s);
         } else {
             fatal("InternalError: Unknown composite type");
         }
@@ -614,9 +614,9 @@ static SymTableEntry composite_declare(Compiler c, Scanner s, SymTable st,
     }
 
     if (type == P_STRUCT) {
-        cType = SymTable_AddStruct(st, s->text);
+        cType = st->SymTable_AddStruct(s->text);
     } else if (type == P_UNION) {
-        cType = SymTable_AddUnion(st, s->text);
+        cType = st->SymTable_AddUnion(s->text);
     } else {
         fatal("InternalError: Unknown composite type");
     }
@@ -686,7 +686,7 @@ static void enum_declare(Scanner s, SymTable st, Token tok) {
     Scanner_Scan(s, tok);
 
     if (tok->token == T_IDENT) {
-        eType = SymTable_FindEnumType(st, s);
+        eType = st->SymTable_FindEnumType(s);
         name = strdup(s->text);
         Scanner_Scan(s, tok);
     }
@@ -705,7 +705,7 @@ static void enum_declare(Scanner s, SymTable st, Token tok) {
         lfatala(s, "DuplicateError: enum %s already defined", eType->name);
     }
 
-    eType = SymTable_AddEnum(st, name, C_ENUMTYPE, 0);
+    eType = st->SymTable_AddEnum(name, C_ENUMTYPE, 0);
 
     if (name) free(name);
 
@@ -713,7 +713,7 @@ static void enum_declare(Scanner s, SymTable st, Token tok) {
         ident(s, tok);
         name = strdup(s->text);
 
-        eType = SymTable_FindEnumVal(st, s);
+        eType = st->SymTable_FindEnumVal(s);
         if (eType != nullptr) {
             lfatala(s, "DuplicateError: enum value %s already defined", name);
         }
@@ -728,7 +728,7 @@ static void enum_declare(Scanner s, SymTable st, Token tok) {
             Scanner_Scan(s, tok);
         }
 
-        eType = SymTable_AddEnum(st, name, C_ENUMVAL, intVal++);
+        eType = st->SymTable_AddEnum(name, C_ENUMVAL, intVal++);
         free(name);
 
         if (tok->token == T_RBRACE) break;
@@ -755,11 +755,11 @@ static enum ASTPRIM typedef_declare(Compiler c, Scanner s, SymTable st,
         lfatal(s, "TypeError: typedef cannot have extern");
     }
 
-    if (SymTable_FindTypeDef(st, s) != nullptr) {
+    if (st->SymTable_FindTypeDef(s) != nullptr) {
         lfatala(s, "DuplicateError: typedef %s already defined", s->text);
     }
 
-    SymTable_AddTypeDef(st, s->text, type, *cType);
+    st->SymTable_AddTypeDef(s->text, type, *cType);
     Scanner_Scan(s, tok);
 
     return type;
@@ -769,7 +769,7 @@ static enum ASTPRIM typedef_type(Scanner s, SymTable st, Token tok,
                                  SymTableEntry *cType) {
     SymTableEntry type;
 
-    type = SymTable_FindTypeDef(st, s);
+    type = st->SymTable_FindTypeDef(s);
     debug("typedef is %d :)", type->type);
     if (type == nullptr) {
         lfatala(s, "UndefinedError: typedef %s is not defined", s->text);

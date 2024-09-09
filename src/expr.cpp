@@ -105,11 +105,11 @@ static ASTnode primary(Compiler c, Scanner s, SymTable st, Token t,
             // Compiler being schizo about name for some reason
             // cause name is declared as soon after case
             {
-                char *name = SymTableEntry_MakeAnon(st, nullptr);
-                var = SymTable_AddGlob(st, name, pointer_to(P_CHAR), nullptr,
+                char *name = st->SymTableEntry_MakeAnon(nullptr);
+                var = st->SymTable_AddGlob(name, pointer_to(P_CHAR), nullptr,
                                        S_VAR, C_GLOBAL, 1, 0);
                 free(name);
-                SymTable_SetText(st, s, var);
+                st->SymTable_SetText(s, var);
                 n = ASTnode_NewLeaf(A_STRLIT, pointer_to(P_CHAR), nullptr, var, 0);
             }
             break;
@@ -128,11 +128,11 @@ static ASTnode primary(Compiler c, Scanner s, SymTable st, Token t,
             n = sizeof_operator(c, s, st, t, ctx);
             break;
         case T_IDENT:
-            if ((enumPtr = SymTable_FindEnumVal(st, s)) != nullptr) {
+            if ((enumPtr = st->SymTable_FindEnumVal(s)) != nullptr) {
                 return ASTnode_NewLeaf(A_INTLIT, P_INT, nullptr, nullptr,
                                        enumPtr->posn);
             }
-            if ((var = SymTable_FindSymbol(st, s, ctx)) == nullptr) {
+            if ((var = st->SymTable_FindSymbol(s, ctx)) == nullptr) {
                 lfatala(s, "UndefinedError: Undefined variable %s", s->text);
             }
 
@@ -180,7 +180,7 @@ static ASTnode paren_expression(Compiler c, Scanner s, SymTable st, Token t,
 
     switch (t->token) {
         case T_IDENT:
-            if (SymTable_FindTypeDef(st, s) == nullptr) {
+            if (st->SymTable_FindTypeDef(s) == nullptr) {
                 n = ASTnode_Order(c, s, st, t, ctx);
                 break;
             }
@@ -373,7 +373,7 @@ static ASTnode ASTnode_FuncCall(Compiler c, Scanner s, SymTable st, Token tok,
     ASTnode t;
     SymTableEntry var;
 
-    if ((var = SymTable_FindSymbol(st, s, ctx)) == nullptr) {
+    if ((var = st->SymTable_FindSymbol(s, ctx)) == nullptr) {
         lfatala(s, "UndefinedError: Undefined function %s", s->text);
     }
 

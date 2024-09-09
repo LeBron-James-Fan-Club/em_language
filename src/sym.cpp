@@ -63,17 +63,17 @@ static void pushSym(SymTableEntry *head, SymTableEntry *tail, SymTableEntry e) {
     e->next = nullptr;
 }
 
-char *SymTableEntry_MakeAnon(SymTable self, int *anon) {
+char *symTable::SymTableEntry_MakeAnon(int *anon) {
     if (anon != nullptr) {
-        *anon = self->anon;
+        *anon = this->anon;
     }
 
     char *name;
-    asprintf(&name, "anon_%d", self->anon++);
+    asprintf(&name, "anon_%d", this->anon++);
     return name;
 }
 
-SymTableEntry SymTable_AddGlob(SymTable self, char *name, enum ASTPRIM type,
+SymTableEntry symTable::SymTable_AddGlob(char *name, enum ASTPRIM type,
                                SymTableEntry ctype, enum STRUCTTYPE stype,
                                enum STORECLASS _class, int nelems, int posn) {
     debug("Adding global symbol %s %d", name, nelems);
@@ -81,74 +81,74 @@ SymTableEntry SymTable_AddGlob(SymTable self, char *name, enum ASTPRIM type,
         SymTableEntryNew(name, type, ctype, stype, _class, nelems, posn);
     debug("Added global symbol %s %d", name, nelems);
 
-    pushSym(&self->globHead, &self->globTail, e);
+    pushSym(&this->globHead, &this->globTail, e);
 
     return e;
 }
 
-SymTableEntry SymTable_AddLocl(SymTable self, char *name, enum ASTPRIM type,
+SymTableEntry symTable::SymTable_AddLocl(char *name, enum ASTPRIM type,
                                SymTableEntry ctype, enum STRUCTTYPE stype,
                                int nelems) {
     SymTableEntry e =
         SymTableEntryNew(name, type, ctype, stype, C_LOCAL, nelems, 0);
 
-    pushSym(&self->loclHead, &self->loclTail, e);
+    pushSym(&this->loclHead, &this->loclTail, e);
     return e;
 }
 
-SymTableEntry SymTable_AddParam(SymTable self, char *name, enum ASTPRIM type,
+SymTableEntry symTable::SymTable_AddParam(char *name, enum ASTPRIM type,
                                 SymTableEntry ctype, enum STRUCTTYPE stype) {
     SymTableEntry e = SymTableEntryNew(name, type, ctype, stype, C_PARAM, 1, 0);
 
-    pushSym(&self->paramHead, &self->paramTail, e);
+    pushSym(&this->paramHead, &this->paramTail, e);
     return e;
 }
 
-SymTableEntry SymTable_AddMemb(SymTable self, char *name, enum ASTPRIM type,
+SymTableEntry symTable::SymTable_AddMemb(char *name, enum ASTPRIM type,
                                SymTableEntry ctype, enum STRUCTTYPE stype,
                                int nelems) {
     SymTableEntry e =
         SymTableEntryNew(name, type, ctype, stype, C_MEMBER, nelems, 0);
 
-    pushSym(&self->membHead, &self->membTail, e);
+    pushSym(&this->membHead, &this->membTail, e);
     return e;
 }
 
-SymTableEntry SymTable_AddStruct(SymTable self, char *name) {
+SymTableEntry symTable::SymTable_AddStruct(char *name) {
     SymTableEntry e =
         SymTableEntryNew(name, P_STRUCT, nullptr, S_VAR, C_STRUCT, 0, 0);
 
-    pushSym(&self->structHead, &self->structTail, e);
+    pushSym(&this->structHead, &this->structTail, e);
     return e;
 }
 
-SymTableEntry SymTable_AddUnion(SymTable self, char *name) {
+SymTableEntry symTable::SymTable_AddUnion(char *name) {
     SymTableEntry e =
         SymTableEntryNew(name, P_UNION, nullptr, S_VAR, C_UNION, 0, 0);
 
-    pushSym(&self->unionHead, &self->unionTail, e);
+    pushSym(&this->unionHead, &this->unionTail, e);
     return e;
 }
 
-SymTableEntry SymTable_AddEnum(SymTable self, char *name, enum STORECLASS _class,
+SymTableEntry symTable::SymTable_AddEnum(char *name, enum STORECLASS _class,
                                int value) {
     SymTableEntry e =
         SymTableEntryNew(name, P_INT, nullptr, S_VAR, _class, 0, value);
 
-    pushSym(&self->enumHead, &self->enumTail, e);
+    pushSym(&this->enumHead, &this->enumTail, e);
     return e;
 }
 
-SymTableEntry SymTable_AddTypeDef(SymTable self, char *name, enum ASTPRIM type,
+SymTableEntry symTable::SymTable_AddTypeDef(char *name, enum ASTPRIM type,
                                   SymTableEntry ctype) {
     SymTableEntry e =
         SymTableEntryNew(name, type, ctype, S_VAR, C_TYPEDEF, 0, 0);
 
-    pushSym(&self->typeHead, &self->typeTail, e);
+    pushSym(&this->typeHead, &this->typeTail, e);
     return e;
 }
 
-SymTableEntry SymTable_FindSymInList(Scanner s, SymTableEntry head,
+SymTableEntry symTable::SymTable_FindSymInList(Scanner s, SymTableEntry head,
                                      enum STORECLASS _class) {
     for (; head != nullptr; head = head->next) {
         if (head->name != nullptr && !strcmp(s->text, head->name) &&
@@ -159,49 +159,49 @@ SymTableEntry SymTable_FindSymInList(Scanner s, SymTableEntry head,
     return nullptr;
 }
 
-SymTableEntry SymTable_FindGlob(SymTable self, Scanner s) {
-    return SymTable_FindSymInList(s, self->globHead, C_NONE);
+SymTableEntry symTable::SymTable_FindGlob(Scanner s) {
+    return SymTable_FindSymInList(s, this->globHead, C_NONE);
 }
 
-SymTableEntry SymTable_FindLocl(SymTable self, Scanner s, Context c) {
+SymTableEntry symTable::SymTable_FindLocl(Scanner s, Context c) {
     SymTableEntry e;
     if (c->functionId) {
         e = SymTable_FindSymInList(s, c->functionId->member, C_NONE);
         if (e) return e;
     }
-    return SymTable_FindSymInList(s, self->loclHead, C_NONE);
+    return SymTable_FindSymInList(s, this->loclHead, C_NONE);
 }
 
-SymTableEntry SymTable_FindMember(SymTable self, Scanner s) {
-    return SymTable_FindSymInList(s, self->membHead, C_NONE);
+SymTableEntry symTable::SymTable_FindMember(Scanner s) {
+    return SymTable_FindSymInList(s, this->membHead, C_NONE);
 }
 
-SymTableEntry SymTable_FindStruct(SymTable self, Scanner s) {
-    return SymTable_FindSymInList(s, self->structHead, C_NONE);
+SymTableEntry symTable::SymTable_FindStruct(Scanner s) {
+    return SymTable_FindSymInList(s, this->structHead, C_NONE);
 }
 
-SymTableEntry SymTable_FindUnion(SymTable self, Scanner s) {
-    return SymTable_FindSymInList(s, self->unionHead, C_NONE);
+SymTableEntry symTable::SymTable_FindUnion(Scanner s) {
+    return SymTable_FindSymInList(s, this->unionHead, C_NONE);
 }
 
-SymTableEntry SymTable_FindEnumType(SymTable st, Scanner s) {
-    return SymTable_FindSymInList(s, st->enumHead, C_ENUMTYPE);
+SymTableEntry symTable::SymTable_FindEnumType(Scanner s) {
+    return SymTable_FindSymInList(s, this->enumHead, C_ENUMTYPE);
 }
 
-SymTableEntry SymTable_FindEnumVal(SymTable st, Scanner s) {
-    return SymTable_FindSymInList(s, st->enumHead, C_ENUMVAL);
+SymTableEntry symTable::SymTable_FindEnumVal(Scanner s) {
+    return SymTable_FindSymInList(s, this->enumHead, C_ENUMVAL);
 }
 
-SymTableEntry SymTable_FindTypeDef(SymTable self, Scanner s) {
-    return SymTable_FindSymInList(s, self->typeHead, C_TYPEDEF);
+SymTableEntry symTable::SymTable_FindTypeDef(Scanner s) {
+    return SymTable_FindSymInList(s, this->typeHead, C_TYPEDEF);
 }
 
-SymTableEntry SymTable_FindSymbol(SymTable self, Scanner s, Context c) {
+SymTableEntry symTable::SymTable_FindSymbol(Scanner s, Context c) {
     SymTableEntry e;
-    e = SymTable_FindLocl(self, s, c);
+    e = this->SymTable_FindLocl(s, c);
     if (e) return e;
 
-    return SymTable_FindGlob(self, s);
+    return this->SymTable_FindGlob(s);
 }
 
 static void freeList(SymTableEntry head) {
@@ -225,19 +225,19 @@ static void freeList(SymTableEntry head) {
     }
 }
 
-void SymTable_FreeParams(SymTable self) {
-    freeList(self->paramHead);
+void symTable::SymTable_FreeParams() {
+    freeList(this->paramHead);
     // Its set to null somewhere else
 }
 
-void SymTable_FreeLocls(SymTable self) {
-    freeList(self->loclHead);
-    self->loclHead = self->loclTail = nullptr;
-    // freeList(self->paramHead);
-    self->paramHead = self->paramTail = nullptr;
+void symTable::SymTable_FreeLocls() {
+    freeList(this->loclHead);
+    this->loclHead = this->loclTail = nullptr;
+    // freeList(this->paramHead);
+    this->paramHead = this->paramTail = nullptr;
 }
 
-void SymTable_SetText(SymTable self, Scanner s, SymTableEntry e) {
+void symTable::SymTable_SetText(Scanner s, SymTableEntry e) {
     if (e->strValue) {
         free(e->strValue);
     }
@@ -380,12 +380,12 @@ static void dumpTable(SymTableEntry head, char *name, int indent) {
     }
 }
 
-void SymTable_Dump(SymTable self) {
-    dumpTable(self->globHead, "Globals", 0);
+void symTable::SymTable_Dump() {
+    dumpTable(this->globHead, "Globals", 0);
     printf("\n");
-    dumpTable(self->enumHead, "Enums", 0);
+    dumpTable(this->enumHead, "Enums", 0);
     printf("\n");
-    dumpTable(self->typeHead, "Typedefs", 0);
+    dumpTable(this->typeHead, "Typedefs", 0);
 }
 
 symTable::~symTable() {

@@ -67,45 +67,46 @@ struct symTable {
     int anon{1};
 
     ~symTable();
+
+    SymTableEntry SymTable_AddGlob(char *name, enum ASTPRIM type,
+                                   SymTableEntry ctype, enum STRUCTTYPE stype,
+                                   enum STORECLASS _class, int nelems, int posn);
+    SymTableEntry SymTable_AddLocl(char *name, enum ASTPRIM type,
+                                   SymTableEntry ctype, enum STRUCTTYPE stype,
+                                   int nelems);
+    SymTableEntry SymTable_AddParam(char *name, enum ASTPRIM type,
+                                    SymTableEntry ctype, enum STRUCTTYPE stype);
+    SymTableEntry SymTable_AddMemb(char *name, enum ASTPRIM type,
+                                   SymTableEntry ctype, enum STRUCTTYPE stype,
+                                   int nelems);
+    SymTableEntry SymTable_AddStruct(char *name);
+    SymTableEntry SymTable_AddUnion(char *name);
+    SymTableEntry SymTable_AddEnum(char *name, enum STORECLASS _class,
+                                   int value);
+    SymTableEntry SymTable_AddTypeDef(char *name, enum ASTPRIM type,
+                                      SymTableEntry ctype);
+    char *SymTableEntry_MakeAnon(int *anon);
+
+    SymTableEntry SymTable_FindGlob(Scanner s);
+    SymTableEntry SymTable_FindLocl(Scanner s, Context c);
+    SymTableEntry SymTable_FindMember(Scanner s);
+    SymTableEntry SymTable_FindStruct(Scanner s);
+    SymTableEntry SymTable_FindSymInList(Scanner s, SymTableEntry head,
+                                         enum STORECLASS _class);
+    SymTableEntry SymTable_FindSymbol(Scanner s, Context c);
+    SymTableEntry SymTable_FindUnion(Scanner s);
+    SymTableEntry SymTable_FindEnumType(Scanner s);
+    SymTableEntry SymTable_FindEnumVal(Scanner s);
+    SymTableEntry SymTable_FindTypeDef(Scanner s);
+
+    void SymTable_SetText(Scanner s, SymTableEntry e);
+    void SymTable_FreeLocls();
+    void SymTable_FreeParams();
+
+    void SymTable_Dump();
+
 };
 
 typedef struct symTable *SymTable;
-
-SymTableEntry SymTable_AddGlob(SymTable self, char *name, enum ASTPRIM type,
-                               SymTableEntry ctype, enum STRUCTTYPE stype,
-                               enum STORECLASS _class, int nelems, int posn);
-SymTableEntry SymTable_AddLocl(SymTable self, char *name, enum ASTPRIM type,
-                               SymTableEntry ctype, enum STRUCTTYPE stype,
-                               int nelems);
-SymTableEntry SymTable_AddParam(SymTable self, char *name, enum ASTPRIM type,
-                                SymTableEntry ctype, enum STRUCTTYPE stype);
-SymTableEntry SymTable_AddMemb(SymTable self, char *name, enum ASTPRIM type,
-                               SymTableEntry ctype, enum STRUCTTYPE stype,
-                               int nelems);
-SymTableEntry SymTable_AddStruct(SymTable self, char *name);
-SymTableEntry SymTable_AddUnion(SymTable self, char *name);
-SymTableEntry SymTable_AddEnum(SymTable self, char *name, enum STORECLASS _class,
-                               int value);
-SymTableEntry SymTable_AddTypeDef(SymTable self, char *name, enum ASTPRIM type,
-                                  SymTableEntry ctype);
-char *SymTableEntry_MakeAnon(SymTable self, int *anon);
-
-SymTableEntry SymTable_FindGlob(SymTable self, Scanner s);
-SymTableEntry SymTable_FindLocl(SymTable self, Scanner s, Context c);
-SymTableEntry SymTable_FindMember(SymTable self, Scanner s);
-SymTableEntry SymTable_FindStruct(SymTable self, Scanner s);
-SymTableEntry SymTable_FindSymInList(Scanner s, SymTableEntry head,
-                                     enum STORECLASS _class);
-SymTableEntry SymTable_FindSymbol(SymTable self, Scanner s, Context c);
-SymTableEntry SymTable_FindUnion(SymTable self, Scanner s);
-SymTableEntry SymTable_FindEnumType(SymTable st, Scanner s);
-SymTableEntry SymTable_FindEnumVal(SymTable st, Scanner s);
-SymTableEntry SymTable_FindTypeDef(SymTable self, Scanner s);
-
-void SymTable_SetText(SymTable self, Scanner s, SymTableEntry e);
-void SymTable_FreeLocls(SymTable self);
-void SymTable_FreeParams(SymTable self);
-
-void SymTable_Dump(SymTable self);
 
 #endif

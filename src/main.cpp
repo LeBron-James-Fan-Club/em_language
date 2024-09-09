@@ -104,7 +104,7 @@ int main(int argc, char *argv[]) {
 
     if (flags.dumpSym) {
         printf("SYM TABLE\n");
-        SymTable_Dump(st);
+        st->SymTable_Dump();
     }
 
     delete s;
