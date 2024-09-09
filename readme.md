@@ -42,7 +42,6 @@
 ## What will be added soon (Hopefully)
  - Local arrays
  - Multidimensional arrays
-
  - Compiler directives
     - Including the ability to manually name any label
  - Namespace
