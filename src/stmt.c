@@ -206,17 +206,50 @@ static ASTnode print_statement(Compiler c, Scanner s, SymTable st, Token tok,
 static ASTnode input_statement(Scanner s, SymTable st, Token tok, Context ctx) {
     SymTableEntry var;
 
+    // input(variable, type);
+
     match(s, tok, T_INPUT, "input");
     lparen(s, tok);
 
     ident(s, tok);
-
+    
     if ((var = SymTable_FindSymbol(st, s, ctx)) == NULL) {
         lfatala(s, "UndefinedError: Undefined variable %s", s->text);
     }
 
-    ASTnode left = ASTnode_NewLeaf(A_INPUT, P_INT, NULL, NULL, 0);
-    ASTnode right = ASTnode_NewLeaf(A_IDENT, var->type, var->ctype, var, 0);
+    comma(s, tok);
+
+    ASTnode left;
+    bool isStr = false;
+
+    switch (tok->token) {
+        case T_CHAR:
+            Scanner_Scan(s, tok);
+            if (tok->token == T_STAR) {
+                debug("FOUND STRING");
+                Scanner_Scan(s, tok);
+                isStr = true;
+                left =
+                    ASTnode_NewLeaf(A_INPUT, pointer_to(P_CHAR), NULL, var, 0);
+            } else {
+                Scanner_RejectToken(s, tok);
+                left = ASTnode_NewLeaf(A_INPUT, P_CHAR, NULL, NULL, 0);
+            }
+            break;
+        case T_INT:
+            left = ASTnode_NewLeaf(A_INPUT, P_INT, NULL, NULL, 0);
+            break;
+        default:
+            lfatal(s, "TypeError: Unknown type given for input");
+    }
+
+    if (isStr) {
+        rparen(s, tok);
+        semi(s, tok);
+        return left;
+    }
+
+    ASTnode right =  ASTnode_NewLeaf(A_IDENT, var->type, var->ctype, var, 0);
     right->rvalue = 0;  // We do not need to load the value of the variable
 
     ASTnode tree = modify_type(right, left->type, left->ctype, A_NONE);

@@ -683,10 +683,27 @@ int MIPS_InputInt(Compiler this) {
 
     // Call store glob later on
     // fprintf(this->outfile, "\tsw\t$v0, %s\n", g->Gsym[id].name);
-
     int r = allocReg(this);
     fprintf(this->outfile, "\tmove\t%s, $v0\n", reglist[r]);
     return r;
+}
+
+int MIPS_InputChar(Compiler this) {
+    fputs(
+        "\tli\t$v0, 12\n"
+        "\tsyscall\n",
+        this->outfile);
+    int r = allocReg(this);
+    fprintf(this->outfile, "\tmove\t%s, $v0\n", reglist[r]);
+    return r;
+}
+
+void MIPS_InputString(Compiler this, char *name, int size) {
+    fprintf(this->outfile,
+            "\tla\t$a0, %s\n"
+            "\tli\t$a1, %d\n"
+            "\tli\t$v0, 8\n"
+            "\tsyscall\n", name, size);
 }
 
 int MIPS_EqualSet(Compiler this, int r1, int r2) {

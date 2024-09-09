@@ -62,6 +62,8 @@ int MIPS_GreaterThanEqualSet(Compiler, int r1, int r2);
 int MIPS_GreaterThanEqualJump(Compiler, int r1, int r2, int l);
 
 int MIPS_InputInt(Compiler);
+int MIPS_InputChar(Compiler this);
+void MIPS_InputString(Compiler this, char *name, int size);
 
 void MIPS_Label(Compiler, int l);
 void MIPS_Jump(Compiler, int l);

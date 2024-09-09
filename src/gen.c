@@ -231,7 +231,15 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
             if (this->paramRegCount > 0) {
                 MIPS_RegPush(this, FIRST_PARAM_REG);
             }
-            int reg = MIPS_InputInt(this);
+            int reg;
+            if (n->type == pointer_to(P_CHAR)) {
+                reg = NO_REG;
+                MIPS_InputString(this, n->sym->name, n->sym->size);
+            } else if (n->type == P_CHAR) {
+                reg = MIPS_InputChar(this);
+            } else {
+                reg = MIPS_InputInt(this);
+            }
             if (this->paramRegCount > 0) {
                 MIPS_RegPop(this, FIRST_PARAM_REG);
             }
