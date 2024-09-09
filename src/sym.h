@@ -25,7 +25,7 @@ struct symTableEntry {
     enum ASTPRIM type;
     // pointer if type struct
     struct symTableEntry *ctype;
-    enum STORECLASS class;
+    enum STORECLASS _class;
     enum STRUCTTYPE stype;
 
     union {
@@ -77,41 +77,41 @@ typedef struct symTable *SymTable;
 SymTable SymTable_New(void);
 void SymTable_Free(SymTable);
 
-SymTableEntry SymTable_AddGlob(SymTable this, char *name, enum ASTPRIM type,
+SymTableEntry SymTable_AddGlob(SymTable self, char *name, enum ASTPRIM type,
                                SymTableEntry ctype, enum STRUCTTYPE stype,
-                               enum STORECLASS class, int nelems, int posn);
-SymTableEntry SymTable_AddLocl(SymTable this, char *name, enum ASTPRIM type,
+                               enum STORECLASS _class, int nelems, int posn);
+SymTableEntry SymTable_AddLocl(SymTable self, char *name, enum ASTPRIM type,
                                SymTableEntry ctype, enum STRUCTTYPE stype,
                                int nelems);
-SymTableEntry SymTable_AddParam(SymTable this, char *name, enum ASTPRIM type,
+SymTableEntry SymTable_AddParam(SymTable self, char *name, enum ASTPRIM type,
                                 SymTableEntry ctype, enum STRUCTTYPE stype);
-SymTableEntry SymTable_AddMemb(SymTable this, char *name, enum ASTPRIM type,
+SymTableEntry SymTable_AddMemb(SymTable self, char *name, enum ASTPRIM type,
                                SymTableEntry ctype, enum STRUCTTYPE stype,
                                int nelems);
-SymTableEntry SymTable_AddStruct(SymTable this, char *name);
-SymTableEntry SymTable_AddUnion(SymTable this, char *name);
-SymTableEntry SymTable_AddEnum(SymTable this, char *name, enum STORECLASS class,
+SymTableEntry SymTable_AddStruct(SymTable self, char *name);
+SymTableEntry SymTable_AddUnion(SymTable self, char *name);
+SymTableEntry SymTable_AddEnum(SymTable self, char *name, enum STORECLASS _class,
                                int value);
-SymTableEntry SymTable_AddTypeDef(SymTable this, char *name, enum ASTPRIM type,
+SymTableEntry SymTable_AddTypeDef(SymTable self, char *name, enum ASTPRIM type,
                                   SymTableEntry ctype);
-char *SymTableEntry_MakeAnon(SymTable this, int *anon);
+char *SymTableEntry_MakeAnon(SymTable self, int *anon);
 
-SymTableEntry SymTable_FindGlob(SymTable this, Scanner s);
-SymTableEntry SymTable_FindLocl(SymTable this, Scanner s, Context c);
-SymTableEntry SymTable_FindMember(SymTable this, Scanner s);
-SymTableEntry SymTable_FindStruct(SymTable this, Scanner s);
+SymTableEntry SymTable_FindGlob(SymTable self, Scanner s);
+SymTableEntry SymTable_FindLocl(SymTable self, Scanner s, Context c);
+SymTableEntry SymTable_FindMember(SymTable self, Scanner s);
+SymTableEntry SymTable_FindStruct(SymTable self, Scanner s);
 SymTableEntry SymTable_FindSymInList(Scanner s, SymTableEntry head,
-                                     enum STORECLASS class);
-SymTableEntry SymTable_FindSymbol(SymTable this, Scanner s, Context c);
-SymTableEntry SymTable_FindUnion(SymTable this, Scanner s);
+                                     enum STORECLASS _class);
+SymTableEntry SymTable_FindSymbol(SymTable self, Scanner s, Context c);
+SymTableEntry SymTable_FindUnion(SymTable self, Scanner s);
 SymTableEntry SymTable_FindEnumType(SymTable st, Scanner s);
 SymTableEntry SymTable_FindEnumVal(SymTable st, Scanner s);
-SymTableEntry SymTable_FindTypeDef(SymTable this, Scanner s);
+SymTableEntry SymTable_FindTypeDef(SymTable self, Scanner s);
 
-void SymTable_SetText(SymTable this, Scanner s, SymTableEntry e);
-void SymTable_FreeLocls(SymTable this);
-void SymTable_FreeParams(SymTable this);
+void SymTable_SetText(SymTable self, Scanner s, SymTableEntry e);
+void SymTable_FreeLocls(SymTable self);
+void SymTable_FreeParams(SymTable self);
 
-void SymTable_Dump(SymTable this);
+void SymTable_Dump(SymTable self);
 
 #endif

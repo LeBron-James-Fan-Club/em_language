@@ -192,7 +192,7 @@ static ASTnode paren_expression(Compiler c, Scanner s, SymTable st, Token t,
             type = parse_cast(c, s, st, t, ctx, &cType);
             rparen(s, t);
         default:
-            // * rest of the expression (int)b <- this
+            // * rest of the expression (int)b <- self
             // * Please work with the shunting algorithm
             // * I beg you
             debug("falling INTO THE FUCKING VOID");
@@ -626,14 +626,14 @@ static ASTnode peek_operator(Compiler c, Scanner s, SymTable st, Token tok,
 static ASTnode sizeof_operator(Compiler c, Scanner s, SymTable st, Token tok,
                                Context ctx) {
     enum ASTPRIM type;
-    enum STORECLASS class;
+    enum STORECLASS _class;
     int size;
     SymTableEntry cType;
 
     debug("sizeof");
     match(s, tok, T_SIZEOF, "sizeof");
     lparen(s, tok);
-    type = parse_stars(s, tok, parse_type(c, s, st, tok, ctx, &cType, &class));
+    type = parse_stars(s, tok, parse_type(c, s, st, tok, ctx, &cType, &_class));
     debug("cType %p", cType);
     size = type_size(type, cType);
     rparen(s, tok);

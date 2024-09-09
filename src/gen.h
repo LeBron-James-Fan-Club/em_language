@@ -7,6 +7,6 @@
 #include "asm.h"
 
 
-int Compiler_Gen(Compiler this, SymTable st, Context ctx, ASTnode n);
+int Compiler_Gen(Compiler self, SymTable st, Context ctx, ASTnode n);
 
 #endif

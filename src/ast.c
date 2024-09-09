@@ -33,11 +33,11 @@ ASTnode ASTnode_NewUnary(enum ASTOP op, enum ASTPRIM type, ASTnode left,
     return ASTnode_New(op, type, left, NULL, NULL, ctype, sym, intvalue);
 }
 
-void ASTnode_Free(ASTnode this) {
-    if (this->left) ASTnode_Free(this->left);
-    if (this->mid) ASTnode_Free(this->mid);
-    if (this->right) ASTnode_Free(this->right);
-    free(this);
+void ASTnode_Free(ASTnode self) {
+    if (self->left) ASTnode_Free(self->left);
+    if (self->mid) ASTnode_Free(self->mid);
+    if (self->right) ASTnode_Free(self->right);
+    free(self);
 }
 
 static int makeLabel(void) {

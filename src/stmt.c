@@ -271,7 +271,7 @@ static ASTnode if_statement(Compiler c, Scanner s, SymTable st, Token tok,
 
     condAST = ASTnode_Order(c, s, st, tok, ctx);
 
-    // Might remove this guard later
+    // Might remove self guard later
     if (condAST->op < A_EQ || condAST->op > A_GE) {
         condAST =
             ASTnode_NewUnary(A_TOBOOL, condAST->type, condAST, NULL, NULL, 0);

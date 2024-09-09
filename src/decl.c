@@ -24,7 +24,7 @@ SymTableEntry function_declare(Compiler c, Scanner s, SymTable st, Token tok,
                                SymTableEntry cType);
 static SymTableEntry symbol_declare(Compiler c, Scanner s, SymTable st,
                                     Token tok, Context ctx, enum ASTPRIM type,
-                                    SymTableEntry cType, enum STORECLASS class,
+                                    SymTableEntry cType, enum STORECLASS _class,
                                     ASTnode *tree);
 
 static int param_declare_list(Compiler c, Scanner s, SymTable st, Token tok,
@@ -34,15 +34,15 @@ static int param_declare_list(Compiler c, Scanner s, SymTable st, Token tok,
 static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
                                    Token tok, Context ctx, char *varName,
                                    enum ASTPRIM type, SymTableEntry cType,
-                                   enum STORECLASS class);
+                                   enum STORECLASS _class);
 static SymTableEntry scalar_declare(Compiler c, Scanner s, SymTable st,
                                     Token tok, Context ctx, char *varName,
                                     enum ASTPRIM type, SymTableEntry cType,
-                                    enum STORECLASS class, ASTnode *tree);
+                                    enum STORECLASS _class, ASTnode *tree);
 
 static SymTableEntry symbol_declare(Compiler c, Scanner s, SymTable st,
                                     Token tok, Context ctx, enum ASTPRIM type,
-                                    SymTableEntry cType, enum STORECLASS class,
+                                    SymTableEntry cType, enum STORECLASS _class,
                                     ASTnode *tree) {
     SymTableEntry sym = NULL;
     char *varName = strdup(s->text);
@@ -57,7 +57,7 @@ static SymTableEntry symbol_declare(Compiler c, Scanner s, SymTable st,
         return function_declare(c, s, st, tok, ctx, type, cType);
     }
 
-    switch (class) {
+    switch (_class) {
         case C_EXTERN:
         case C_STATIC:
         case C_GLOBAL:
@@ -79,13 +79,13 @@ static SymTableEntry symbol_declare(Compiler c, Scanner s, SymTable st,
             }
             break;
         default:
-            lfatal(s, "UnsupportedError: Unsupported class");
+            lfatal(s, "UnsupportedError: Unsupported _class");
     }
 
     if (tok->token == T_LBRACKET) {
-        sym = array_declare(c, s, st, tok, ctx, varName, type, cType, class);
+        sym = array_declare(c, s, st, tok, ctx, varName, type, cType, _class);
     } else {
-        sym = scalar_declare(c, s, st, tok, ctx, varName, type, cType, class,
+        sym = scalar_declare(c, s, st, tok, ctx, varName, type, cType, _class,
                              tree);
     }
 
@@ -125,18 +125,18 @@ static int parse_literal(Compiler c, Scanner s, SymTable st, Token tok,
 static SymTableEntry scalar_declare(Compiler c, Scanner s, SymTable st,
                                     Token tok, Context ctx, char *varName,
                                     enum ASTPRIM type, SymTableEntry cType,
-                                    enum STORECLASS class, ASTnode *tree) {
+                                    enum STORECLASS _class, ASTnode *tree) {
     SymTableEntry sym = NULL;
     ASTnode varNode, exprNode;
     *tree = NULL;
 
-    switch (class) {
+    switch (_class) {
         case C_STATIC:
         case C_EXTERN:
         case C_GLOBAL:
             debug("adding global %s", varName);
             sym =
-                SymTable_AddGlob(st, varName, type, cType, S_VAR, class, 1, 0);
+                SymTable_AddGlob(st, varName, type, cType, S_VAR, _class, 1, 0);
             debug("nelems %d", sym->nElems);
             break;
         case C_LOCAL:
@@ -152,12 +152,12 @@ static SymTableEntry scalar_declare(Compiler c, Scanner s, SymTable st,
             sym = SymTable_AddMemb(st, varName, type, cType, S_VAR, 1);
             break;
         default:
-            lfatal(s, "UnsupportedError: unsupported class");
+            lfatal(s, "UnsupportedError: unsupported _class");
     }
 
     if (tok->token == T_ASSIGN) {
         debug("assigning %s nelems %d", varName, sym->nElems);
-        if (class != C_GLOBAL && class != C_LOCAL && class != C_STATIC) {
+        if (_class != C_GLOBAL && _class != C_LOCAL && _class != C_STATIC) {
             fatal(
                 "SyntaxError: initialization only allowed for local, global "
                 "and static "
@@ -166,10 +166,10 @@ static SymTableEntry scalar_declare(Compiler c, Scanner s, SymTable st,
         // eat =
         Scanner_Scan(s, tok);
 
-        if (class == C_GLOBAL || class == C_STATIC) {
+        if (_class == C_GLOBAL || _class == C_STATIC) {
             sym->initList = calloc(1, sizeof(int));
             sym->initList[0] = parse_literal(c, s, st, tok, ctx, type);
-        } else if (class == C_LOCAL) {
+        } else if (_class == C_LOCAL) {
             varNode = ASTnode_NewLeaf(A_IDENT, sym->type, sym->ctype, sym, 0);
 
             exprNode = ASTnode_Order(c, s, st, tok, ctx);
@@ -192,7 +192,7 @@ static SymTableEntry scalar_declare(Compiler c, Scanner s, SymTable st,
 static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
                                    Token tok, Context ctx, char *varName,
                                    enum ASTPRIM type, SymTableEntry cType,
-                                   enum STORECLASS class) {
+                                   enum STORECLASS _class) {
     SymTableEntry sym;
     int nelems = -1;
     int maxElems;
@@ -212,11 +212,11 @@ static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
     // eat ]
     match(s, tok, T_RBRACKET, "]");
 
-    switch (class) {
+    switch (_class) {
         case C_EXTERN:
         case C_GLOBAL:
             sym = SymTable_AddGlob(st, varName, pointer_to(type), cType,
-                                   S_ARRAY, class, 0, 0);
+                                   S_ARRAY, _class, 0, 0);
             break;
         default:
             lfatal(s,
@@ -225,7 +225,7 @@ static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
     }
 
     if (tok->token == T_ASSIGN) {
-        if (class != C_GLOBAL && class != C_STATIC) {
+        if (_class != C_GLOBAL && _class != C_STATIC) {
             lfatal(s,
                    "SyntaxError: array initialization only allowed for global "
                    "and static variables");
@@ -337,24 +337,24 @@ static int param_declare_list(Compiler c, Scanner s, SymTable st, Token tok,
 
 enum ASTPRIM declare_list(Compiler c, Scanner s, SymTable st, Token tok,
                           Context ctx, SymTableEntry *cType,
-                          enum STORECLASS class, enum OPCODES end1,
+                          enum STORECLASS _class, enum OPCODES end1,
                           enum OPCODES end2, ASTnode *glueTree) {
     enum ASTPRIM initType, type;
     SymTableEntry sym;
     ASTnode tree;
     *glueTree = NULL;
 
-    if ((initType = parse_type(c, s, st, tok, ctx, cType, &class)) == -1) {
+    if ((initType = parse_type(c, s, st, tok, ctx, cType, &_class)) == -1) {
         return initType;
     }
 
     while (true) {
         type = parse_stars(s, tok, initType);
 
-        sym = symbol_declare(c, s, st, tok, ctx, type, *cType, class, &tree);
+        sym = symbol_declare(c, s, st, tok, ctx, type, *cType, _class, &tree);
 
         if (sym->stype == S_FUNC) {
-            if (class != C_GLOBAL && class != C_STATIC) {
+            if (_class != C_GLOBAL && _class != C_STATIC) {
                 lfatal(s,
                        "SyntaxError: function declaration only allowed at "
                        "global level");
@@ -467,7 +467,7 @@ SymTableEntry function_declare(Compiler c, Scanner s, SymTable st, Token tok,
 
 enum ASTPRIM parse_type(Compiler c, Scanner s, SymTable st, Token tok,
                         Context ctx, SymTableEntry *ctype,
-                        enum STORECLASS *class) {
+                        enum STORECLASS *_class) {
     debug("parse_type");
     enum ASTPRIM type;
     bool exstatic = true;
@@ -476,18 +476,18 @@ enum ASTPRIM parse_type(Compiler c, Scanner s, SymTable st, Token tok,
     while (exstatic) {
         switch (tok->token) {
             case T_EXTERN:
-                if (*class == C_STATIC) {
+                if (*_class == C_STATIC) {
                     lfatal(s, "SyntaxError: Cannot have extern and static");
                 }
                 debug("extern hit");
-                *class = C_EXTERN;
+                *_class = C_EXTERN;
                 Scanner_Scan(s, tok);
                 break;
             case T_STATIC:
-                if (*class == C_EXTERN) {
+                if (*_class == C_EXTERN) {
                     lfatal(s, "SyntaxError: Cannot have extern and static");
                 }
-                *class = C_STATIC;
+                *_class = C_STATIC;
                 Scanner_Scan(s, tok);
                 break;
             default:
@@ -561,9 +561,9 @@ enum ASTPRIM parse_type(Compiler c, Scanner s, SymTable st, Token tok,
 enum ASTPRIM parse_cast(Compiler c, Scanner s, SymTable st, Token tok,
                         Context ctx, SymTableEntry *cType) {
     enum ASTPRIM type;
-    enum STORECLASS class;
+    enum STORECLASS _class;
 
-    type = parse_stars(s, tok, parse_type(c, s, st, tok, ctx, cType, &class));
+    type = parse_stars(s, tok, parse_type(c, s, st, tok, ctx, cType, &_class));
 
     if (type == P_STRUCT || type == P_UNION || type == P_VOID) {
         fatal("InvalidTypeError: invalid cast type");
@@ -738,14 +738,14 @@ static enum ASTPRIM typedef_declare(Compiler c, Scanner s, SymTable st,
                                     Token tok, Context ctx,
                                     SymTableEntry *cType) {
     enum ASTPRIM type;
-    enum STORECLASS class = C_NONE;
+    enum STORECLASS _class = C_NONE;
 
     // typedef consumed
     Scanner_Scan(s, tok);
     // a ident should be here
 
-    type = parse_type(c, s, st, tok, ctx, cType, &class);
-    if (class != C_NONE) {
+    type = parse_type(c, s, st, tok, ctx, cType, &_class);
+    if (_class != C_NONE) {
         lfatal(s, "TypeError: typedef cannot have extern");
     }
 

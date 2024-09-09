@@ -23,13 +23,13 @@ static char *TokStr[] = {
 
 static char next(Scanner);
 static void putback(Scanner, char c);
-static char skip(Scanner this);
+static char skip(Scanner self);
 
-static int scanIdent(Scanner this, char c);
-static int scanChr(Scanner this);
+static int scanIdent(Scanner self, char c);
+static int scanChr(Scanner self);
 static int scanInt(Scanner, char c);
-static int scanStr(Scanner this);
-static int hexChar(Scanner this);
+static int scanStr(Scanner self);
+static int hexChar(Scanner self);
 static int keyword(char *s);
 
 static int chrpos(char *s, int c);
@@ -42,32 +42,32 @@ Scanner Scanner_New(void) {
     return n;
 }
 
-void Scanner_Free(Scanner this) {
-    pclose(this->infile);
-    free(this);
+void Scanner_Free(Scanner self) {
+    pclose(self->infile);
+    free(self);
 }
 
-static char next(Scanner this) {
+static char next(Scanner self) {
     char c;
-    if (this->putback) {
-        c = this->putback;
-        this->putback = 0;
+    if (self->putback) {
+        c = self->putback;
+        self->putback = 0;
         return c;
     }
-    c = fgetc(this->infile);
-    if (c == '\n') this->line++;
+    c = fgetc(self->infile);
+    if (c == '\n') self->line++;
     return c;
 }
 
 // Con: one character buffer we cant really read 3 symbol characters only 2
-static void putback(Scanner this, char c) { this->putback = c; }
+static void putback(Scanner self, char c) { self->putback = c; }
 
-void Scanner_Putback(Scanner this, char c) { putback(this, c); }
+void Scanner_Putback(Scanner self, char c) { putback(self, c); }
 
 // ignores whitespace
-static char skip(Scanner this) {
+static char skip(Scanner self) {
     char c;
-    c = next(this);
+    c = next(self);
 
     // please work
 
@@ -76,24 +76,24 @@ static char skip(Scanner this) {
     while (c == ' ' || c == '\t' || c == '\n' || c == '\r' ||
            // \f not really used much anymore
            c == '\f') {
-        c = next(this);
+        c = next(self);
         // debug("fuck before");
     }
     return c;
 }
 
-void Scanner_Scan(Scanner this, Token t) {
+void Scanner_Scan(Scanner self, Token t) {
     char c, tokenType;
 
-    if (this->rejToken) {
+    if (self->rejToken) {
         // might be buggy check later
-        t->token = this->rejToken->token;
-        t->intvalue = this->rejToken->intvalue;
-        this->rejToken = NULL;
+        t->token = self->rejToken->token;
+        t->intvalue = self->rejToken->intvalue;
+        self->rejToken = NULL;
         return;
     }
 
-    c = skip(this);
+    c = skip(self);
 
     debug("scanning %c", c);
 
@@ -108,87 +108,87 @@ void Scanner_Scan(Scanner this, Token t) {
             t->token = T_SEMI;
             break;
         case '+':
-            if ((c = next(this)) == '+') {
+            if ((c = next(self)) == '+') {
                 t->token = T_INC;
             } else if (c == '=') {
                 t->token = T_ASPLUS;
             } else {
-                putback(this, c);
+                putback(self, c);
                 t->token = T_PLUS;
             }
             break;
         case '-':
-            if ((c = next(this)) == '-') {
+            if ((c = next(self)) == '-') {
                 t->token = T_DEC;
             } else if (c == '=') {
                 t->token = T_ASMINUS;
             } else if (c == '>') {
                 t->token = T_ARROW;
             } else if (isdigit(c)) {
-                t->intvalue = -scanInt(this, c);
+                t->intvalue = -scanInt(self, c);
                 t->token = T_INTLIT;
             } else {
-                putback(this, c);
+                putback(self, c);
                 t->token = T_MINUS;
             }
             break;
         case '*':
-            if ((c = next(this)) == '=') {
+            if ((c = next(self)) == '=') {
                 t->token = T_ASSTAR;
             } else {
-                putback(this, c);
+                putback(self, c);
                 t->token = T_STAR;
             }
             break;
         case '/':
-            if ((c = next(this)) == '=') {
+            if ((c = next(self)) == '=') {
                 t->token = T_ASSLASH;
             } else {
-                putback(this, c);
+                putback(self, c);
                 t->token = T_SLASH;
             }
             break;
         case '%':
-            if ((c = next(this)) == '=') {
+            if ((c = next(self)) == '=') {
                 t->token = T_ASMOD;
             } else {
-                putback(this, c);
+                putback(self, c);
                 t->token = T_MODULO;
             }
             break;
         case '=':
-            if ((c = next(this)) == '=') {
+            if ((c = next(self)) == '=') {
                 t->token = T_EQ;
             } else {
-                putback(this, c);
+                putback(self, c);
                 t->token = T_ASSIGN;
             }
             break;
         case '!':
-            if ((c = next(this)) == '=') {
+            if ((c = next(self)) == '=') {
                 t->token = T_NE;
             } else {
-                putback(this, c);
+                putback(self, c);
                 t->token = T_LOGNOT;
             }
             break;
         case '<':
-            if ((c = next(this)) == '=') {
+            if ((c = next(self)) == '=') {
                 t->token = T_LE;
             } else if (c == '<') {
                 t->token = T_LSHIFT;
             } else {
-                putback(this, c);
+                putback(self, c);
                 t->token = T_LT;
             }
             break;
         case '>':
-            if ((c = next(this)) == '=') {
+            if ((c = next(self)) == '=') {
                 t->token = T_GE;
             } else if (c == '>') {
                 t->token = T_RSHIFT;
             } else {
-                putback(this, c);
+                putback(self, c);
                 t->token = T_GT;
             }
             break;
@@ -217,10 +217,10 @@ void Scanner_Scan(Scanner this, Token t) {
             t->tokstr = TokStr[t->token];
             break;
         case '&':
-            if ((c = next(this)) == '&') {
+            if ((c = next(self)) == '&') {
                 t->token = T_LOGAND;
             } else {
-                putback(this, c);
+                putback(self, c);
                 t->token = T_AMPER;
             }
             break;
@@ -228,22 +228,22 @@ void Scanner_Scan(Scanner this, Token t) {
             t->token = T_XOR;
             break;
         case '|':
-            if ((c = next(this)) == '|') {
+            if ((c = next(self)) == '|') {
                 t->token = T_LOGOR;
             } else {
-                putback(this, c);
+                putback(self, c);
                 t->token = T_OR;
             }
             break;
         case '\'':
-            t->intvalue = scanChr(this);
+            t->intvalue = scanChr(self);
             t->token = T_INTLIT;
-            if (next(this) != '\'') {
-                lfatal(this, "SyntaxError: expected ' at end of char literal");
+            if (next(self) != '\'') {
+                lfatal(self, "SyntaxError: expected ' at end of char literal");
             }
             break;
         case '"':
-            scanStr(this);
+            scanStr(self);
             t->token = T_STRLIT;
             break;
         case '.':
@@ -257,13 +257,13 @@ void Scanner_Scan(Scanner this, Token t) {
             break;
         default:
             if (isdigit(c)) {
-                t->intvalue = scanInt(this, c);
+                t->intvalue = scanInt(self, c);
                 t->token = T_INTLIT;
                 break;
             } else if (isalpha(c) || c == '_') {
-                scanIdent(this, c);
+                scanIdent(self, c);
 
-                if ((tokenType = keyword(this->text))) {
+                if ((tokenType = keyword(self->text))) {
                     t->token = tokenType;
                     break;
                 }
@@ -273,7 +273,7 @@ void Scanner_Scan(Scanner this, Token t) {
             }
 
             // occurs only probs when unicode
-            lfatala(this, "SyntaxError: Invalid character %c", c);
+            lfatala(self, "SyntaxError: Invalid character %c", c);
     }
 
     t->tokstr = TokStr[t->token];
@@ -343,38 +343,38 @@ static int keyword(char *s) {
     return 0;
 }
 
-void Scanner_RejectToken(Scanner this, Token t) {
-    if (this->rejToken) {
-        lfatal(this, "InternalError: Cannot reject token twice\n");
+void Scanner_RejectToken(Scanner self, Token t) {
+    if (self->rejToken) {
+        lfatal(self, "InternalError: Cannot reject token twice\n");
     }
-    this->rejToken = t;
+    self->rejToken = t;
 }
 
-static int scanIdent(Scanner this, char c) {
+static int scanIdent(Scanner self, char c) {
     int i = 0;
 
     while (isalpha(c) || isdigit(c) || c == '_') {
         if (i == TEXTLEN - 1) {
-            lfatal(this, "UnsupportedError: Identifier too long");
+            lfatal(self, "UnsupportedError: Identifier too long");
         } else if (i < TEXTLEN - 1) {
-            this->text[i++] = c;
+            self->text[i++] = c;
         }
-        c = next(this);
+        c = next(self);
     }
 
-    putback(this, c);
-    this->text[i] = '\0';
+    putback(self, c);
+    self->text[i] = '\0';
 
     return i;
 }
 
-static int scanInt(Scanner this, char c) {
+static int scanInt(Scanner self, char c) {
     int i, val = 0, base = 10;
 
     if (c == '0') {
-        if ((c = next(this)) == 'x') {
+        if ((c = next(self)) == 'x') {
             base = 16;
-            c = next(this);
+            c = next(self);
         } else {
             base = 8;
         }
@@ -382,39 +382,39 @@ static int scanInt(Scanner this, char c) {
 
     while ((i = chrpos("0123456789abcdef", tolower(c))) >= 0) {
         if (i >= base) {
-            lfatal(this, "SyntaxError: Invalid digit in number");
+            lfatal(self, "SyntaxError: Invalid digit in number");
         }
         val = val * base + i;
-        c = next(this);
+        c = next(self);
     }
 
-    putback(this, c);
+    putback(self, c);
     return val;
 }
 
-static int hexChar(Scanner this) {
+static int hexChar(Scanner self) {
     bool sawHex = false;
     int c, h, n = 0;
 
-    while (isxdigit(c = next(this))) {
+    while (isxdigit(c = next(self))) {
         h = chrpos("0123456789abcdef", tolower(c));
         n = n * 16 + h;
         sawHex = true;
     }
-    putback(this, c);
+    putback(self, c);
     if (!sawHex) {
-        lfatal(this, "SyntaxError: Missing digits after \\x");
+        lfatal(self, "SyntaxError: Missing digits after \\x");
     } else if (n > 255) {
-        lfatal(this, "SyntaxError: Hex value out of range after \\x");
+        lfatal(self, "SyntaxError: Hex value out of range after \\x");
     }
 
     return n;
 }
 
-static int scanChr(Scanner this) {
-    char c = next(this), c2;
+static int scanChr(Scanner self) {
+    char c = next(self), c2;
     if (c == '\\') {
-        switch (c = next(this)) {
+        switch (c = next(self)) {
             case 'n':
                 return '\n';
             case 't':
@@ -439,35 +439,35 @@ static int scanChr(Scanner this) {
             case '5':
             case '6':
             case '7':
-                for (int i = c2 = 0; isdigit(c) && c < '8'; c = next(this)) {
+                for (int i = c2 = 0; isdigit(c) && c < '8'; c = next(self)) {
                     if (++i > 3) break;
                     c2 = c2 * 8 + (c - '0');
                 }
-                putback(this, c);
+                putback(self, c);
                 return c2;
             case 'x':
-                return hexChar(this);
+                return hexChar(self);
             default:
-                lfatal(this, "SyntaxError: Unknown escape sequence");
+                lfatal(self, "SyntaxError: Unknown escape sequence");
         }
     }
     return c;
 }
 
-static int scanStr(Scanner this) {
+static int scanStr(Scanner self) {
     char c;
     for (int i = 0; i < TEXTLEN - 1; i++) {
-        c = next(this);
+        c = next(self);
         if (c == EOF) {
-            lfatal(this, "SyntaxError: EOF in string");
+            lfatal(self, "SyntaxError: EOF in string");
         }
         if (c == '"') {
-            this->text[i] = '\0';
+            self->text[i] = '\0';
             return i;
         }
-        this->text[i] = c;
+        self->text[i] = c;
     }
-    lfatal(this, "UnsupportedError: String too long");
+    lfatal(self, "UnsupportedError: String too long");
 }
 
 static int chrpos(char *s, int c) {

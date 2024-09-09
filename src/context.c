@@ -5,24 +5,24 @@
 
 Context Context_New(void) { return calloc(1, sizeof(struct context)); }
 
-void Context_Free(Context this) { free(this); }
+void Context_Free(Context self) { free(self); }
 
-void Context_SetFunctionId(Context this, SymTableEntry sym) { this->functionId = sym; }
+void Context_SetFunctionId(Context self, SymTableEntry sym) { self->functionId = sym; }
 
-SymTableEntry Context_GetFunctionId(Context this) { return this->functionId; }
+SymTableEntry Context_GetFunctionId(Context self) { return self->functionId; }
 
-void Context_IncLoopLevel(Context this) { this->loopLevel++; }
+void Context_IncLoopLevel(Context self) { self->loopLevel++; }
 
-void Context_DecLoopLevel(Context this) { this->loopLevel--; }
+void Context_DecLoopLevel(Context self) { self->loopLevel--; }
 
-int Context_GetLoopLevel(Context this) { return this->loopLevel; }
+int Context_GetLoopLevel(Context self) { return self->loopLevel; }
 
-void Context_ResetLoopLevel(Context this) { this->loopLevel = 0; }
+void Context_ResetLoopLevel(Context self) { self->loopLevel = 0; }
 
-void Context_IncSwitchLevel(Context this) { this->switchLevel++; }
+void Context_IncSwitchLevel(Context self) { self->switchLevel++; }
 
-void Context_DecSwitchLevel(Context this) { this->switchLevel--; }
+void Context_DecSwitchLevel(Context self) { self->switchLevel--; }
 
-int Context_GetSwitchLevel(Context this) { return this->switchLevel; }
+int Context_GetSwitchLevel(Context self) { return self->switchLevel; }
 
-void Context_ResetSwitchLevel(Context this) { this->switchLevel = 0; }
+void Context_ResetSwitchLevel(Context self) { self->switchLevel = 0; }

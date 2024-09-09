@@ -14,19 +14,19 @@ struct context {
 
 Context Context_New(void);
 
-void Context_Free(Context this);
+void Context_Free(Context self);
 
-void Context_SetFunctionId(Context this, SymTableEntry sym);
-SymTableEntry Context_GetFunctionId(Context this);
+void Context_SetFunctionId(Context self, SymTableEntry sym);
+SymTableEntry Context_GetFunctionId(Context self);
 
-void Context_IncLoopLevel(Context this);
-void Context_DecLoopLevel(Context this);
-int Context_GetLoopLevel(Context this);
-void Context_ResetLoopLevel(Context this);
+void Context_IncLoopLevel(Context self);
+void Context_DecLoopLevel(Context self);
+int Context_GetLoopLevel(Context self);
+void Context_ResetLoopLevel(Context self);
 
-void Context_IncSwitchLevel(Context this);
-void Context_DecSwitchLevel(Context this);
-int Context_GetSwitchLevel(Context this);
-void Context_ResetSwitchLevel(Context this);
+void Context_IncSwitchLevel(Context self);
+void Context_DecSwitchLevel(Context self);
+int Context_GetSwitchLevel(Context self);
+void Context_ResetSwitchLevel(Context self);
 
 #endif

@@ -41,8 +41,8 @@ typedef struct compiler *Compiler;
 Compiler Compiler_New(char *outfile);
 void Compiler_Free(Compiler);
 
-void Compiler_ResetOffset(Compiler this);
-int Compiler_GetLocalOffset(Compiler this, enum ASTPRIM type);
-int Compiler_GetParamOffset(Compiler this, enum ASTPRIM type);
+void Compiler_ResetOffset(Compiler self);
+int Compiler_GetLocalOffset(Compiler self, enum ASTPRIM type);
+int Compiler_GetParamOffset(Compiler self, enum ASTPRIM type);
 
 #endif

@@ -14,10 +14,10 @@
 
 enum ASTPRIM parse_type(Compiler c, Scanner s, SymTable st, Token tok,
                         Context ctx, SymTableEntry *ctype,
-                        enum STORECLASS *class);
+                        enum STORECLASS *_class);
 enum ASTPRIM declare_list(Compiler c, Scanner s, SymTable st, Token tok,
                           Context ctx, SymTableEntry *cType,
-                          enum STORECLASS class, enum OPCODES end1,
+                          enum STORECLASS _class, enum OPCODES end1,
                           enum OPCODES end2, ASTnode *glueTree);
 void global_declare(Compiler c, Scanner s, SymTable st, Token tok, Context ctx);
 enum ASTPRIM parse_cast(Compiler c, Scanner s, SymTable st, Token tok,

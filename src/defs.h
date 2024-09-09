@@ -156,7 +156,7 @@ enum ASTOP {
 
     // 1:1 ends here
 
-    // After this we need checks
+    // After self we need checks
 
     A_PREINC,
     A_PREDEC,
@@ -172,7 +172,7 @@ enum ASTOP {
     // END OF SEMI CHECKING
 
     // for some god damn reason
-    // commenting out this line causes a segfault
+    // commenting out self line causes a segfault
     A_LVIDENT,
 
     A_PRINT,
@@ -214,7 +214,7 @@ enum ASTOP {
 // Primitives
 
 // We use bitwise to keep track of pointers
-// con: can only support up to 4 pointers (find a fix for this soon)
+// con: can only support up to 4 pointers (find a fix for self soon)
 // anything in 0xf (1111) is assumed a pointer
 enum ASTPRIM {
     P_NONE,

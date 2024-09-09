@@ -8,7 +8,7 @@
 
 #include "defs.h"
 
-// May god forgive me for this
+// May god forgive me for self
 #define TEXTLEN 100000000
 
 struct scanner {
@@ -30,9 +30,9 @@ typedef struct scanner *Scanner;
 
 Scanner Scanner_New(void);
 void Scanner_Free(Scanner);
-void Scanner_Scan(Scanner this, Token t);
-void Scanner_Putback(Scanner this, char c);
-void Scanner_RejectToken(Scanner this, Token t);
+void Scanner_Scan(Scanner self, Token t);
+void Scanner_Putback(Scanner self, char c);
+void Scanner_RejectToken(Scanner self, Token t);
 
 void match(Scanner s, Token t, enum OPCODES op, char *tok);
 void semi(Scanner s, Token t);

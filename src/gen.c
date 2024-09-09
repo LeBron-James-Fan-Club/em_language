@@ -13,22 +13,22 @@
 // TODO: change labels to strings
 // TODO: as im going to implement compiler directives that names the labels
 
-static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n, int label,
+static int genAST(Compiler self, SymTable st, Context ctx, ASTnode n, int label,
                   int loopTopLabel, int loopEndLabel, int parentASTop);
-static int genIFAST(Compiler this, SymTable st, Context ctx, ASTnode n,
+static int genIFAST(Compiler self, SymTable st, Context ctx, ASTnode n,
                     int loopTopLabel, int loopEndLabel);
-static int genWHILEAST(Compiler this, SymTable st, Context ctx, ASTnode n);
-static int genSWITCHAST(Compiler this, SymTable st, Context ctx, ASTnode n);
-static int genFUNCCALLAST(Compiler this, SymTable st, Context ctx, ASTnode n);
-static int genTERNARYAST(Compiler this, SymTable st, Context ctx, ASTnode n);
+static int genWHILEAST(Compiler self, SymTable st, Context ctx, ASTnode n);
+static int genSWITCHAST(Compiler self, SymTable st, Context ctx, ASTnode n);
+static int genFUNCCALLAST(Compiler self, SymTable st, Context ctx, ASTnode n);
+static int genTERNARYAST(Compiler self, SymTable st, Context ctx, ASTnode n);
 
-int Compiler_Gen(Compiler this, SymTable st, Context ctx, ASTnode n) {
+int Compiler_Gen(Compiler self, SymTable st, Context ctx, ASTnode n) {
     int reg;
-    reg = genAST(this, st, ctx, n, NO_LABEL, NO_LABEL, NO_LABEL, -1);
+    reg = genAST(self, st, ctx, n, NO_LABEL, NO_LABEL, NO_LABEL, -1);
     return reg;
 }
 
-static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
+static int genAST(Compiler self, SymTable st, Context ctx, ASTnode n,
                   int ifLabel, int loopTopLabel, int loopEndLabel,
                   int parentASTop) {
     int leftReg, rightReg;
@@ -44,104 +44,104 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
 
     switch (n->op) {
         case A_IF:
-            return genIFAST(this, st, ctx, n, loopTopLabel, loopEndLabel);
+            return genIFAST(self, st, ctx, n, loopTopLabel, loopEndLabel);
         case A_WHILE:
-            return genWHILEAST(this, st, ctx, n);
+            return genWHILEAST(self, st, ctx, n);
         case A_SWITCH:
-            return genSWITCHAST(this, st, ctx, n);
+            return genSWITCHAST(self, st, ctx, n);
         case A_GLUE:
-            genAST(this, st, ctx, n->left, ifLabel, loopTopLabel, loopEndLabel,
+            genAST(self, st, ctx, n->left, ifLabel, loopTopLabel, loopEndLabel,
                    n->op);
-            Compiler_FreeAllReg(this, NO_REG);
-            fprintf(this->outfile, "\n");
-            genAST(this, st, ctx, n->right, ifLabel, loopTopLabel, loopEndLabel,
+            Compiler_FreeAllReg(self, NO_REG);
+            fprintf(self->outfile, "\n");
+            genAST(self, st, ctx, n->right, ifLabel, loopTopLabel, loopEndLabel,
                    n->op);
-            Compiler_FreeAllReg(this, NO_REG);
-            if (n->right != NULL) fprintf(this->outfile, "\n");
+            Compiler_FreeAllReg(self, NO_REG);
+            if (n->right != NULL) fprintf(self->outfile, "\n");
             return NO_REG;
         case A_FUNCTION:
-            MIPS_PreFunc(this, st, ctx);
-            genAST(this, st, ctx, n->left, NO_LABEL, NO_LABEL, NO_LABEL, n->op);
-            MIPS_PostFunc(this, ctx);
+            MIPS_PreFunc(self, st, ctx);
+            genAST(self, st, ctx, n->left, NO_LABEL, NO_LABEL, NO_LABEL, n->op);
+            MIPS_PostFunc(self, ctx);
             return NO_REG;
         case A_FUNCCALL:
-            return genFUNCCALLAST(this, st, ctx, n);
+            return genFUNCCALLAST(self, st, ctx, n);
         case A_TERNARY:
-            return genTERNARYAST(this, st, ctx, n);
+            return genTERNARYAST(self, st, ctx, n);
         default:
             // stfu compiler
             break;
     }
 
     // Mr compiler could you stfu
-    leftReg = n->left ? genAST(this, st, ctx, n->left, NO_LABEL, NO_LABEL,
+    leftReg = n->left ? genAST(self, st, ctx, n->left, NO_LABEL, NO_LABEL,
                                NO_LABEL, n->op)
                       : NO_REG;
-    rightReg = n->right ? genAST(this, st, ctx, n->right, NO_LABEL, NO_LABEL,
+    rightReg = n->right ? genAST(self, st, ctx, n->right, NO_LABEL, NO_LABEL,
                                  NO_LABEL, n->op)
                         : NO_REG;
 
     switch (n->op) {
         case A_ADD:
-            return MIPS_Add(this, leftReg, rightReg);
+            return MIPS_Add(self, leftReg, rightReg);
         case A_SUBTRACT:
-            return MIPS_Sub(this, leftReg, rightReg);
+            return MIPS_Sub(self, leftReg, rightReg);
         case A_MULTIPLY:
-            return MIPS_Mul(this, leftReg, rightReg);
+            return MIPS_Mul(self, leftReg, rightReg);
         case A_DIVIDE:
-            return MIPS_Div(this, leftReg, rightReg);
+            return MIPS_Div(self, leftReg, rightReg);
         case A_MODULO:
-            return MIPS_Mod(this, leftReg, rightReg);
+            return MIPS_Mod(self, leftReg, rightReg);
         case A_EQ:
             if (parentASTop == A_IF || parentASTop == A_WHILE ||
                 parentASTop == A_TERNARY)
-                return MIPS_EqualJump(this, leftReg, rightReg, ifLabel);
+                return MIPS_EqualJump(self, leftReg, rightReg, ifLabel);
             else
-                return MIPS_EqualSet(this, leftReg, rightReg);
+                return MIPS_EqualSet(self, leftReg, rightReg);
         case A_NE:
             if (parentASTop == A_IF || parentASTop == A_WHILE ||
                 parentASTop == A_TERNARY)
-                return MIPS_NotEqualJump(this, leftReg, rightReg, ifLabel);
+                return MIPS_NotEqualJump(self, leftReg, rightReg, ifLabel);
             else
-                return MIPS_NotEqualSet(this, leftReg, rightReg);
+                return MIPS_NotEqualSet(self, leftReg, rightReg);
         case A_LT:
             if (parentASTop == A_IF || parentASTop == A_WHILE ||
                 parentASTop == A_TERNARY)
-                return MIPS_LessThanJump(this, leftReg, rightReg, ifLabel);
+                return MIPS_LessThanJump(self, leftReg, rightReg, ifLabel);
             else
-                return MIPS_LessThanSet(this, leftReg, rightReg);
+                return MIPS_LessThanSet(self, leftReg, rightReg);
         case A_GT:
             if (parentASTop == A_IF || parentASTop == A_WHILE ||
                 parentASTop == A_TERNARY)
-                return MIPS_GreaterThanEqualJump(this, leftReg, rightReg,
+                return MIPS_GreaterThanEqualJump(self, leftReg, rightReg,
                                                  ifLabel);
             else
-                return MIPS_GreaterThanSet(this, leftReg, rightReg);
+                return MIPS_GreaterThanSet(self, leftReg, rightReg);
         case A_LE:
             if (parentASTop == A_IF || parentASTop == A_WHILE ||
                 parentASTop == A_TERNARY)
-                return MIPS_LessThanEqualJump(this, leftReg, rightReg, ifLabel);
+                return MIPS_LessThanEqualJump(self, leftReg, rightReg, ifLabel);
             else
-                return MIPS_LessThanEqualSet(this, leftReg, rightReg);
+                return MIPS_LessThanEqualSet(self, leftReg, rightReg);
         case A_GE:
             if (parentASTop == A_IF || parentASTop == A_WHILE ||
                 parentASTop == A_TERNARY)
-                return MIPS_LessThanEqualJump(this, leftReg, rightReg, ifLabel);
+                return MIPS_LessThanEqualJump(self, leftReg, rightReg, ifLabel);
             else
-                return MIPS_GreaterThanEqualSet(this, leftReg, rightReg);
+                return MIPS_GreaterThanEqualSet(self, leftReg, rightReg);
         case A_LOGAND:
-            return MIPS_LogAnd(this, leftReg, rightReg);
+            return MIPS_LogAnd(self, leftReg, rightReg);
         case A_LOGOR:
-            return MIPS_LogOr(this, leftReg, rightReg);
+            return MIPS_LogOr(self, leftReg, rightReg);
         case A_INTLIT:
-            return MIPS_Load(this, n->intvalue);
+            return MIPS_Load(self, n->intvalue);
         case A_IDENT:
             if (n->rvalue || parentASTop == A_DEREF) {
-                if (n->sym->class == C_GLOBAL || n->sym->class == C_EXTERN ||
-                    n->sym->class == C_STATIC) {
-                    return MIPS_LoadGlob(this, n->sym, n->op);
+                if (n->sym->_class == C_GLOBAL || n->sym->_class == C_EXTERN ||
+                    n->sym->_class == C_STATIC) {
+                    return MIPS_LoadGlob(self, n->sym, n->op);
                 } else {
-                    return MIPS_LoadLocal(this, n->sym, n->op);
+                    return MIPS_LoadLocal(self, n->sym, n->op);
                 }
             } else {
                 debug("IDENT %s has NO_REG", n->sym->name);
@@ -158,31 +158,31 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
 
             switch (n->op) {
                 case A_ASPLUS:
-                    leftReg = MIPS_Add(this, leftReg, rightReg);
+                    leftReg = MIPS_Add(self, leftReg, rightReg);
                     free(n->right);
                     n->right = n->left;
                     n->left = NULL;
                     break;
                 case A_ASMINUS:
-                    leftReg = MIPS_Sub(this, leftReg, rightReg);
+                    leftReg = MIPS_Sub(self, leftReg, rightReg);
                     free(n->right);
                     n->right = n->left;
                     n->left = NULL;
                     break;
                 case A_ASSTAR:
-                    leftReg = MIPS_Mul(this, leftReg, rightReg);
+                    leftReg = MIPS_Mul(self, leftReg, rightReg);
                     free(n->right);
                     n->right = n->left;
                     n->left = NULL;
                     break;
                 case A_ASSLASH:
-                    leftReg = MIPS_Div(this, leftReg, rightReg);
+                    leftReg = MIPS_Div(self, leftReg, rightReg);
                     free(n->right);
                     n->right = n->left;
                     n->left = NULL;
                     break;
                 case A_ASMOD:
-                    leftReg = MIPS_Mod(this, leftReg, rightReg);
+                    leftReg = MIPS_Mod(self, leftReg, rightReg);
                     free(n->right);
                     n->right = n->left;
                     n->left = NULL;
@@ -194,14 +194,14 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
             }
             switch (n->right->op) {
                 case A_IDENT:
-                    if (n->right->sym->class == C_GLOBAL) {
-                        return MIPS_StoreGlob(this, leftReg, n->right->sym);
+                    if (n->right->sym->_class == C_GLOBAL) {
+                        return MIPS_StoreGlob(self, leftReg, n->right->sym);
                     } else {
-                        return MIPS_StoreLocal(this, leftReg, n->right->sym);
+                        return MIPS_StoreLocal(self, leftReg, n->right->sym);
                     }
                 case A_DEREF:
-                    //! bug: storing wrong type - idk if this is fixed yet
-                    return MIPS_StoreRef(this, leftReg, rightReg,
+                    //! bug: storing wrong type - idk if self is fixed yet
+                    return MIPS_StoreRef(self, leftReg, rightReg,
                                          n->right->type);
                 default:
                     fatala("InternalError: Unknown AST operator for assign %d",
@@ -210,67 +210,67 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
         case A_PRINT:
             // If $a0 is used then we need to push it
 
-            if (this->paramRegCount > 0) {
-                MIPS_RegPush(this, FIRST_PARAM_REG);
+            if (self->paramRegCount > 0) {
+                MIPS_RegPush(self, FIRST_PARAM_REG);
             }
             if (n->type == P_CHAR) {
-                MIPS_PrintChar(this, leftReg);
+                MIPS_PrintChar(self, leftReg);
             } else if ((n->type & P_CHAR) && ptrtype(n->type)) {
-                MIPS_PrintStr(this, leftReg);
+                MIPS_PrintStr(self, leftReg);
             } else {
-                MIPS_PrintInt(this, leftReg);
+                MIPS_PrintInt(self, leftReg);
             }
-            if (this->paramRegCount > 0) {
-                MIPS_RegPop(this, FIRST_PARAM_REG);
+            if (self->paramRegCount > 0) {
+                MIPS_RegPop(self, FIRST_PARAM_REG);
             }
 
-            Compiler_FreeAllReg(this, NO_REG);
+            Compiler_FreeAllReg(self, NO_REG);
             return NO_REG;
         case A_INPUT:
 
-            if (this->paramRegCount > 0) {
-                MIPS_RegPush(this, FIRST_PARAM_REG);
+            if (self->paramRegCount > 0) {
+                MIPS_RegPush(self, FIRST_PARAM_REG);
             }
             int reg;
             if (n->type == pointer_to(P_CHAR)) {
                 reg = NO_REG;
-                MIPS_InputString(this, n->sym->name, n->sym->size);
+                MIPS_InputString(self, n->sym->name, n->sym->size);
             } else if (n->type == P_CHAR) {
-                reg = MIPS_InputChar(this);
+                reg = MIPS_InputChar(self);
             } else {
-                reg = MIPS_InputInt(this);
+                reg = MIPS_InputInt(self);
             }
-            if (this->paramRegCount > 0) {
-                MIPS_RegPop(this, FIRST_PARAM_REG);
+            if (self->paramRegCount > 0) {
+                MIPS_RegPop(self, FIRST_PARAM_REG);
             }
 
             return reg;
         case A_POKE:
-            MIPS_Poke(this, leftReg, rightReg);
-            Compiler_FreeAllReg(this, NO_REG);
+            MIPS_Poke(self, leftReg, rightReg);
+            Compiler_FreeAllReg(self, NO_REG);
             return NO_REG;
         case A_PEEK:
-            return MIPS_Peek(this, leftReg, rightReg);
+            return MIPS_Peek(self, leftReg, rightReg);
         case A_LABEL:
-            MIPS_GotoLabel(this, n->sym);
+            MIPS_GotoLabel(self, n->sym);
             return NO_REG;
         case A_GOTO:
-            MIPS_GotoJump(this, n->sym);
+            MIPS_GotoJump(self, n->sym);
             return NO_REG;
         case A_WIDEN:
             // Unused - might remove later ngl
             return leftReg;
         case A_RETURN:
-            MIPS_Return(this, leftReg, ctx);
+            MIPS_Return(self, leftReg, ctx);
             return NO_REG;
         case A_ADDR:
-            return MIPS_Address(this, n->sym);
+            return MIPS_Address(self, n->sym);
         case A_DEREF:
             if (n->rvalue) {
                 if (n->left == NULL) {
                     fatal("InternalError: Left side of deref is NULL");
                 }
-                return MIPS_Deref(this, leftReg, n->left->type);
+                return MIPS_Deref(self, leftReg, n->left->type);
             } else {
                 return leftReg;
             }
@@ -278,62 +278,62 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
             switch (n->size) {
                 // optimization if power of 2 shift it
                 case 2:
-                    return MIPS_ShiftLeftConstant(this, leftReg, 1);
+                    return MIPS_ShiftLeftConstant(self, leftReg, 1);
                 case 4:
-                    return MIPS_ShiftLeftConstant(this, leftReg, 2);
+                    return MIPS_ShiftLeftConstant(self, leftReg, 2);
                 default:
                     // loads reg with size
                     // and multiplies leftreg with size
-                    rightReg = MIPS_Load(this, n->size);
-                    return MIPS_Mul(this, leftReg, rightReg);
+                    rightReg = MIPS_Load(self, n->size);
+                    return MIPS_Mul(self, leftReg, rightReg);
             }
         case A_STRLIT:
-            return MIPS_LoadGlobStr(this, n->sym);
+            return MIPS_LoadGlobStr(self, n->sym);
         case A_AND:
-            return MIPS_BitAND(this, leftReg, rightReg);
+            return MIPS_BitAND(self, leftReg, rightReg);
         case A_OR:
-            return MIPS_BitOR(this, leftReg, rightReg);
+            return MIPS_BitOR(self, leftReg, rightReg);
         case A_XOR:
-            return MIPS_BitXOR(this, leftReg, rightReg);
+            return MIPS_BitXOR(self, leftReg, rightReg);
         case A_LSHIFT:
-            return MIPS_ShiftLeft(this, leftReg, rightReg);
+            return MIPS_ShiftLeft(self, leftReg, rightReg);
         case A_RSHIFT:
-            return MIPS_ShiftRight(this, leftReg, rightReg);
+            return MIPS_ShiftRight(self, leftReg, rightReg);
         case A_NEGATE:
-            return MIPS_Negate(this, leftReg);
+            return MIPS_Negate(self, leftReg);
         case A_INVERT:
-            return MIPS_BitNOT(this, leftReg);
+            return MIPS_BitNOT(self, leftReg);
         case A_LOGNOT:
-            return MIPS_LogNOT(this, leftReg);
+            return MIPS_LogNOT(self, leftReg);
         case A_PREINC:
         case A_PREDEC:
             debug("Preinc/dec found :)");
             if (n->left == NULL) {
                 fatal("InternalError: Left side of preinc is NULL");
             }
-            if (n->left->sym->class == C_GLOBAL ||
-                n->left->sym->class == C_EXTERN ||
-                n->left->sym->class == C_STATIC) {
-                return MIPS_LoadGlob(this, n->left->sym, n->op);
+            if (n->left->sym->_class == C_GLOBAL ||
+                n->left->sym->_class == C_EXTERN ||
+                n->left->sym->_class == C_STATIC) {
+                return MIPS_LoadGlob(self, n->left->sym, n->op);
             } else {
-                return MIPS_LoadLocal(this, n->left->sym, n->op);
+                return MIPS_LoadLocal(self, n->left->sym, n->op);
             }
         case A_POSTINC:
         case A_POSTDEC:
             debug("Postinc/dec found :)");
-            if (n->sym->class == C_GLOBAL || n->sym->class == C_EXTERN ||
-                n->sym->class == C_STATIC) {
-                return MIPS_LoadGlob(this, n->sym, n->op);
+            if (n->sym->_class == C_GLOBAL || n->sym->_class == C_EXTERN ||
+                n->sym->_class == C_STATIC) {
+                return MIPS_LoadGlob(self, n->sym, n->op);
             } else {
-                return MIPS_LoadLocal(this, n->sym, n->op);
+                return MIPS_LoadLocal(self, n->sym, n->op);
             }
         case A_TOBOOL:
-            return MIPS_ToBool(this, parentASTop, leftReg, ifLabel);
+            return MIPS_ToBool(self, parentASTop, leftReg, ifLabel);
         case A_BREAK:
-            MIPS_Jump(this, loopEndLabel);
+            MIPS_Jump(self, loopEndLabel);
             return NO_REG;
         case A_CONTINUE:
-            MIPS_Jump(this, loopTopLabel);
+            MIPS_Jump(self, loopTopLabel);
             return NO_REG;
         case A_CAST:
             return leftReg;
@@ -344,53 +344,53 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
     return 0;
 }
 
-static int genIFAST(Compiler this, SymTable st, Context ctx, ASTnode n,
+static int genIFAST(Compiler self, SymTable st, Context ctx, ASTnode n,
                     int loopTopLabel, int loopEndLabel) {
     int Lfalse, Lend;
 
-    Lfalse = Compiler_GenLabel(this);
-    if (n->right) Lend = Compiler_GenLabel(this);
+    Lfalse = Compiler_GenLabel(self);
+    if (n->right) Lend = Compiler_GenLabel(self);
 
     // reg acts as parameter for label
-    genAST(this, st, ctx, n->left, Lfalse, NO_LABEL, NO_LABEL, n->op);
-    Compiler_FreeAllReg(this, NO_REG);
+    genAST(self, st, ctx, n->left, Lfalse, NO_LABEL, NO_LABEL, n->op);
+    Compiler_FreeAllReg(self, NO_REG);
 
-    genAST(this, st, ctx, n->mid, NO_LABEL, loopTopLabel, loopEndLabel, n->op);
-    Compiler_FreeAllReg(this, NO_REG);
+    genAST(self, st, ctx, n->mid, NO_LABEL, loopTopLabel, loopEndLabel, n->op);
+    Compiler_FreeAllReg(self, NO_REG);
 
-    if (n->right) MIPS_Jump(this, Lend);
-    MIPS_Label(this, Lfalse);
+    if (n->right) MIPS_Jump(self, Lend);
+    MIPS_Label(self, Lfalse);
 
     if (n->right) {
-        genAST(this, st, ctx, n->right, NO_LABEL, NO_LABEL, NO_LABEL, n->op);
-        Compiler_FreeAllReg(this, NO_REG);
-        MIPS_Label(this, Lend);
+        genAST(self, st, ctx, n->right, NO_LABEL, NO_LABEL, NO_LABEL, n->op);
+        Compiler_FreeAllReg(self, NO_REG);
+        MIPS_Label(self, Lend);
     }
 
     return NO_REG;
 }
 
-static int genWHILEAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
+static int genWHILEAST(Compiler self, SymTable st, Context ctx, ASTnode n) {
     int Lstart, Lend;
 
-    Lstart = Compiler_GenLabel(this);
-    Lend = Compiler_GenLabel(this);
+    Lstart = Compiler_GenLabel(self);
+    Lend = Compiler_GenLabel(self);
 
-    MIPS_Label(this, Lstart);
+    MIPS_Label(self, Lstart);
 
-    genAST(this, st, ctx, n->left, Lend, Lstart, Lend, n->op);
-    Compiler_FreeAllReg(this, NO_REG);
+    genAST(self, st, ctx, n->left, Lend, Lstart, Lend, n->op);
+    Compiler_FreeAllReg(self, NO_REG);
 
-    genAST(this, st, ctx, n->right, NO_LABEL, Lstart, Lend, n->op);
-    Compiler_FreeAllReg(this, NO_REG);
+    genAST(self, st, ctx, n->right, NO_LABEL, Lstart, Lend, n->op);
+    Compiler_FreeAllReg(self, NO_REG);
 
-    MIPS_Jump(this, Lstart);
-    MIPS_Label(this, Lend);
+    MIPS_Jump(self, Lstart);
+    MIPS_Label(self, Lend);
 
     return NO_REG;
 }
 
-static int genSWITCHAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
+static int genSWITCHAST(Compiler self, SymTable st, Context ctx, ASTnode n) {
     int *caseVal, *caseLabel;
     int LjumpTop, Lend;
     int reg, defaultLabel = 0, caseCount = 0;
@@ -399,23 +399,23 @@ static int genSWITCHAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
     caseVal = calloc(n->intvalue + 1, sizeof(int));
     caseLabel = calloc(n->intvalue + 1, sizeof(int));
 
-    LjumpTop = Compiler_GenLabel(this);
-    Lend = Compiler_GenLabel(this);
+    LjumpTop = Compiler_GenLabel(self);
+    Lend = Compiler_GenLabel(self);
 
     defaultLabel = Lend;
 
-    reg = genAST(this, st, ctx, n->left, NO_LABEL, NO_LABEL, NO_LABEL, A_NONE);
-    MIPS_Jump(this, LjumpTop);
+    reg = genAST(self, st, ctx, n->left, NO_LABEL, NO_LABEL, NO_LABEL, A_NONE);
+    MIPS_Jump(self, LjumpTop);
 
-    Compiler_FreeAllReg(this, NO_REG);
+    Compiler_FreeAllReg(self, NO_REG);
 
     ca = n->right;
     for (int i = 0; ca != NULL; i++, ca = ca->right) {
-        caseLabel[i] = Compiler_GenLabel(this);
+        caseLabel[i] = Compiler_GenLabel(self);
         caseVal[i] = ca->intvalue;
         debug("case value: %d", ca->intvalue);
         debug("caseVal[%d] = %d", i, caseVal[i]);
-        MIPS_Label(this, caseLabel[i]);
+        MIPS_Label(self, caseLabel[i]);
         if (ca->op == A_DEFAULT) {
             debug("hit default");
             defaultLabel = caseLabel[i];
@@ -424,15 +424,15 @@ static int genSWITCHAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
             caseCount++;
         }
         if (ca->left)
-            genAST(this, st, ctx, ca->left, NO_LABEL, NO_LABEL, Lend, A_NONE);
-        Compiler_FreeAllReg(this, NO_REG);
+            genAST(self, st, ctx, ca->left, NO_LABEL, NO_LABEL, Lend, A_NONE);
+        Compiler_FreeAllReg(self, NO_REG);
     }
 
-    MIPS_Jump(this, Lend);
+    MIPS_Jump(self, Lend);
 
-    MIPS_Switch(this, reg, caseCount, LjumpTop, caseLabel, caseVal,
+    MIPS_Switch(self, reg, caseCount, LjumpTop, caseLabel, caseVal,
                 defaultLabel);
-    MIPS_Label(this, Lend);
+    MIPS_Label(self, Lend);
 
     free(caseVal);
     free(caseLabel);
@@ -440,49 +440,49 @@ static int genSWITCHAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
     return NO_REG;
 }
 
-static int genFUNCCALLAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
+static int genFUNCCALLAST(Compiler self, SymTable st, Context ctx, ASTnode n) {
     ASTnode tree = n->left;
     int reg, numArgs = 0;
 
     while (tree) {
-        reg = genAST(this, st, ctx, tree->right, NO_LABEL, NO_LABEL, NO_LABEL,
+        reg = genAST(self, st, ctx, tree->right, NO_LABEL, NO_LABEL, NO_LABEL,
                      n->op);
 
-        MIPS_ArgCopy(this, reg, tree->size);
+        MIPS_ArgCopy(self, reg, tree->size);
 
         if (numArgs == 0) numArgs = tree->size;
-        Compiler_FreeAllReg(this, NO_REG);
+        Compiler_FreeAllReg(self, NO_REG);
 
         tree = tree->left;
         numArgs++;
     }
 
-    return MIPS_Call(this, n->sym);
+    return MIPS_Call(self, n->sym);
 }
 
-static int genTERNARYAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
+static int genTERNARYAST(Compiler self, SymTable st, Context ctx, ASTnode n) {
     int Lfalse, Lend;
     int reg, expReg;
 
-    Lfalse = Compiler_GenLabel(this);
-    Lend = Compiler_GenLabel(this);
+    Lfalse = Compiler_GenLabel(self);
+    Lend = Compiler_GenLabel(self);
 
-    genAST(this, st, ctx, n->left, Lfalse, NO_LABEL, NO_LABEL, n->op);
-    Compiler_FreeAllReg(this, NO_REG);
+    genAST(self, st, ctx, n->left, Lfalse, NO_LABEL, NO_LABEL, n->op);
+    Compiler_FreeAllReg(self, NO_REG);
 
-    reg = allocReg(this);
+    reg = allocReg(self);
 
-    expReg = genAST(this, st, ctx, n->mid, NO_LABEL, NO_LABEL, NO_LABEL, n->op);
-    MIPS_Move(this, expReg, reg);
-    Compiler_FreeAllReg(this, reg);
+    expReg = genAST(self, st, ctx, n->mid, NO_LABEL, NO_LABEL, NO_LABEL, n->op);
+    MIPS_Move(self, expReg, reg);
+    Compiler_FreeAllReg(self, reg);
 
-    MIPS_Jump(this, Lend);
-    MIPS_Label(this, Lfalse);
+    MIPS_Jump(self, Lend);
+    MIPS_Label(self, Lfalse);
 
     expReg =
-        genAST(this, st, ctx, n->right, NO_LABEL, NO_LABEL, NO_LABEL, n->op);
-    MIPS_Move(this, expReg, reg);
-    Compiler_FreeAllReg(this, reg);
-    MIPS_Label(this, Lend);
+        genAST(self, st, ctx, n->right, NO_LABEL, NO_LABEL, NO_LABEL, n->op);
+    MIPS_Move(self, expReg, reg);
+    Compiler_FreeAllReg(self, reg);
+    MIPS_Label(self, Lend);
     return reg;
 }

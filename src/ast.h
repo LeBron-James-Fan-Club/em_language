@@ -34,7 +34,7 @@ typedef struct astnode *ASTnode;
 ASTnode ASTnode_New(enum ASTOP op, enum ASTPRIM type, ASTnode left, ASTnode mid,
                     ASTnode right, SymTableEntry ctype, SymTableEntry sym,
                     int intvalue);
-void ASTnode_Free(ASTnode this);
+void ASTnode_Free(ASTnode self);
 ASTnode ASTnode_NewLeaf(enum ASTOP op, enum ASTPRIM type, SymTableEntry ctype,
                         SymTableEntry sym, int intvalue);
 ASTnode ASTnode_NewUnary(enum ASTOP op, enum ASTPRIM type, ASTnode left,

@@ -32,7 +32,7 @@ ASTnode modify_type(ASTnode tree, enum ASTPRIM rtype, SymTableEntry rctype,
         fatal("InternalError: Struct/Union type in modify_type");
     }
 
-    // TODO: Change this and see if anything breaks
+    // TODO: Change self and see if anything breaks
     if ((inttype(ltype) && inttype(rtype)) ||
         // For assignment operator
         (ptrtype(ltype) && ptrtype(rtype))) {
