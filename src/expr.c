@@ -157,7 +157,7 @@ static ASTnode primary(Compiler c, Scanner s, SymTable st, Token t,
                             "SyntaxError: identifier not a scalar or array, %s",
                             s->text);
             }
-
+            break;
         case T_LPAREN:
             return paren_expression(c, s, st, t, ctx);
         default:
@@ -512,6 +512,7 @@ static ASTnode ASTnode_Prefix(Compiler c, Scanner s, SymTable st, Token tok,
 
 static ASTnode ASTnode_Postfix(Compiler c, Scanner s, SymTable st, Token tok,
                                Context ctx) {
+
     ASTnode n = primary(c, s, st, tok, ctx);
 
     // Converts enum to a specific int
