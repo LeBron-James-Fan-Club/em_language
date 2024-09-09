@@ -145,7 +145,7 @@ static ASTnode primary(Compiler c, Scanner s, SymTable st, Token t,
                     n->rvalue = 1;
                     break;
                 case S_FUNC:
-                    Scanner_Scan(s, t);
+                    s->Scanner_Scan(t);
                     if (t->token == T_LPAREN) {
                         n = ASTnode_FuncCall(c, s, st, t, ctx);
                     } else {
@@ -176,7 +176,7 @@ static ASTnode paren_expression(Compiler c, Scanner s, SymTable st, Token t,
     enum ASTPRIM type = P_NONE;
     SymTableEntry cType = nullptr;
 
-    Scanner_Scan(s, t);
+    s->Scanner_Scan(t);
 
     switch (t->token) {
         case T_IDENT:
@@ -192,7 +192,7 @@ static ASTnode paren_expression(Compiler c, Scanner s, SymTable st, Token t,
         case T_ENUM:
             debug("fell here");
             type = parse_cast(c, s, st, t, ctx, &cType);
-            rparen(s, t);
+            s->rparen(t);
         default:
             // * rest of the expression (int)b <- self
             // * Please work with the shunting algorithm
@@ -204,13 +204,13 @@ static ASTnode paren_expression(Compiler c, Scanner s, SymTable st, Token t,
 
     // Its a left parenthesis eat it
     if (type == P_NONE) {
-        rparen(s, t);
+        s->rparen(t);
     } else {
         n = ASTnode_NewUnary(A_CAST, type, n, cType, nullptr, 0);
     }
 
     // If shit was scanned in before
-    Scanner_RejectToken(s, t);
+    s->Scanner_RejectToken(t);
 
     return n;
 }
@@ -235,7 +235,7 @@ static void orderOp(Compiler c, Scanner s, SymTable st, Token t, Context ctx,
     // ! THIS MIGHT CAUSE BUG
     if (op == A_TERNARY) {
         debug("Ternary operator");
-        match(s, t, T_COLON, ":");
+        s->match(t, T_COLON, ":");
         ltemp = ASTnode_Order(c, s, st, t, ctx);
         stack[++(*top)] = ASTnode_New(A_TERNARY, right->type, left, right,
                                       ltemp, right->ctype, nullptr, 0);
@@ -337,7 +337,7 @@ ASTnode ASTnode_Order(Compiler c, Scanner s, SymTable st, Token t,
                 expectPreOp = true;
         }
 
-        Scanner_Scan(s, t);
+        s->Scanner_Scan(t);
     } while (true);
 out:
 
@@ -377,15 +377,15 @@ static ASTnode ASTnode_FuncCall(Compiler c, Scanner s, SymTable st, Token tok,
         lfatala(s, "UndefinedError: Undefined function %s", s->text);
     }
 
-    lparen(s, tok);
+    s->lparen(tok);
 
     t = expression_list(c, s, st, tok, ctx, T_RPAREN);
 
     t = ASTnode_NewUnary(A_FUNCCALL, var->type, t, var->ctype, var, 0);
 
-    rparen(s, tok);
+    s->rparen(tok);
 
-    Scanner_RejectToken(s, tok);
+    s->Scanner_RejectToken(tok);
     return t;
 }
 
@@ -405,7 +405,7 @@ ASTnode expression_list(Compiler c, Scanner s, SymTable st, Token tok,
 
         if (tok->token == endToken) break;
 
-        match(s, tok, T_COMMA, ",");
+        s->match(tok, T_COMMA, ",");
     }
     return tree;
 }
@@ -421,11 +421,11 @@ static ASTnode ASTnode_ArrayRef(Compiler c, Scanner s, SymTable st, Token tok,
     }
 
     // eat [
-    Scanner_Scan(s, tok);
+    s->Scanner_Scan(tok);
 
     right = ASTnode_Order(c, s, st, tok, ctx);
 
-    match(s, tok, T_RBRACKET, "]");
+    s->match(tok, T_RBRACKET, "]");
 
     if (!inttype(right->type)) {
         fatal("TypeError: Array index must be an integer");
@@ -437,7 +437,7 @@ static ASTnode ASTnode_ArrayRef(Compiler c, Scanner s, SymTable st, Token tok,
 
     left =
         ASTnode_New(A_ADD, left->type, left, nullptr, right, left->ctype, nullptr, 0);
-    Scanner_RejectToken(s, tok);
+    s->Scanner_RejectToken(tok);
 
     return ASTnode_NewUnary(A_DEREF, value_at(left->type), left, left->ctype,
                             nullptr, 0);
@@ -448,7 +448,7 @@ static ASTnode ASTnode_Prefix(Compiler c, Scanner s, SymTable st, Token tok,
     ASTnode t;
     switch (tok->token) {
         case T_AMPER:
-            Scanner_Scan(s, tok);
+            s->Scanner_Scan(tok);
             t = ASTnode_Prefix(c, s, st, tok, ctx);
             if (t->op != A_IDENT) {
                 lfatal(s, "SyntaxError: Expected identifier");
@@ -457,7 +457,7 @@ static ASTnode ASTnode_Prefix(Compiler c, Scanner s, SymTable st, Token tok,
             t->type = pointer_to(t->type);
             break;
         case T_STAR:
-            Scanner_Scan(s, tok);
+            s->Scanner_Scan(tok);
             t = ASTnode_Prefix(c, s, st, tok, ctx);
             if (t->op != A_IDENT && t->op != A_DEREF) {
                 lfatal(
@@ -469,7 +469,7 @@ static ASTnode ASTnode_Prefix(Compiler c, Scanner s, SymTable st, Token tok,
                                  0);
             break;
         case T_INC:
-            Scanner_Scan(s, tok);
+            s->Scanner_Scan(tok);
             t = ASTnode_Postfix(c, s, st, tok, ctx);
 
             // * temp check - cause inc also sets the rvalue
@@ -480,26 +480,26 @@ static ASTnode ASTnode_Prefix(Compiler c, Scanner s, SymTable st, Token tok,
             t = ASTnode_NewUnary(A_PREINC, t->type, t, t->ctype, nullptr, 0);
             break;
         case T_MINUS:
-            Scanner_Scan(s, tok);
+            s->Scanner_Scan(tok);
             // for ---a
             t = ASTnode_Prefix(c, s, st, tok, ctx);
             t->rvalue = 1;
             t = ASTnode_NewUnary(A_NEGATE, t->type, t, t->ctype, nullptr, 0);
             break;
         case T_INVERT:
-            Scanner_Scan(s, tok);
+            s->Scanner_Scan(tok);
             t = ASTnode_Prefix(c, s, st, tok, ctx);
             t->rvalue = 1;
             t = ASTnode_NewUnary(A_INVERT, t->type, t, t->ctype, nullptr, 0);
             break;
         case T_LOGNOT:
-            Scanner_Scan(s, tok);
+            s->Scanner_Scan(tok);
             t = ASTnode_Prefix(c, s, st, tok, ctx);
             t->rvalue = 1;
             t = ASTnode_NewUnary(A_LOGNOT, t->type, t, t->ctype, nullptr, 0);
             break;
         case T_DEC:
-            Scanner_Scan(s, tok);
+            s->Scanner_Scan(tok);
             t = ASTnode_Postfix(c, s, st, tok, ctx);
             if (t->op != A_IDENT) {
                 lfatal(s, "SyntaxError: -- must be followed by an identifier");
@@ -534,7 +534,7 @@ static ASTnode ASTnode_Postfix(Compiler c, Scanner s, SymTable st, Token tok,
                 if (n->rvalue == 1) {
                     lfatala(s, "SyntaxError: Cannot ++ on rvalue, %s", s->text);
                 }
-                Scanner_Scan(s, tok);
+                s->Scanner_Scan(tok);
                 if (n->op == A_POSTINC || n->op == A_POSTDEC) {
                     lfatala(
                         s,
@@ -547,7 +547,7 @@ static ASTnode ASTnode_Postfix(Compiler c, Scanner s, SymTable st, Token tok,
                 if (n->rvalue == 1) {
                     lfatala(s, "SyntaxError: Cannot -- on rvalue, %s", s->text);
                 }
-                Scanner_Scan(s, tok);
+                s->Scanner_Scan(tok);
                 if (n->op == A_POSTINC || n->op == A_POSTDEC) {
                     lfatala(
                         s,
@@ -590,9 +590,9 @@ static ASTnode ASTnode_MemberAccess(Scanner s, SymTable st, Token tok,
     typePtr = left->ctype;
 
     // Consume . or ->
-    Scanner_Scan(s, tok);
+    s->Scanner_Scan(tok);
 
-    ident(s, tok);
+    s->ident(tok);
 
     for (m = typePtr->member; m != nullptr; m = m->next) {
         if (!strcmp(m->name, s->text)) break;
@@ -608,7 +608,7 @@ static ASTnode ASTnode_MemberAccess(Scanner s, SymTable st, Token tok,
                        m->ctype,nullptr, 0);
     left = ASTnode_NewUnary(A_DEREF, m->type, left, m->ctype, nullptr, 0);
 
-    Scanner_RejectToken(s, tok);
+    s->Scanner_RejectToken(tok);
 
     return left;
 }
@@ -616,12 +616,12 @@ static ASTnode ASTnode_MemberAccess(Scanner s, SymTable st, Token tok,
 static ASTnode peek_operator(Compiler c, Scanner s, SymTable st, Token tok,
                              Context ctx) {
     ASTnode n;
-    match(s, tok, T_PEEK, "peek");
-    lparen(s, tok);
+    s->match(tok, T_PEEK, "peek");
+    s->lparen(tok);
     n = ASTnode_Order(c, s, st, tok, ctx);
     n->rvalue = true;
-    rparen(s, tok);
-    Scanner_RejectToken(s, tok);
+    s->rparen(tok);
+    s->Scanner_RejectToken(tok);
     return ASTnode_NewUnary(A_PEEK, P_INT, n, nullptr, nullptr, 0);
 }
 
@@ -633,13 +633,13 @@ static ASTnode sizeof_operator(Compiler c, Scanner s, SymTable st, Token tok,
     SymTableEntry cType;
 
     debug("sizeof");
-    match(s, tok, T_SIZEOF, "sizeof");
-    lparen(s, tok);
+    s->match(tok, T_SIZEOF, "sizeof");
+    s->lparen(tok);
     type = static_cast<enum ASTPRIM>(parse_stars(s, tok, parse_type(c, s, st, tok, ctx, &cType, &_class)));
     debug("cType %p", cType);
     size = type_size(type, cType);
-    rparen(s, tok);
-    Scanner_RejectToken(s, tok);
+    s->rparen(tok);
+    s->Scanner_RejectToken(tok);
 
     return ASTnode_NewLeaf(A_INTLIT, P_INT, nullptr, nullptr, size);
 }

@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
 
     MIPS_Pre(c);
 
-    Scanner_Scan(s, tok);
+    s->Scanner_Scan(tok);
     global_declare(c, s, st, tok, ctx);
     MIPS_Post(c);
 

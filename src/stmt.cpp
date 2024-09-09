@@ -3,14 +3,6 @@
 #include "stmt.h"
 #include "misc.h"
 
-void match(Scanner s, Token t, enum OPCODES op, char *tok);
-void semi(Scanner s, Token t);
-void ident(Scanner s, Token t);
-void lbrace(Scanner s, Token t);
-void rbrace(Scanner s, Token t);
-void lparen(Scanner s, Token t);
-void rparen(Scanner s, Token t);
-
 static ASTnode poke_statement(Compiler c, Scanner s, SymTable st, Token tok,
                               Context ctx);
 
@@ -59,7 +51,7 @@ ASTnode Compound_Statement(Compiler c, Scanner s, SymTable st, Token tok,
              tree->op == A_LABEL || tree->op == A_GOTO || tree->op == A_POKE ||
              tree->op == A_BREAK || tree->op == A_CONTINUE)) {
             debug("consume semi");
-            semi(s, tok);
+            s->semi(tok);
         }
 
         if (tree) {
@@ -69,7 +61,7 @@ ASTnode Compound_Statement(Compiler c, Scanner s, SymTable st, Token tok,
         }
 
         if (tok->token == T_RBRACE) {
-            // rbrace(s, tok);
+            // s->rbrace(tok);
             debug("GTFO");
             return left;
         }
@@ -92,7 +84,7 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
         case T_IDENT:
             if (st->SymTable_FindTypeDef(s) == nullptr) {
                 stmt = ASTnode_Order(c, s, st, tok, ctx);
-                semi(s, tok);
+                s->semi(tok);
                 return stmt;
             }
         case T_CHAR:
@@ -103,7 +95,7 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
         case T_TYPEDEF:
             declare_list(c, s, st, tok, ctx, &cType, C_LOCAL, T_SEMI, T_EOF,
                          &stmt);
-            semi(s, tok);
+            s->semi(tok);
             return stmt;
         case T_POKE:
             return poke_statement(c, s, st, tok, ctx);
@@ -129,18 +121,18 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
         case T_SWITCH:
             return switch_statement(c, s, st, tok, ctx);
         case T_LBRACE:
-            lbrace(s, tok);
+            s->lbrace(tok);
             // Edgecase: Empty
             if (tok->token == T_RBRACE) {
-                rbrace(s, tok);
+                s->rbrace(tok);
                 return nullptr;
             }
             stmt = Compound_Statement(c, s, st, tok, ctx, false);
-            rbrace(s, tok);
+            s->rbrace(tok);
             return stmt;
         default:
             stmt = ASTnode_Order(c, s, st, tok, ctx);
-            semi(s, tok);
+            s->semi(tok);
             return stmt;
     }
 }
@@ -148,12 +140,12 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
 static ASTnode poke_statement(Compiler c, Scanner s, SymTable st, Token tok,
                               Context ctx) {
     ASTnode param1, param2;
-    match(s, tok, T_POKE, "poke");
-    lparen(s, tok);
+    s->match(tok, T_POKE, "poke");
+    s->lparen(tok);
     param1 = ASTnode_Order(c, s, st, tok, ctx);
-    comma(s, tok);
+    s->comma(tok);
     param2 = ASTnode_Order(c, s, st, tok, ctx);
-    rparen(s, tok);
+    s->rparen(tok);
     return ASTnode_New(A_POKE, P_NONE, param2, nullptr, param1, nullptr, nullptr, 0);
 }
 
@@ -161,17 +153,17 @@ static ASTnode print_statement(Compiler c, Scanner s, SymTable st, Token tok,
                                Context ctx) {
     ASTnode t;
 
-    match(s, tok, T_PRINT, "print");
+    s->match(tok, T_PRINT, "print");
 
     // Might break if i add more types not compatable
 
     // loops til no more commas - we can do hello world now
     ASTnode parent = nullptr;
     bool firstGone = false;
-    lparen(s, tok);
+    s->lparen(tok);
     do {
         if (parent) {
-            Scanner_Scan(s, tok);
+            s->Scanner_Scan(tok);
         }
         t = ASTnode_Order(c, s, st, tok, ctx);
 
@@ -195,9 +187,9 @@ static ASTnode print_statement(Compiler c, Scanner s, SymTable st, Token tok,
             firstGone = true;
         }
     } while (tok->token == T_COMMA);
-    rparen(s, tok);
+    s->rparen(tok);
 
-    semi(s, tok);
+    s->semi(tok);
 
     return parent;
 }
@@ -207,31 +199,31 @@ static ASTnode input_statement(Scanner s, SymTable st, Token tok, Context ctx) {
 
     // input(variable, type);
 
-    match(s, tok, T_INPUT, "input");
-    lparen(s, tok);
+    s->match(tok, T_INPUT, "input");
+    s->lparen(tok);
 
-    ident(s, tok);
+    s->ident(tok);
     
     if ((var = st->SymTable_FindSymbol(s, ctx)) == nullptr) {
         lfatala(s, "UndefinedError: Undefined variable %s", s->text);
     }
 
-    comma(s, tok);
+    s->comma(tok);
 
     ASTnode left;
     bool isStr = false;
 
     switch (tok->token) {
         case T_CHAR:
-            Scanner_Scan(s, tok);
+            s->Scanner_Scan(tok);
             if (tok->token == T_STAR) {
                 debug("FOUND STRING");
-                Scanner_Scan(s, tok);
+                s->Scanner_Scan(tok);
                 isStr = true;
                 left =
                     ASTnode_NewLeaf(A_INPUT, pointer_to(P_CHAR), nullptr, var, 0);
             } else {
-                Scanner_RejectToken(s, tok);
+                s->Scanner_RejectToken(tok);
                 left = ASTnode_NewLeaf(A_INPUT, P_CHAR, nullptr, nullptr, 0);
             }
             break;
@@ -243,8 +235,8 @@ static ASTnode input_statement(Scanner s, SymTable st, Token tok, Context ctx) {
     }
 
     if (isStr) {
-        rparen(s, tok);
-        semi(s, tok);
+        s->rparen(tok);
+        s->semi(tok);
         return left;
     }
 
@@ -254,9 +246,9 @@ static ASTnode input_statement(Scanner s, SymTable st, Token tok, Context ctx) {
     ASTnode tree = modify_type(right, left->type, left->ctype, A_NONE);
 
     tree = ASTnode_New(A_ASSIGN, P_NONE, left, nullptr, tree, nullptr, nullptr, 0);
-    rparen(s, tok);
+    s->rparen(tok);
 
-    semi(s, tok);
+    s->semi(tok);
 
     return tree;
 }
@@ -265,8 +257,8 @@ static ASTnode if_statement(Compiler c, Scanner s, SymTable st, Token tok,
                             Context ctx) {
     ASTnode condAST, trueAST, falseAST = nullptr;
 
-    match(s, tok, T_IF, "if");
-    lparen(s, tok);
+    s->match(tok, T_IF, "if");
+    s->lparen(tok);
 
     condAST = ASTnode_Order(c, s, st, tok, ctx);
 
@@ -276,12 +268,12 @@ static ASTnode if_statement(Compiler c, Scanner s, SymTable st, Token tok,
             ASTnode_NewUnary(A_TOBOOL, condAST->type, condAST, nullptr, nullptr, 0);
     }
 
-    rparen(s, tok);
+    s->rparen(tok);
 
     trueAST = single_statement(c, s, st, tok, ctx);
 
     if (tok->token == T_ELSE) {
-        Scanner_Scan(s, tok);
+        s->Scanner_Scan(tok);
         falseAST = single_statement(c, s, st, tok, ctx);
     }
 
@@ -292,8 +284,8 @@ static ASTnode while_statement(Compiler c, Scanner s, SymTable st, Token tok,
                                Context ctx) {
     ASTnode condAST, bodyAST;
 
-    match(s, tok, T_WHILE, "while");
-    lparen(s, tok);
+    s->match(tok, T_WHILE, "while");
+    s->lparen(tok);
 
     condAST = ASTnode_Order(c, s, st, tok, ctx);
     if (condAST->op < A_EQ || condAST->op > A_GE) {
@@ -301,7 +293,7 @@ static ASTnode while_statement(Compiler c, Scanner s, SymTable st, Token tok,
         exit(-1);
     }
 
-    rparen(s, tok);
+    s->rparen(tok);
 
     Context_IncLoopLevel(ctx);
     bodyAST = single_statement(c, s, st, tok, ctx);
@@ -316,11 +308,11 @@ static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok,
     ASTnode preopAST, postopAST;
     ASTnode t;
 
-    match(s, tok, T_FOR, "for");
-    lparen(s, tok);
+    s->match(tok, T_FOR, "for");
+    s->lparen(tok);
 
     preopAST = expression_list(c, s, st, tok, ctx, T_SEMI);
-    semi(s, tok);
+    s->semi(tok);
 
     debug("WE ARE COND :L");
 
@@ -330,12 +322,12 @@ static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok,
         exit(-1);
     }
     debug("EATING THE SEMMI :L");
-    semi(s, tok);
+    s->semi(tok);
 
     debug("WE ARE POST :L");
 
     postopAST = expression_list(c, s, st, tok, ctx, T_RPAREN);
-    rparen(s, tok);
+    s->rparen(tok);
 
     Context_IncLoopLevel(ctx);
     bodyAST = single_statement(c, s, st, tok, ctx);
@@ -347,8 +339,8 @@ static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok,
 }
 
 static ASTnode label_statement(Scanner s, SymTable st, Token tok) {
-    match(s, tok, T_LABEL, "label");
-    ident(s, tok);
+    s->match(tok, T_LABEL, "label");
+    s->ident(tok);
 
     SymTableEntry var = st->SymTable_AddGlob(s->text, P_NONE, nullptr, S_LABEL,
                                          C_GLOBAL, 0, false);
@@ -361,9 +353,9 @@ static ASTnode label_statement(Scanner s, SymTable st, Token tok) {
 static ASTnode goto_statement(Scanner s, SymTable st, Token tok) {
     SymTableEntry var;
 
-    match(s, tok, T_GOTO, "goto");
+    s->match(tok, T_GOTO, "goto");
     // ! Might be buggy?
-    ident(s, tok);
+    s->ident(tok);
     if ((var = st->SymTable_FindGlob(s)) == nullptr) {
         lfatala(s, "UndefinedError: Undefined label %s", s->text);
     }
@@ -388,7 +380,7 @@ static ASTnode return_statement(Compiler c, Scanner s, SymTable st, Token tok,
         exit(-1);
     }
 
-    match(s, tok, T_RETURN, "return");
+    s->match(tok, T_RETURN, "return");
 
     t = ASTnode_Order(c, s, st, tok, ctx);
     t->rvalue = 1;
@@ -407,7 +399,7 @@ static ASTnode break_statement(Scanner s, Token tok, Context ctx) {
     if (Context_GetLoopLevel(ctx) == 0) {
         lfatal(s, "SyntaxError: break outside of loop");
     }
-    Scanner_Scan(s, tok);
+    s->Scanner_Scan(tok);
     return ASTnode_NewLeaf(A_BREAK, P_NONE, nullptr, nullptr, 0);
 }
 
@@ -415,7 +407,7 @@ static ASTnode continue_statement(Scanner s, Token tok, Context ctx) {
     if (Context_GetLoopLevel(ctx) == 0) {
         lfatal(s, "SyntaxError: continue outside of loop");
     }
-    Scanner_Scan(s, tok);
+    s->Scanner_Scan(tok);
     return ASTnode_NewLeaf(A_CONTINUE, P_NONE, nullptr, nullptr, 0);
 }
 
@@ -428,13 +420,13 @@ static ASTnode switch_statement(Compiler c, Scanner s, SymTable st, Token tok,
     enum ASTOP op;
     int caseValue;
 
-    Scanner_Scan(s, tok);
+    s->Scanner_Scan(tok);
 
-    lparen(s, tok);
+    s->lparen(tok);
     left = ASTnode_Order(c, s, st, tok, ctx);
-    rparen(s, tok);
+    s->rparen(tok);
 
-    lbrace(s, tok);
+    s->lbrace(tok);
 
     debug("after lbrace");
 
@@ -467,11 +459,11 @@ static ASTnode switch_statement(Compiler c, Scanner s, SymTable st, Token tok,
 
                     op = A_DEFAULT;
                     seenDefault = true;
-                    Scanner_Scan(s, tok);
+                    s->Scanner_Scan(tok);
                 } else {
                     debug("A CASE");
                     op = A_CASE;
-                    Scanner_Scan(s, tok);
+                    s->Scanner_Scan(tok);
                     left = ASTnode_Order(c, s, st, tok, ctx);
 
                     if (left->op != A_INTLIT) {
@@ -493,7 +485,7 @@ static ASTnode switch_statement(Compiler c, Scanner s, SymTable st, Token tok,
                     // Free it we don't need it anymore
                     ASTnode_Free(left);
                 }
-                match(s, tok, T_COLON, ":");
+                s->match(tok, T_COLON, ":");
 
                 // Edge case : empty
                 if (tok->token != T_CASE) {
@@ -526,7 +518,7 @@ static ASTnode switch_statement(Compiler c, Scanner s, SymTable st, Token tok,
     debug("case count %d", caseCount);
     n->right = caseTree;
 
-    rbrace(s, tok);
+    s->rbrace(tok);
 
     return n;
 }

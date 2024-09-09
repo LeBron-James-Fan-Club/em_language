@@ -32,9 +32,9 @@ static int chrpos(char *s, int c);
 
 static char next(Scanner self) {
     char c;
-    if (self->putback) {
-        c = self->putback;
-        self->putback = 0;
+    if (self->_putback) {
+        c = self->_putback;
+        self->_putback = 0;
         return c;
     }
     c = fgetc(self->infile);
@@ -43,9 +43,7 @@ static char next(Scanner self) {
 }
 
 // Con: one character buffer we cant really read 3 symbol characters only 2
-static void putback(Scanner self, char c) { self->putback = c; }
-
-void Scanner_Putback(Scanner self, char c) { putback(self, c); }
+static void putback(Scanner self, char c) { self->_putback = c; }
 
 // ignores whitespace
 static char skip(Scanner self) {
@@ -65,18 +63,18 @@ static char skip(Scanner self) {
     return c;
 }
 
-void Scanner_Scan(Scanner self, Token t) {
+void scanner::Scanner_Scan(Token t) {
     char c, tokenType;
 
-    if (self->rejToken) {
+    if (this->rejToken) {
         // might be buggy check later
-        t->token = self->rejToken->token;
-        t->intvalue = self->rejToken->intvalue;
-        self->rejToken = nullptr;
+        t->token = this->rejToken->token;
+        t->intvalue = this->rejToken->intvalue;
+        this->rejToken = nullptr;
         return;
     }
 
-    c = skip(self);
+    c = skip(this);
 
     debug("scanning %c", c);
 
@@ -91,87 +89,87 @@ void Scanner_Scan(Scanner self, Token t) {
             t->token = T_SEMI;
             break;
         case '+':
-            if ((c = next(self)) == '+') {
+            if ((c = next(this)) == '+') {
                 t->token = T_INC;
             } else if (c == '=') {
                 t->token = T_ASPLUS;
             } else {
-                putback(self, c);
+                putback(this, c);
                 t->token = T_PLUS;
             }
             break;
         case '-':
-            if ((c = next(self)) == '-') {
+            if ((c = next(this)) == '-') {
                 t->token = T_DEC;
             } else if (c == '=') {
                 t->token = T_ASMINUS;
             } else if (c == '>') {
                 t->token = T_ARROW;
             } else if (isdigit(c)) {
-                t->intvalue = -scanInt(self, c);
+                t->intvalue = -scanInt(this, c);
                 t->token = T_INTLIT;
             } else {
-                putback(self, c);
+                putback(this, c);
                 t->token = T_MINUS;
             }
             break;
         case '*':
-            if ((c = next(self)) == '=') {
+            if ((c = next(this)) == '=') {
                 t->token = T_ASSTAR;
             } else {
-                putback(self, c);
+                putback(this, c);
                 t->token = T_STAR;
             }
             break;
         case '/':
-            if ((c = next(self)) == '=') {
+            if ((c = next(this)) == '=') {
                 t->token = T_ASSLASH;
             } else {
-                putback(self, c);
+                putback(this, c);
                 t->token = T_SLASH;
             }
             break;
         case '%':
-            if ((c = next(self)) == '=') {
+            if ((c = next(this)) == '=') {
                 t->token = T_ASMOD;
             } else {
-                putback(self, c);
+                putback(this, c);
                 t->token = T_MODULO;
             }
             break;
         case '=':
-            if ((c = next(self)) == '=') {
+            if ((c = next(this)) == '=') {
                 t->token = T_EQ;
             } else {
-                putback(self, c);
+                putback(this, c);
                 t->token = T_ASSIGN;
             }
             break;
         case '!':
-            if ((c = next(self)) == '=') {
+            if ((c = next(this)) == '=') {
                 t->token = T_NE;
             } else {
-                putback(self, c);
+                putback(this, c);
                 t->token = T_LOGNOT;
             }
             break;
         case '<':
-            if ((c = next(self)) == '=') {
+            if ((c = next(this)) == '=') {
                 t->token = T_LE;
             } else if (c == '<') {
                 t->token = T_LSHIFT;
             } else {
-                putback(self, c);
+                putback(this, c);
                 t->token = T_LT;
             }
             break;
         case '>':
-            if ((c = next(self)) == '=') {
+            if ((c = next(this)) == '=') {
                 t->token = T_GE;
             } else if (c == '>') {
                 t->token = T_RSHIFT;
             } else {
-                putback(self, c);
+                putback(this, c);
                 t->token = T_GT;
             }
             break;
@@ -200,10 +198,10 @@ void Scanner_Scan(Scanner self, Token t) {
             t->tokstr = TokStr[t->token];
             break;
         case '&':
-            if ((c = next(self)) == '&') {
+            if ((c = next(this)) == '&') {
                 t->token = T_LOGAND;
             } else {
-                putback(self, c);
+                putback(this, c);
                 t->token = T_AMPER;
             }
             break;
@@ -211,22 +209,22 @@ void Scanner_Scan(Scanner self, Token t) {
             t->token = T_XOR;
             break;
         case '|':
-            if ((c = next(self)) == '|') {
+            if ((c = next(this)) == '|') {
                 t->token = T_LOGOR;
             } else {
-                putback(self, c);
+                putback(this, c);
                 t->token = T_OR;
             }
             break;
         case '\'':
-            t->intvalue = scanChr(self);
+            t->intvalue = scanChr(this);
             t->token = T_INTLIT;
-            if (next(self) != '\'') {
-                lfatal(self, "SyntaxError: expected ' at end of char literal");
+            if (next(this) != '\'') {
+                lfatal(this, "SyntaxError: expected ' at end of char literal");
             }
             break;
         case '"':
-            scanStr(self);
+            scanStr(this);
             t->token = T_STRLIT;
             break;
         case '.':
@@ -240,13 +238,13 @@ void Scanner_Scan(Scanner self, Token t) {
             break;
         default:
             if (isdigit(c)) {
-                t->intvalue = scanInt(self, c);
+                t->intvalue = scanInt(this, c);
                 t->token = T_INTLIT;
                 break;
             } else if (isalpha(c) || c == '_') {
-                scanIdent(self, c);
+                scanIdent(this, c);
 
-                if ((tokenType = keyword(self->text))) {
+                if ((tokenType = keyword(this->text))) {
                     t->token = static_cast<enum OPCODES>(tokenType);
                     break;
                 }
@@ -256,7 +254,7 @@ void Scanner_Scan(Scanner self, Token t) {
             }
 
             // occurs only probs when unicode
-            lfatala(self, "SyntaxError: Invalid character %c", c);
+            lfatala(this, "SyntaxError: Invalid character %c", c);
     }
 
     t->tokstr = TokStr[t->token];
@@ -326,11 +324,11 @@ static int keyword(char *s) {
     return 0;
 }
 
-void Scanner_RejectToken(Scanner self, Token t) {
-    if (self->rejToken) {
-        lfatal(self, "InternalError: Cannot reject token twice\n");
+void scanner::Scanner_RejectToken(Token t) {
+    if (this->rejToken) {
+        lfatal(this, "InternalError: Cannot reject token twice\n");
     }
-    self->rejToken = t;
+    this->rejToken = t;
 }
 
 static int scanIdent(Scanner self, char c) {
@@ -460,27 +458,27 @@ static int chrpos(char *s, int c) {
     return p ? p - s : -1;
 }
 
-void match(Scanner s, Token t, enum OPCODES op, char *tok) {
+void scanner::match(Token t, enum OPCODES op, char *tok) {
     if (t->token == op) {
-        Scanner_Scan(s, t);
+        this->Scanner_Scan(t);
     } else {
-        lfatala(s, "SyntaxError: %s expected got instead %s", tok, t->tokstr);
+        lfatala(this, "SyntaxError: %s expected got instead %s", tok, t->tokstr);
     }
 }
 
-void semi(Scanner s, Token t) { match(s, t, T_SEMI, ";"); }
+void scanner::semi(Token t) { this->match(t, T_SEMI, ";"); }
 
-void ident(Scanner s, Token t) { match(s, t, T_IDENT, "identifier"); }
+void scanner::ident(Token t) { this->match(t, T_IDENT, "identifier"); }
 
-void lbrace(Scanner s, Token t) { match(s, t, T_LBRACE, "{"); }
+void scanner::lbrace(Token t) { this->match(t, T_LBRACE, "{"); }
 
-void rbrace(Scanner s, Token t) { match(s, t, T_RBRACE, "}"); }
+void scanner::rbrace(Token t) { this->match(t, T_RBRACE, "}"); }
 
-void lparen(Scanner s, Token t) { match(s, t, T_LPAREN, "("); }
+void scanner::lparen(Token t) { this->match(t, T_LPAREN, "("); }
 
-void rparen(Scanner s, Token t) { match(s, t, T_RPAREN, ")"); }
+void scanner::rparen(Token t) { this->match(t, T_RPAREN, ")"); }
 
-void comma(Scanner s, Token t) { match(s, t, T_COMMA, ","); }
+void scanner::comma(Token t) { this->match(t, T_COMMA, ","); }
 
 scanner::~scanner() {
     pclose(this->infile);

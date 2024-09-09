@@ -49,7 +49,7 @@ static SymTableEntry symbol_declare(Compiler c, Scanner s, SymTable st,
     SymTableEntry sym = nullptr;
     char *varName = strdup(s->text);
 
-    ident(s, tok);
+    s->ident(tok);
 
     debug("symbol_declare %s", varName);
     debug("token %s", tok->tokstr);
@@ -166,7 +166,7 @@ static SymTableEntry scalar_declare(Compiler c, Scanner s, SymTable st,
                 "variables\n");
         }
         // eat =
-        Scanner_Scan(s, tok);
+        s->Scanner_Scan(tok);
 
         if (_class == C_GLOBAL || _class == C_STATIC) {
             sym->initList = new int[1];
@@ -202,7 +202,7 @@ static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
     int i = 0;
 
     // eat [
-    Scanner_Scan(s, tok);
+    s->Scanner_Scan(tok);
 
     if (tok->token != T_RBRACKET) {
         nelems = parse_literal(c, s, st, tok, ctx, P_INT);
@@ -212,7 +212,7 @@ static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
     }
 
     // eat ]
-    match(s, tok, T_RBRACKET, "]");
+    s->match(tok, T_RBRACKET, "]");
 
     switch (_class) {
         case C_EXTERN:
@@ -232,9 +232,9 @@ static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
                    "SyntaxError: array initialization only allowed for global "
                    "and static variables");
         }
-        Scanner_Scan(s, tok);
+        s->Scanner_Scan(tok);
 
-        match(s, tok, T_LBRACE, "{");
+        s->match(tok, T_LBRACE, "{");
 
         maxElems = (nelems == -1) ? TABLE_INCREMENT : nelems;
 
@@ -260,11 +260,11 @@ static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
             }
 
             if (tok->token == T_RBRACE) {
-                Scanner_Scan(s, tok);
+                s->Scanner_Scan(tok);
                 break;
             }
 
-            comma(s, tok);
+            s->comma(tok);
         }
 
         for (int j = i; j < sym->nElems; j++) initList[j] = 0;
@@ -298,12 +298,12 @@ static int param_declare_list(Compiler c, Scanner s, SymTable st, Token tok,
     while (tok->token != T_RPAREN) {
         // i32 main(void)
         if (tok->token == T_VOID) {
-            Scanner_Scan(s, tok);
+            s->Scanner_Scan(tok);
             if (tok->token == T_RPAREN) {
                 paramCnt = 0;
                 break;
             } else {
-                Scanner_RejectToken(s, tok);
+                s->Scanner_RejectToken(tok);
             }
         }
 
@@ -330,7 +330,7 @@ static int param_declare_list(Compiler c, Scanner s, SymTable st, Token tok,
         if (tok->token == T_RPAREN) {
             break;
         } else {
-            comma(s, tok);
+            s->comma(tok);
         }
     }
 
@@ -379,14 +379,14 @@ enum ASTPRIM declare_list(Compiler c, Scanner s, SymTable st, Token tok,
             return type;
         }
 
-        comma(s, tok);
+        s->comma(tok);
     }
 }
 
 int parse_stars(Scanner s, Token tok, enum ASTPRIM type) {
     while (tok->token == T_STAR) {
         type = pointer_to(type);
-        Scanner_Scan(s, tok);
+        s->Scanner_Scan(tok);
     }
     return type;
 }
@@ -413,10 +413,10 @@ SymTableEntry function_declare(Compiler c, Scanner s, SymTable st, Token tok,
                                       1, false);
     }
 
-    lparen(s, tok);
+    s->lparen(tok);
     debug("GOING IN DA PARAM LIST");
     paramCnt = param_declare_list(c, s, st, tok, ctx, oldFuncSym, newFuncSym);
-    rparen(s, tok);
+    s->rparen(tok);
     debug("GTFO PARAM LIST");
 
     if (newFuncSym) {
@@ -432,16 +432,16 @@ SymTableEntry function_declare(Compiler c, Scanner s, SymTable st, Token tok,
     // This is only a proto
     if (tok->token == T_SEMI) {
         debug("proto");
-        Scanner_Scan(s, tok);
+        s->Scanner_Scan(tok);
         return oldFuncSym;
     }
 
     Context_SetFunctionId(ctx, oldFuncSym);
     Context_ResetLoopLevel(ctx);
 
-    lbrace(s, tok);
+    s->lbrace(tok);
     tree = Compound_Statement(c, s, st, tok, ctx, false);
-    rbrace(s, tok);
+    s->rbrace(tok);
 
     if (type != P_VOID) {
         if (tree == nullptr) {
@@ -487,14 +487,14 @@ enum ASTPRIM parse_type(Compiler c, Scanner s, SymTable st, Token tok,
                 }
                 debug("extern hit");
                 *_class = C_EXTERN;
-                Scanner_Scan(s, tok);
+                s->Scanner_Scan(tok);
                 break;
             case T_STATIC:
                 if (*_class == C_EXTERN) {
                     lfatal(s, "SyntaxError: Cannot have extern and static");
                 }
                 *_class = C_STATIC;
-                Scanner_Scan(s, tok);
+                s->Scanner_Scan(tok);
                 break;
             default:
                 exstatic = false;
@@ -508,18 +508,18 @@ enum ASTPRIM parse_type(Compiler c, Scanner s, SymTable st, Token tok,
             debug("type is int");
             type = P_INT;
             debug("before scan");
-            Scanner_Scan(s, tok);
+            s->Scanner_Scan(tok);
             debug("after scan");
             break;
         case T_CHAR:
             debug("type is char");
             type = P_CHAR;
-            Scanner_Scan(s, tok);
+            s->Scanner_Scan(tok);
             break;
         case T_VOID:
             debug("type is void");
             type = P_VOID;
-            Scanner_Scan(s, tok);
+            s->Scanner_Scan(tok);
             break;
         case T_STRUCT:
             debug("type is struct");
@@ -557,7 +557,7 @@ enum ASTPRIM parse_type(Compiler c, Scanner s, SymTable st, Token tok,
     while (true) {
         if (tok->token != T_STAR) break;
         type = pointer_to(type);
-        Scanner_Scan(s, tok);
+        s->Scanner_Scan(tok);
     }
     debug("END OF THE TYPE ISSSS %d", type);
 
@@ -588,7 +588,7 @@ static SymTableEntry composite_declare(Compiler c, Scanner s, SymTable st,
     enum ASTPRIM t;
     ASTnode unused;
 
-    Scanner_Scan(s, tok);
+    s->Scanner_Scan(tok);
 
     if (tok->token == T_IDENT) {
         if (type == P_STRUCT) {
@@ -598,7 +598,7 @@ static SymTableEntry composite_declare(Compiler c, Scanner s, SymTable st,
         } else {
             fatal("InternalError: Unknown composite type");
         }
-        Scanner_Scan(s, tok);
+        s->Scanner_Scan(tok);
     }
 
     if (tok->token != T_LBRACE) {
@@ -623,7 +623,7 @@ static SymTableEntry composite_declare(Compiler c, Scanner s, SymTable st,
 
     debug("Declaring a struct: %s", s->text);
 
-    Scanner_Scan(s, tok);
+    s->Scanner_Scan(tok);
 
     while (true) {
         t = declare_list(c, s, st, tok, ctx, &memb, C_MEMBER, T_SEMI, T_RBRACE,
@@ -632,14 +632,14 @@ static SymTableEntry composite_declare(Compiler c, Scanner s, SymTable st,
             lfatal(s, "SyntaxError: invalid member type");
         }
         if (tok->token == T_SEMI) {
-            Scanner_Scan(s, tok);
+            s->Scanner_Scan(tok);
         }
         if (tok->token == T_RBRACE) {
             break;
         }
     }
 
-    rbrace(s, tok);
+    s->rbrace(tok);
     if (st->membHead == nullptr) {
         fatala("EmptyStructError: struct/union has no members, %s",
                cType->name);
@@ -683,12 +683,12 @@ static void enum_declare(Scanner s, SymTable st, Token tok) {
     char *name = nullptr;
     int intVal = 0;
 
-    Scanner_Scan(s, tok);
+    s->Scanner_Scan(tok);
 
     if (tok->token == T_IDENT) {
         eType = st->SymTable_FindEnumType(s);
         name = strdup(s->text);
-        Scanner_Scan(s, tok);
+        s->Scanner_Scan(tok);
     }
 
     if (tok->token != T_LBRACE) {
@@ -699,7 +699,7 @@ static void enum_declare(Scanner s, SymTable st, Token tok) {
         return;
     }
 
-    Scanner_Scan(s, tok);
+    s->Scanner_Scan(tok);
 
     if (eType != nullptr) {
         lfatala(s, "DuplicateError: enum %s already defined", eType->name);
@@ -710,7 +710,7 @@ static void enum_declare(Scanner s, SymTable st, Token tok) {
     if (name) free(name);
 
     while (true) {
-        ident(s, tok);
+        s->ident(tok);
         name = strdup(s->text);
 
         eType = st->SymTable_FindEnumVal(s);
@@ -719,13 +719,13 @@ static void enum_declare(Scanner s, SymTable st, Token tok) {
         }
 
         if (tok->token == T_ASSIGN) {
-            Scanner_Scan(s, tok);
+            s->Scanner_Scan(tok);
             if (tok->token != T_INTLIT) {
                 lfatal(s, "SyntaxError: expected integer literal");
             }
 
             intVal = tok->intvalue;
-            Scanner_Scan(s, tok);
+            s->Scanner_Scan(tok);
         }
 
         eType = st->SymTable_AddEnum(name, C_ENUMVAL, intVal++);
@@ -733,11 +733,11 @@ static void enum_declare(Scanner s, SymTable st, Token tok) {
 
         if (tok->token == T_RBRACE) break;
 
-        comma(s, tok);
+        s->comma(tok);
     }
 
     // Consume the }
-    Scanner_Scan(s, tok);
+    s->Scanner_Scan(tok);
 }
 
 static enum ASTPRIM typedef_declare(Compiler c, Scanner s, SymTable st,
@@ -747,7 +747,7 @@ static enum ASTPRIM typedef_declare(Compiler c, Scanner s, SymTable st,
     enum STORECLASS _class = C_NONE;
 
     // typedef consumed
-    Scanner_Scan(s, tok);
+    s->Scanner_Scan(tok);
     // a ident should be here
 
     type = parse_type(c, s, st, tok, ctx, cType, &_class);
@@ -760,7 +760,7 @@ static enum ASTPRIM typedef_declare(Compiler c, Scanner s, SymTable st,
     }
 
     st->SymTable_AddTypeDef(s->text, type, *cType);
-    Scanner_Scan(s, tok);
+    s->Scanner_Scan(tok);
 
     return type;
 }
@@ -775,7 +775,7 @@ static enum ASTPRIM typedef_type(Scanner s, SymTable st, Token tok,
         lfatala(s, "UndefinedError: typedef %s is not defined", s->text);
     }
 
-    Scanner_Scan(s, tok);
+    s->Scanner_Scan(tok);
     *cType = type->ctype;
     return type->type;
 }
@@ -789,7 +789,7 @@ void global_declare(Compiler c, Scanner s, SymTable st, Token tok,
                      &unused);
 
         if (tok->token == T_SEMI) {
-            Scanner_Scan(s, tok);
+            s->Scanner_Scan(tok);
         }
     }
 }
