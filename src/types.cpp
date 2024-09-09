@@ -87,12 +87,12 @@ enum ASTPRIM pointer_to(enum ASTPRIM type) {
     if ((type & 0xf) == 0xf) {
         fatala("InternalError: Unknown type %d for pointer", type);
     }
-    return type + 1;
+    return static_cast<enum ASTPRIM>(type + 1);
 }
 
 enum ASTPRIM value_at(enum ASTPRIM type) {
     if ((type & 0xf) == 0) {
         fatala("InternalError: Unknown type %d for value_at", type);
     }
-    return type - 1;
+    return static_cast<enum ASTPRIM>(type - 1);
 }

@@ -20,36 +20,36 @@ bool inttype(enum ASTPRIM type);
 enum STRUCTTYPE { S_VAR, S_FUNC, S_LABEL, S_ARRAY };
 
 struct symTableEntry {
-    char *name;
+    char *name{};
     enum ASTPRIM type;
     // pointer if type struct
-    struct symTableEntry *ctype;
+    struct symTableEntry *ctype{};
     enum STORECLASS _class;
     enum STRUCTTYPE stype;
 
     union {
-        int posn;
+        int posn{};
         int paramReg;  // param register if first 4
     };
 
     // is the first 4 parameters?
     union {
-        bool isFirstFour;
+        bool isFirstFour{};
         bool isStr;
     };
 
-    int nElems;
-    int size;  // Number of elements in the symbol
+    int nElems{};
+    int size{};  // Number of elements in the symbol
 
     // for annoymous strings, for now
-    char *strValue;
+    char *strValue{};
 
-    int *initList;
+    int *initList{};
 
-    struct symTableEntry *next;
+    struct symTableEntry *next{};
 
     // holds parameter list
-    struct symTableEntry *member;
+    struct symTableEntry *member{};
 };
 
 typedef struct symTableEntry *SymTableEntry;
@@ -58,17 +58,17 @@ typedef struct symTableEntry *SymTableEntry;
 int type_size(enum ASTPRIM type, SymTableEntry cType);
 
 struct symTable {
-    SymTableEntry globHead, globTail;
-    SymTableEntry loclHead, loclTail;
-    SymTableEntry paramHead, paramTail;
-    SymTableEntry membHead, membTail;
-    SymTableEntry structHead, structTail;
-    SymTableEntry unionHead, unionTail;
-    SymTableEntry enumHead, enumTail;
-    SymTableEntry typeHead, typeTail;
+    SymTableEntry globHead{}, globTail{};
+    SymTableEntry loclHead{}, loclTail{};
+    SymTableEntry paramHead{}, paramTail{};
+    SymTableEntry membHead{}, membTail{};
+    SymTableEntry structHead{}, structTail{};
+    SymTableEntry unionHead{}, unionTail{};
+    SymTableEntry enumHead{}, enumTail{};
+    SymTableEntry typeHead{}, typeTail{};
 
     // for annoymous
-    int anon;
+    int anon{};
 };
 
 typedef struct symTable *SymTable;

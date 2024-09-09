@@ -229,7 +229,7 @@ static void freeList(SymTableEntry head) {
             free(head->initList);
         }
         head = head->next;
-        free(tmp);
+        delete tmp;
     }
 }
 
@@ -243,7 +243,7 @@ void SymTable_Free(SymTable self) {
     freeList(self->enumHead);
     freeList(self->typeHead);
 
-    free(self);
+    delete self;
 }
 
 void SymTable_FreeParams(SymTable self) {
@@ -268,7 +268,7 @@ void SymTable_SetText(SymTable self, Scanner s, SymTableEntry e) {
 }
 
 static void dumpSym(SymTableEntry sym, int indent) {
-    for (int i = 0; i < ident; i++) printf(" ");
+    for (int i = 0; i < indent; i++) printf(" ");
 
     switch (sym->type & (~0xf)) {
         case P_VOID:

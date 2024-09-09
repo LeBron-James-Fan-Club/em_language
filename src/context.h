@@ -7,9 +7,9 @@
 typedef struct context *Context;
 
 struct context {
-    SymTableEntry functionId;
-    int loopLevel;
-    int switchLevel;
+    SymTableEntry functionId{};
+    int loopLevel{};
+    int switchLevel{};
 };
 
 Context Context_New(void);

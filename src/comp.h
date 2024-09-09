@@ -18,19 +18,19 @@
 
 
 struct compiler {
-    bool regUsed[MAX_REG];
+    bool regUsed[MAX_REG]{};
 
-    bool styleRegUsed[MAX_REG];
-    int styleSeek;
+    bool styleRegUsed[MAX_REG]{};
+    int styleSeek{};
 
-    int paramRegCount;
+    int paramRegCount{};
 
-    FILE *outfile;
-    int label;
+    FILE *outfile{};
+    int label{};
     
 
-    int localOffset;
-    int paramOffset;
+    int localOffset{};
+    int paramOffset{};
 };
 
 // forward declaration

@@ -167,7 +167,7 @@ static SymTableEntry scalar_declare(Compiler c, Scanner s, SymTable st,
         Scanner_Scan(s, tok);
 
         if (_class == C_GLOBAL || _class == C_STATIC) {
-            sym->initList = calloc(1, sizeof(int));
+            sym->initList = new int[1];
             sym->initList[0] = parse_literal(c, s, st, tok, ctx, type);
         } else if (_class == C_LOCAL) {
             varNode = ASTnode_NewLeaf(A_IDENT, sym->type, sym->ctype, sym, 0);
@@ -236,7 +236,7 @@ static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
 
         maxElems = (nelems == -1) ? TABLE_INCREMENT : nelems;
 
-        initList = calloc(maxElems, sizeof(int));
+        initList = new int[maxElems];
 
         while (true) {
             if (nelems != -1 && i == maxElems) {
@@ -249,8 +249,12 @@ static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
             initList[i++] = parse_literal(c, s, st, tok, ctx, type);
 
             if (nelems == -1 && i == maxElems) {
+                int oldSize = maxElems;
                 maxElems += TABLE_INCREMENT;
-                initList = realloc(initList, maxElems * sizeof(int));
+                int *newarr = new int[maxElems];
+                memcpy( newarr, initList, oldSize * sizeof(int) );
+                delete [] initList;
+                initList = newarr;
             }
 
             if (tok->token == T_RBRACE) {
@@ -349,7 +353,7 @@ enum ASTPRIM declare_list(Compiler c, Scanner s, SymTable st, Token tok,
     }
 
     while (true) {
-        type = parse_stars(s, tok, initType);
+        type = static_cast<enum ASTPRIM>(parse_stars(s, tok, initType));
 
         sym = symbol_declare(c, s, st, tok, ctx, type, *cType, _class, &tree);
 
@@ -519,24 +523,24 @@ enum ASTPRIM parse_type(Compiler c, Scanner s, SymTable st, Token tok,
             debug("type is struct");
             type = P_STRUCT;
             *ctype = composite_declare(c, s, st, tok, ctx, P_STRUCT);
-            if (tok->token == T_SEMI) type = -1;
+            if (tok->token == T_SEMI) type = static_cast<ASTPRIM>(-1);
             break;
         case T_UNION:
             debug("type is union");
             type = P_UNION;
             *ctype = composite_declare(c, s, st, tok, ctx, P_UNION);
-            if (tok->token == T_SEMI) type = -1;
+            if (tok->token == T_SEMI) type = static_cast<ASTPRIM>(-1);
             break;
         case T_ENUM:
             type = P_INT;
             enum_declare(s, st, tok);
             // if after ;, theres no type
-            if (tok->token == T_SEMI) type = -1;
+            if (tok->token == T_SEMI) type = static_cast<ASTPRIM>(-1);
             break;
         case T_TYPEDEF:
             debug("type is typedef");
             type = typedef_declare(c, s, st, tok, ctx, ctype);
-            if (tok->token == T_SEMI) type = -1;
+            if (tok->token == T_SEMI) type = static_cast<ASTPRIM>(-1);
             break;
         case T_IDENT:  // typedef
             debug("type is ident (maybe a typedef)");
@@ -563,7 +567,7 @@ enum ASTPRIM parse_cast(Compiler c, Scanner s, SymTable st, Token tok,
     enum ASTPRIM type;
     enum STORECLASS _class;
 
-    type = parse_stars(s, tok, parse_type(c, s, st, tok, ctx, cType, &_class));
+    type = static_cast<enum ASTPRIM>(parse_stars(s, tok, parse_type(c, s, st, tok, ctx, cType, &_class)));
 
     if (type == P_STRUCT || type == P_UNION || type == P_VOID) {
         fatal("InvalidTypeError: invalid cast type");

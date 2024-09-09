@@ -185,7 +185,7 @@ static ASTnode print_statement(Compiler c, Scanner s, SymTable st, Token tok,
             exit(-1);
         }
 
-        t = ASTnode_NewUnary(A_PRINT, rightType, t, NULL, NULL, 0);
+        t = ASTnode_NewUnary(A_PRINT, static_cast<enum ASTPRIM>(rightType), t, NULL, NULL, 0);
 
         if (firstGone) {
             // memory leak occurs here

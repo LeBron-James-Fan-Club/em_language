@@ -44,7 +44,7 @@ Scanner Scanner_New(void) {
 
 void Scanner_Free(Scanner self) {
     pclose(self->infile);
-    free(self);
+    delete self;
 }
 
 static char next(Scanner self) {
@@ -264,7 +264,7 @@ void Scanner_Scan(Scanner self, Token t) {
                 scanIdent(self, c);
 
                 if ((tokenType = keyword(self->text))) {
-                    t->token = tokenType;
+                    t->token = static_cast<enum OPCODES>(tokenType);
                     break;
                 }
 

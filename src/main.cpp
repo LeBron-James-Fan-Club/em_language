@@ -111,7 +111,7 @@ int main(int argc, char *argv[]) {
     Scanner_Free(s);
     Compiler_Free(c);
     SymTable_Free(st);
-    free(tok);
+    delete tok;
     Context_Free(ctx);
 
     printf(

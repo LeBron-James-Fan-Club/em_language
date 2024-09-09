@@ -271,8 +271,8 @@ static void orderOp(Compiler c, Scanner s, SymTable st, Token t, Context ctx,
 
 ASTnode ASTnode_Order(Compiler c, Scanner s, SymTable st, Token t,
                       Context ctx) {
-    ASTnode *stack = calloc(MAX_STACK, sizeof(ASTnode));
-    enum ASTOP *opStack = calloc(MAX_STACK, sizeof(enum ASTOP));
+    ASTnode *stack = new ASTnode[MAX_STACK];
+    enum ASTOP *opStack = new enum ASTOP[MAX_STACK];
     enum ASTOP curOp;
 
     bool expectPreOp = true;
@@ -358,8 +358,8 @@ out:
 
     ASTnode n = stack[top];
 
-    free(stack);
-    free(opStack);
+    delete[] stack;
+    delete[] opStack;
 
     // Might break it?
     n->rvalue = 1;
@@ -633,7 +633,7 @@ static ASTnode sizeof_operator(Compiler c, Scanner s, SymTable st, Token tok,
     debug("sizeof");
     match(s, tok, T_SIZEOF, "sizeof");
     lparen(s, tok);
-    type = parse_stars(s, tok, parse_type(c, s, st, tok, ctx, &cType, &_class));
+    type = static_cast<enum ASTPRIM>(parse_stars(s, tok, parse_type(c, s, st, tok, ctx, &cType, &_class)));
     debug("cType %p", cType);
     size = type_size(type, cType);
     rparen(s, tok);

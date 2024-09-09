@@ -328,7 +328,7 @@ static int genAST(Compiler self, SymTable st, Context ctx, ASTnode n,
                 return MIPS_LoadLocal(self, n->sym, n->op);
             }
         case A_TOBOOL:
-            return MIPS_ToBool(self, parentASTop, leftReg, ifLabel);
+            return MIPS_ToBool(self, static_cast<enum ASTOP>(parentASTop), leftReg, ifLabel);
         case A_BREAK:
             MIPS_Jump(self, loopEndLabel);
             return NO_REG;
@@ -396,8 +396,8 @@ static int genSWITCHAST(Compiler self, SymTable st, Context ctx, ASTnode n) {
     int reg, defaultLabel = 0, caseCount = 0;
     ASTnode ca;
 
-    caseVal = calloc(n->intvalue + 1, sizeof(int));
-    caseLabel = calloc(n->intvalue + 1, sizeof(int));
+    caseVal = new int[n->intvalue + 1];
+    caseLabel = new int[n->intvalue + 1];
 
     LjumpTop = Compiler_GenLabel(self);
     Lend = Compiler_GenLabel(self);

@@ -5,7 +5,7 @@
 
 Context Context_New(void) { return new context; }
 
-void Context_Free(Context self) { free(self); }
+void Context_Free(Context self) { delete self; }
 
 void Context_SetFunctionId(Context self, SymTableEntry sym) { self->functionId = sym; }
 

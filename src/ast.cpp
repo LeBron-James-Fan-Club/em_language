@@ -34,7 +34,7 @@ void ASTnode_Free(ASTnode self) {
     if (self->left) ASTnode_Free(self->left);
     if (self->mid) ASTnode_Free(self->mid);
     if (self->right) ASTnode_Free(self->right);
-    free(self);
+    delete self;
 }
 
 static int makeLabel(void) {

@@ -14,7 +14,7 @@ Compiler Compiler_New(char *outfile) {
 
 void Compiler_Free(Compiler self) {
     fclose(self->outfile);
-    free(self);
+    delete self;
 }
 
 void Compiler_ResetOffset(Compiler self) {
