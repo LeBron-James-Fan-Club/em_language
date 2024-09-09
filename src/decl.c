@@ -287,6 +287,8 @@ static int param_declare_list(Compiler c, Scanner s, SymTable st, Token tok,
         protoPtr = oldFuncSym->member;
     }
 
+    ASTnode unused;
+
     while (tok->token != T_RPAREN) {
         // i32 main(void)
         if (tok->token == T_VOID) {
@@ -300,7 +302,7 @@ static int param_declare_list(Compiler c, Scanner s, SymTable st, Token tok,
         }
 
         type = declare_list(c, s, st, tok, ctx, &cType, C_PARAM, T_COMMA,
-                            T_RPAREN, NULL);
+                            T_RPAREN, &unused);
         if (type == -1) {
             lfatal(s, "InvalidTypeError: invalid parameter type");
         }
