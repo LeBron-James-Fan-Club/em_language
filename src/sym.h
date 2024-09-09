@@ -2,10 +2,6 @@
 #ifndef SYM_H
 #define SYM_H
 
-#include <stdbool.h>
-
-#include <stdio.h>
-
 #include "defs.h"
 #include "scan.h"
 
@@ -73,7 +69,7 @@ struct symTable {
 
 typedef struct symTable *SymTable;
 
-SymTable SymTable_New(void);
+SymTable SymTable_New();
 void SymTable_Free(SymTable);
 
 SymTableEntry SymTable_AddGlob(SymTable self, char *name, enum ASTPRIM type,

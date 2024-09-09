@@ -6,7 +6,6 @@
 #include "comp.h"
 #include "asm.h"
 
-
 int Compiler_Gen(Compiler self, SymTable st, Context ctx, ASTnode n);
 
 #endif

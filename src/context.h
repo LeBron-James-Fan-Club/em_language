@@ -1,7 +1,6 @@
 #ifndef CONTEXT_H
 #define CONTEXT_H
 
-#include <stdlib.h>
 #include "sym.h"
 
 typedef struct context *Context;
@@ -12,7 +11,7 @@ struct context {
     int switchLevel{};
 };
 
-Context Context_New(void);
+Context Context_New();
 
 void Context_Free(Context self);
 

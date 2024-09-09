@@ -1,7 +1,4 @@
 #include "asm.h"
-
-#include <stdio.h>
-
 #include "misc.h"
 
 static char *reglist[MAX_REG] = {"$t0", "$t1", "$t2", "$t3", "$t4",
@@ -116,7 +113,7 @@ void MIPS_PreFunc(Compiler self, SymTable st, Context ctx) {
     // ! STYLE HEADER IS CREATED HERE
     fputs("\n# Frame:\t", self->outfile);
     int skip = 0;
-    for (SymTableEntry curr = ctx->functionId->member; curr != NULL;
+    for (SymTableEntry curr = ctx->functionId->member; curr != nullptr;
          curr = curr->next) {
         if (skip++ < 4) {
             // skip if first four
@@ -127,13 +124,13 @@ void MIPS_PreFunc(Compiler self, SymTable st, Context ctx) {
 
     fputs("$fp, $ra", self->outfile);
 
-    if (st->loclHead != NULL) {
+    if (st->loclHead != nullptr) {
         fputs(", ", self->outfile);
     }
 
-    for (SymTableEntry curr = st->loclHead; curr != NULL; curr = curr->next) {
+    for (SymTableEntry curr = st->loclHead; curr != nullptr; curr = curr->next) {
         fprintf(self->outfile, "%s", curr->name);
-        if (curr->next != NULL) {
+        if (curr->next != nullptr) {
             fputs(", ", self->outfile);
         }
     }
@@ -168,7 +165,7 @@ void MIPS_PreFunc(Compiler self, SymTable st, Context ctx) {
 
     SymTableEntry paramCurr = ctx->functionId->member;
 
-    for (; paramCurr != NULL; paramCurr = paramCurr->next) {
+    for (; paramCurr != nullptr; paramCurr = paramCurr->next) {
         if (paramReg > FIRST_PARAM_REG + 3) {
             break;
         }
@@ -181,14 +178,14 @@ void MIPS_PreFunc(Compiler self, SymTable st, Context ctx) {
 
     SymTableEntry loclCurr = st->loclHead;
 
-    for (; loclCurr != NULL; loclCurr = loclCurr->next) {
+    for (; loclCurr != nullptr; loclCurr = loclCurr->next) {
         // same thing but for local
         // We subtract 4 cause its 1 off
         // e.g. a[0] instead of a[1]
         loclCurr->posn = Compiler_GetLocalOffset(self, loclCurr->type) - 4;
     }
 
-    for (; paramCurr != NULL; paramCurr = paramCurr->next) {
+    for (; paramCurr != nullptr; paramCurr = paramCurr->next) {
         // for remaining params they get pushed on stack
         paramCurr->posn =
             self->localOffset + Compiler_GetParamOffset(self, paramCurr->type);
@@ -197,7 +194,7 @@ void MIPS_PreFunc(Compiler self, SymTable st, Context ctx) {
     // need to add local offset to all offsets somehow
 
     fputs("\n# Locals:\n", self->outfile);
-    for (SymTableEntry curr = st->loclHead; curr != NULL; curr = curr->next) {
+    for (SymTableEntry curr = st->loclHead; curr != nullptr; curr = curr->next) {
         fprintf(self->outfile, "#\t-`%s` in %d($sp)\n", curr->name, curr->posn);
     }
 
@@ -652,7 +649,7 @@ void MIPS_GlobSym(Compiler self, SymTableEntry sym) {
 
     for (int i = 0; i < sym->nElems; i++) {
         initValue = 0;
-        if (sym->initList != NULL) initValue = sym->initList[i];
+        if (sym->initList != nullptr) initValue = sym->initList[i];
         switch (size) {
             case 1:
                 fprintf(self->outfile, "\t.byte %d\n", initValue);
@@ -660,7 +657,7 @@ void MIPS_GlobSym(Compiler self, SymTableEntry sym) {
                 break;
             case 4:
                 // Quick fix but will have to figure out literal values later
-                if (sym->initList != NULL && type == pointer_to(P_CHAR) &&
+                if (sym->initList != nullptr && type == pointer_to(P_CHAR) &&
                     initValue != 0) {
                     fprintf(self->outfile, "\t.word anon_%d\n", initValue);
                 } else {
@@ -833,7 +830,7 @@ int MIPS_Call(Compiler self, SymTableEntry sym) {
         fprintf(self->outfile, "\tpush\t%s\n", reglist[FIRST_PARAM_REG + i]);
     }
 
-    for (SymTableEntry curr = sym->member; curr != NULL; curr = curr->next) {
+    for (SymTableEntry curr = sym->member; curr != nullptr; curr = curr->next) {
         offset += PrimSize(curr->type);
     }
     if (offset > 16)
@@ -1089,7 +1086,7 @@ void Compiler_GenData(Compiler self, SymTable st) {
     debug("Generating globs");
 
     // Generate annyomous strings
-    for (SymTableEntry curr = st->globHead; curr != NULL; curr = curr->next) {
+    for (SymTableEntry curr = st->globHead; curr != nullptr; curr = curr->next) {
         if (curr->isStr) {
             MIPS_GlobSym(self, curr);
         }
@@ -1097,7 +1094,7 @@ void Compiler_GenData(Compiler self, SymTable st) {
         found = true;
     }
 
-    for (SymTableEntry curr = st->globHead; curr != NULL; curr = curr->next) {
+    for (SymTableEntry curr = st->globHead; curr != nullptr; curr = curr->next) {
         // TODO: Remove these lines below (2)
         // TODO: and see if it fucks up anything
 

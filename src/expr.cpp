@@ -1,5 +1,7 @@
-#include "expr.h"
+#include <stdlib.h>
+#include <string.h>
 
+#include "expr.h"
 #include "ast.h"
 #include "decl.h"
 #include "defs.h"
@@ -103,19 +105,19 @@ static ASTnode primary(Compiler c, Scanner s, SymTable st, Token t,
             // Compiler being schizo about name for some reason
             // cause name is declared as soon after case
             {
-                char *name = SymTableEntry_MakeAnon(st, NULL);
-                var = SymTable_AddGlob(st, name, pointer_to(P_CHAR), NULL,
+                char *name = SymTableEntry_MakeAnon(st, nullptr);
+                var = SymTable_AddGlob(st, name, pointer_to(P_CHAR), nullptr,
                                        S_VAR, C_GLOBAL, 1, 0);
                 free(name);
                 SymTable_SetText(st, s, var);
-                n = ASTnode_NewLeaf(A_STRLIT, pointer_to(P_CHAR), NULL, var, 0);
+                n = ASTnode_NewLeaf(A_STRLIT, pointer_to(P_CHAR), nullptr, var, 0);
             }
             break;
         case T_INTLIT:
             if (t->intvalue >= 0 && t->intvalue < 256) {
-                n = ASTnode_NewLeaf(A_INTLIT, P_CHAR, NULL, NULL, t->intvalue);
+                n = ASTnode_NewLeaf(A_INTLIT, P_CHAR, nullptr, nullptr, t->intvalue);
             } else {
-                n = ASTnode_NewLeaf(A_INTLIT, P_INT, NULL, NULL, t->intvalue);
+                n = ASTnode_NewLeaf(A_INTLIT, P_INT, nullptr, nullptr, t->intvalue);
             }
             break;
         case T_PEEK:
@@ -126,11 +128,11 @@ static ASTnode primary(Compiler c, Scanner s, SymTable st, Token t,
             n = sizeof_operator(c, s, st, t, ctx);
             break;
         case T_IDENT:
-            if ((enumPtr = SymTable_FindEnumVal(st, s)) != NULL) {
-                return ASTnode_NewLeaf(A_INTLIT, P_INT, NULL, NULL,
+            if ((enumPtr = SymTable_FindEnumVal(st, s)) != nullptr) {
+                return ASTnode_NewLeaf(A_INTLIT, P_INT, nullptr, nullptr,
                                        enumPtr->posn);
             }
-            if ((var = SymTable_FindSymbol(st, s, ctx)) == NULL) {
+            if ((var = SymTable_FindSymbol(st, s, ctx)) == nullptr) {
                 lfatala(s, "UndefinedError: Undefined variable %s", s->text);
             }
 
@@ -172,13 +174,13 @@ static ASTnode paren_expression(Compiler c, Scanner s, SymTable st, Token t,
                                 Context ctx) {
     ASTnode n;
     enum ASTPRIM type = P_NONE;
-    SymTableEntry cType = NULL;
+    SymTableEntry cType = nullptr;
 
     Scanner_Scan(s, t);
 
     switch (t->token) {
         case T_IDENT:
-            if (SymTable_FindTypeDef(st, s) == NULL) {
+            if (SymTable_FindTypeDef(st, s) == nullptr) {
                 n = ASTnode_Order(c, s, st, t, ctx);
                 break;
             }
@@ -204,7 +206,7 @@ static ASTnode paren_expression(Compiler c, Scanner s, SymTable st, Token t,
     if (type == P_NONE) {
         rparen(s, t);
     } else {
-        n = ASTnode_NewUnary(A_CAST, type, n, cType, NULL, 0);
+        n = ASTnode_NewUnary(A_CAST, type, n, cType, nullptr, 0);
     }
 
     // If shit was scanned in before
@@ -236,14 +238,14 @@ static void orderOp(Compiler c, Scanner s, SymTable st, Token t, Context ctx,
         match(s, t, T_COLON, ":");
         ltemp = ASTnode_Order(c, s, st, t, ctx);
         stack[++(*top)] = ASTnode_New(A_TERNARY, right->type, left, right,
-                                      ltemp, right->ctype, NULL, 0);
+                                      ltemp, right->ctype, nullptr, 0);
         return;
 
     } else if (op == A_ASSIGN) {
         right->rvalue = 1;
         debug("The assign called it");
         right = modify_type(right, left->type, left->ctype, A_NONE);
-        if (right == NULL) {
+        if (right == nullptr) {
             lfatal(s, "SyntaxError: incompatible types in assignment");
         }
         ltemp = left;
@@ -257,15 +259,15 @@ static void orderOp(Compiler c, Scanner s, SymTable st, Token t, Context ctx,
         ltemp = modify_type(left, right->type, right->ctype, op);
         rtemp = modify_type(right, left->type, left->ctype, op);
 
-        if (ltemp == NULL && rtemp == NULL) {
+        if (ltemp == nullptr && rtemp == nullptr) {
             lfatal(s, "SyntaxError: Incompatible types in expression");
         }
 
-        if (ltemp != NULL) left = ltemp;
-        if (rtemp != NULL) right = rtemp;
+        if (ltemp != nullptr) left = ltemp;
+        if (rtemp != nullptr) right = rtemp;
     }
     stack[++(*top)] =
-        ASTnode_New(op, left->type, left, NULL, right, left->ctype, NULL, 0);
+        ASTnode_New(op, left->type, left, nullptr, right, left->ctype, nullptr, 0);
     debug("%d top", *top);
 }
 
@@ -371,7 +373,7 @@ static ASTnode ASTnode_FuncCall(Compiler c, Scanner s, SymTable st, Token tok,
     ASTnode t;
     SymTableEntry var;
 
-    if ((var = SymTable_FindSymbol(st, s, ctx)) == NULL) {
+    if ((var = SymTable_FindSymbol(st, s, ctx)) == nullptr) {
         lfatala(s, "UndefinedError: Undefined function %s", s->text);
     }
 
@@ -389,7 +391,7 @@ static ASTnode ASTnode_FuncCall(Compiler c, Scanner s, SymTable st, Token tok,
 
 ASTnode expression_list(Compiler c, Scanner s, SymTable st, Token tok,
                         Context ctx, enum OPCODES endToken) {
-    ASTnode tree = NULL, child = NULL;
+    ASTnode tree = nullptr, child = nullptr;
     int exprCount = 0;
     while (tok->token != endToken) {
         child = ASTnode_Order(c, s, st, tok, ctx);
@@ -398,7 +400,7 @@ ASTnode expression_list(Compiler c, Scanner s, SymTable st, Token tok,
         debug("expression generation %d", exprCount);
         debug("child %p", child);
 
-        tree = ASTnode_New(A_GLUE, P_NONE, tree, NULL, child, NULL, NULL,
+        tree = ASTnode_New(A_GLUE, P_NONE, tree, nullptr, child, nullptr, nullptr,
                            exprCount);
 
         if (tok->token == endToken) break;
@@ -434,11 +436,11 @@ static ASTnode ASTnode_ArrayRef(Compiler c, Scanner s, SymTable st, Token tok,
     right = modify_type(right, left->type, left->ctype, A_ADD);
 
     left =
-        ASTnode_New(A_ADD, left->type, left, NULL, right, left->ctype, NULL, 0);
+        ASTnode_New(A_ADD, left->type, left, nullptr, right, left->ctype, nullptr, 0);
     Scanner_RejectToken(s, tok);
 
     return ASTnode_NewUnary(A_DEREF, value_at(left->type), left, left->ctype,
-                            NULL, 0);
+                            nullptr, 0);
 }
 
 static ASTnode ASTnode_Prefix(Compiler c, Scanner s, SymTable st, Token tok,
@@ -463,7 +465,7 @@ static ASTnode ASTnode_Prefix(Compiler c, Scanner s, SymTable st, Token tok,
                     "SyntaxError: * Operator must be followed by an identifier "
                     "or *");
             }
-            t = ASTnode_NewUnary(A_DEREF, value_at(t->type), t, t->ctype, NULL,
+            t = ASTnode_NewUnary(A_DEREF, value_at(t->type), t, t->ctype, nullptr,
                                  0);
             break;
         case T_INC:
@@ -475,26 +477,26 @@ static ASTnode ASTnode_Prefix(Compiler c, Scanner s, SymTable st, Token tok,
                 lfatal(s, "SyntaxError: ++ must be followed by an identifier");
             }
             debug("pre inc");
-            t = ASTnode_NewUnary(A_PREINC, t->type, t, t->ctype, NULL, 0);
+            t = ASTnode_NewUnary(A_PREINC, t->type, t, t->ctype, nullptr, 0);
             break;
         case T_MINUS:
             Scanner_Scan(s, tok);
             // for ---a
             t = ASTnode_Prefix(c, s, st, tok, ctx);
             t->rvalue = 1;
-            t = ASTnode_NewUnary(A_NEGATE, t->type, t, t->ctype, NULL, 0);
+            t = ASTnode_NewUnary(A_NEGATE, t->type, t, t->ctype, nullptr, 0);
             break;
         case T_INVERT:
             Scanner_Scan(s, tok);
             t = ASTnode_Prefix(c, s, st, tok, ctx);
             t->rvalue = 1;
-            t = ASTnode_NewUnary(A_INVERT, t->type, t, t->ctype, NULL, 0);
+            t = ASTnode_NewUnary(A_INVERT, t->type, t, t->ctype, nullptr, 0);
             break;
         case T_LOGNOT:
             Scanner_Scan(s, tok);
             t = ASTnode_Prefix(c, s, st, tok, ctx);
             t->rvalue = 1;
-            t = ASTnode_NewUnary(A_LOGNOT, t->type, t, t->ctype, NULL, 0);
+            t = ASTnode_NewUnary(A_LOGNOT, t->type, t, t->ctype, nullptr, 0);
             break;
         case T_DEC:
             Scanner_Scan(s, tok);
@@ -502,7 +504,7 @@ static ASTnode ASTnode_Prefix(Compiler c, Scanner s, SymTable st, Token tok,
             if (t->op != A_IDENT) {
                 lfatal(s, "SyntaxError: -- must be followed by an identifier");
             }
-            t = ASTnode_NewUnary(A_PREDEC, t->type, t, t->ctype, NULL, 0);
+            t = ASTnode_NewUnary(A_PREDEC, t->type, t, t->ctype, nullptr, 0);
             break;
         default:
             t = ASTnode_Postfix(c, s, st, tok, ctx);
@@ -567,7 +569,7 @@ static ASTnode ASTnode_MemberAccess(Scanner s, SymTable st, Token tok,
     SymTableEntry typePtr;
 
     // the member
-    SymTableEntry m = NULL;
+    SymTableEntry m = nullptr;
 
     if (isPtr && left->type != pointer_to(P_STRUCT) &&
         left->type != pointer_to(P_UNION)) {
@@ -592,19 +594,19 @@ static ASTnode ASTnode_MemberAccess(Scanner s, SymTable st, Token tok,
 
     ident(s, tok);
 
-    for (m = typePtr->member; m != NULL; m = m->next) {
+    for (m = typePtr->member; m != nullptr; m = m->next) {
         if (!strcmp(m->name, s->text)) break;
     }
 
-    if (m == NULL) fatala("UndefinedError: Undefined member %s", s->text);
+    if (m == nullptr) fatala("UndefinedError: Undefined member %s", s->text);
 
     left->rvalue = 1;
 
-    right = ASTnode_NewLeaf(A_INTLIT, P_INT, NULL, NULL, m->posn);
+    right = ASTnode_NewLeaf(A_INTLIT, P_INT, nullptr, nullptr, m->posn);
 
-    left = ASTnode_New(A_ADD, pointer_to(m->type), left,  NULL, right,
-                       m->ctype,NULL, 0);
-    left = ASTnode_NewUnary(A_DEREF, m->type, left, m->ctype, NULL, 0);
+    left = ASTnode_New(A_ADD, pointer_to(m->type), left,  nullptr, right,
+                       m->ctype,nullptr, 0);
+    left = ASTnode_NewUnary(A_DEREF, m->type, left, m->ctype, nullptr, 0);
 
     Scanner_RejectToken(s, tok);
 
@@ -620,7 +622,7 @@ static ASTnode peek_operator(Compiler c, Scanner s, SymTable st, Token tok,
     n->rvalue = true;
     rparen(s, tok);
     Scanner_RejectToken(s, tok);
-    return ASTnode_NewUnary(A_PEEK, P_INT, n, NULL, NULL, 0);
+    return ASTnode_NewUnary(A_PEEK, P_INT, n, nullptr, nullptr, 0);
 }
 
 static ASTnode sizeof_operator(Compiler c, Scanner s, SymTable st, Token tok,
@@ -639,5 +641,5 @@ static ASTnode sizeof_operator(Compiler c, Scanner s, SymTable st, Token tok,
     rparen(s, tok);
     Scanner_RejectToken(s, tok);
 
-    return ASTnode_NewLeaf(A_INTLIT, P_INT, NULL, NULL, size);
+    return ASTnode_NewLeaf(A_INTLIT, P_INT, nullptr, nullptr, size);
 }

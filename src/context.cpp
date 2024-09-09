@@ -1,9 +1,7 @@
 #include "context.h"
-
 #include "sym.h"
 
-
-Context Context_New(void) { return new context; }
+Context Context_New() { return new context; }
 
 void Context_Free(Context self) { delete self; }
 

@@ -1,9 +1,7 @@
 #include <errno.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <string.h>
 
-#include "ast.h"
 #include "context.h"
 #include "decl.h"
 #include "defs.h"
@@ -11,8 +9,13 @@
 #include "gen.h"
 #include "misc.h"
 #include "scan.h"
-#include "stmt.h"
 #include "sym.h"
+
+#define CPPCMD "cpp -P -nostdinc -isystem"
+// declared in makeifle
+#ifndef INCDIR
+#define INCDIR "./bin/include"
+#endif
 
 Flags flags;
 
@@ -63,7 +66,7 @@ static void preprocess(Scanner s, char *filename) {
     char *cmd;
     asprintf(&cmd, "%s %s %s", CPPCMD, INCDIR, filename);
 
-    if ((s->infile = popen(cmd, "r")) == NULL) {
+    if ((s->infile = popen(cmd, "r")) == nullptr) {
         fatala("OSError: Unable to open pipe to cpp %s, error: %s", filename,
                strerror(errno));
     }
@@ -86,7 +89,7 @@ int main(int argc, char *argv[]) {
     Scanner s = Scanner_New();
     preprocess(s, argv[i]);
 
-    if (s == NULL) {
+    if (s == nullptr) {
         fatal("InternalError: unable to initialise scanner\n");
     }
 

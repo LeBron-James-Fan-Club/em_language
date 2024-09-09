@@ -1,7 +1,6 @@
 #include "sym.h"
 
 // TODO: cross-compatability for windows
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -50,22 +49,22 @@ static SymTableEntry SymTableEntryNew(char *name, enum ASTPRIM type,
 }
 
 static void pushSym(SymTableEntry *head, SymTableEntry *tail, SymTableEntry e) {
-    if (head == NULL || tail == NULL || e == NULL) {
-        fatal("InternalError: head, tail or e is NULL");
+    if (head == nullptr || tail == nullptr || e == nullptr) {
+        fatal("InternalError: head, tail or e is nullptr");
     }
 
-    if (*tail != NULL) {
+    if (*tail != nullptr) {
         (*tail)->next = e;
         *tail = e;
     } else {
         *head = *tail = e;
     }
 
-    e->next = NULL;
+    e->next = nullptr;
 }
 
 char *SymTableEntry_MakeAnon(SymTable self, int *anon) {
-    if (anon != NULL) {
+    if (anon != nullptr) {
         *anon = self->anon;
     }
 
@@ -117,7 +116,7 @@ SymTableEntry SymTable_AddMemb(SymTable self, char *name, enum ASTPRIM type,
 
 SymTableEntry SymTable_AddStruct(SymTable self, char *name) {
     SymTableEntry e =
-        SymTableEntryNew(name, P_STRUCT, NULL, S_VAR, C_STRUCT, 0, 0);
+        SymTableEntryNew(name, P_STRUCT, nullptr, S_VAR, C_STRUCT, 0, 0);
 
     pushSym(&self->structHead, &self->structTail, e);
     return e;
@@ -125,7 +124,7 @@ SymTableEntry SymTable_AddStruct(SymTable self, char *name) {
 
 SymTableEntry SymTable_AddUnion(SymTable self, char *name) {
     SymTableEntry e =
-        SymTableEntryNew(name, P_UNION, NULL, S_VAR, C_UNION, 0, 0);
+        SymTableEntryNew(name, P_UNION, nullptr, S_VAR, C_UNION, 0, 0);
 
     pushSym(&self->unionHead, &self->unionTail, e);
     return e;
@@ -134,7 +133,7 @@ SymTableEntry SymTable_AddUnion(SymTable self, char *name) {
 SymTableEntry SymTable_AddEnum(SymTable self, char *name, enum STORECLASS _class,
                                int value) {
     SymTableEntry e =
-        SymTableEntryNew(name, P_INT, NULL, S_VAR, _class, 0, value);
+        SymTableEntryNew(name, P_INT, nullptr, S_VAR, _class, 0, value);
 
     pushSym(&self->enumHead, &self->enumTail, e);
     return e;
@@ -151,13 +150,13 @@ SymTableEntry SymTable_AddTypeDef(SymTable self, char *name, enum ASTPRIM type,
 
 SymTableEntry SymTable_FindSymInList(Scanner s, SymTableEntry head,
                                      enum STORECLASS _class) {
-    for (; head != NULL; head = head->next) {
-        if (head->name != NULL && !strcmp(s->text, head->name) &&
+    for (; head != nullptr; head = head->next) {
+        if (head->name != nullptr && !strcmp(s->text, head->name) &&
             (_class == C_NONE || head->_class == _class)) {
             return head;
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 SymTableEntry SymTable_FindGlob(SymTable self, Scanner s) {
@@ -205,7 +204,7 @@ SymTableEntry SymTable_FindSymbol(SymTable self, Scanner s, Context c) {
     return SymTable_FindGlob(self, s);
 }
 
-SymTable SymTable_New(void) {
+SymTable SymTable_New() {
     SymTable g = new symTable;
     g->anon = 1;
 
@@ -214,7 +213,7 @@ SymTable SymTable_New(void) {
 
 static void freeList(SymTableEntry head) {
     SymTableEntry tmp;
-    while (head != NULL) {
+    while (head != nullptr) {
         tmp = head;
         if (head->name) {
             free(head->name);
@@ -253,9 +252,9 @@ void SymTable_FreeParams(SymTable self) {
 
 void SymTable_FreeLocls(SymTable self) {
     freeList(self->loclHead);
-    self->loclHead = self->loclTail = NULL;
+    self->loclHead = self->loclTail = nullptr;
     // freeList(self->paramHead);
-    self->paramHead = self->paramTail = NULL;
+    self->paramHead = self->paramTail = nullptr;
 }
 
 void SymTable_SetText(SymTable self, Scanner s, SymTableEntry e) {
@@ -281,14 +280,14 @@ static void dumpSym(SymTableEntry sym, int indent) {
             printf("i32 ");
             break;
         case P_STRUCT:
-            if (sym->ctype != NULL) {
+            if (sym->ctype != nullptr) {
                 printf("struct %s ", sym->ctype->name);
             } else {
                 printf("struct %s ", sym->name);
             }
             break;
         case P_UNION:
-            if (sym->ctype != NULL) {
+            if (sym->ctype != nullptr) {
                 printf("union %s ", sym->ctype->name);
             } else {
                 printf("union %s ", sym->name);
@@ -379,24 +378,24 @@ static void dumpSym(SymTableEntry sym, int indent) {
     switch (sym->stype & (~0xf)) {
         case P_STRUCT:
         case P_UNION:
-            dumpTable(sym->member, NULL, indent + 4);
+            dumpTable(sym->member, nullptr, indent + 4);
             break;
     }
 
     switch (sym->stype) {
         case S_FUNC:
-            dumpTable(sym->member, NULL, indent + 4);
+            dumpTable(sym->member, nullptr, indent + 4);
 
             break;
     }
 }
 
 static void dumpTable(SymTableEntry head, char *name, int indent) {
-    if (head != NULL && name != NULL) {
+    if (head != nullptr && name != nullptr) {
         printf("%s\n-------------\n", name);
     }
 
-    for (SymTableEntry sym = head; sym != NULL; sym = sym->next) {
+    for (SymTableEntry sym = head; sym != nullptr; sym = sym->next) {
         dumpSym(sym, indent);
     }
 }

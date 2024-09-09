@@ -2,9 +2,6 @@
 #define SCAN_H
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
 
 #include "defs.h"
 
@@ -28,7 +25,7 @@ struct scanner {
 
 typedef struct scanner *Scanner;
 
-Scanner Scanner_New(void);
+Scanner Scanner_New();
 void Scanner_Free(Scanner);
 void Scanner_Scan(Scanner self, Token t);
 void Scanner_Putback(Scanner self, char c);

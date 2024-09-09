@@ -1,8 +1,7 @@
-#include "misc.h"
-
-#include <stdio.h>
 #include <stdarg.h>
+#include <stdlib.h>
 
+#include "misc.h"
 #include "scan.h"
 #include "flags.h"
 

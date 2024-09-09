@@ -1,9 +1,6 @@
 #ifndef AST_H
 #define AST_H
 
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "defs.h"
 #include "scan.h"
 #include "sym.h"

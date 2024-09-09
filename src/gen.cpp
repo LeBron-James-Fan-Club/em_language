@@ -1,8 +1,6 @@
+#include <stdlib.h>
+
 #include "gen.h"
-
-#include <stdbool.h>
-#include <stdio.h>
-
 #include "ast.h"
 #include "misc.h"
 #include "scan.h"
@@ -35,7 +33,7 @@ static int genAST(Compiler self, SymTable st, Context ctx, ASTnode n,
 
     // May use stack system to prevent stack overflow
 
-    if (n == NULL) {
+    if (n == nullptr) {
         return NO_REG;
     }
 
@@ -57,7 +55,7 @@ static int genAST(Compiler self, SymTable st, Context ctx, ASTnode n,
             genAST(self, st, ctx, n->right, ifLabel, loopTopLabel, loopEndLabel,
                    n->op);
             Compiler_FreeAllReg(self, NO_REG);
-            if (n->right != NULL) fprintf(self->outfile, "\n");
+            if (n->right != nullptr) fprintf(self->outfile, "\n");
             return NO_REG;
         case A_FUNCTION:
             MIPS_PreFunc(self, st, ctx);
@@ -161,36 +159,36 @@ static int genAST(Compiler self, SymTable st, Context ctx, ASTnode n,
                     leftReg = MIPS_Add(self, leftReg, rightReg);
                     free(n->right);
                     n->right = n->left;
-                    n->left = NULL;
+                    n->left = nullptr;
                     break;
                 case A_ASMINUS:
                     leftReg = MIPS_Sub(self, leftReg, rightReg);
                     free(n->right);
                     n->right = n->left;
-                    n->left = NULL;
+                    n->left = nullptr;
                     break;
                 case A_ASSTAR:
                     leftReg = MIPS_Mul(self, leftReg, rightReg);
                     free(n->right);
                     n->right = n->left;
-                    n->left = NULL;
+                    n->left = nullptr;
                     break;
                 case A_ASSLASH:
                     leftReg = MIPS_Div(self, leftReg, rightReg);
                     free(n->right);
                     n->right = n->left;
-                    n->left = NULL;
+                    n->left = nullptr;
                     break;
                 case A_ASMOD:
                     leftReg = MIPS_Mod(self, leftReg, rightReg);
                     free(n->right);
                     n->right = n->left;
-                    n->left = NULL;
+                    n->left = nullptr;
                     break;
             }
 
-            if (n->right == NULL) {
-                fatal("InternalError: Right side of assignment is NULL");
+            if (n->right == nullptr) {
+                fatal("InternalError: Right side of assignment is nullptr");
             }
             switch (n->right->op) {
                 case A_IDENT:
@@ -267,8 +265,8 @@ static int genAST(Compiler self, SymTable st, Context ctx, ASTnode n,
             return MIPS_Address(self, n->sym);
         case A_DEREF:
             if (n->rvalue) {
-                if (n->left == NULL) {
-                    fatal("InternalError: Left side of deref is NULL");
+                if (n->left == nullptr) {
+                    fatal("InternalError: Left side of deref is nullptr");
                 }
                 return MIPS_Deref(self, leftReg, n->left->type);
             } else {
@@ -308,8 +306,8 @@ static int genAST(Compiler self, SymTable st, Context ctx, ASTnode n,
         case A_PREINC:
         case A_PREDEC:
             debug("Preinc/dec found :)");
-            if (n->left == NULL) {
-                fatal("InternalError: Left side of preinc is NULL");
+            if (n->left == nullptr) {
+                fatal("InternalError: Left side of preinc is nullptr");
             }
             if (n->left->sym->_class == C_GLOBAL ||
                 n->left->sym->_class == C_EXTERN ||
@@ -410,7 +408,7 @@ static int genSWITCHAST(Compiler self, SymTable st, Context ctx, ASTnode n) {
     Compiler_FreeAllReg(self, NO_REG);
 
     ca = n->right;
-    for (int i = 0; ca != NULL; i++, ca = ca->right) {
+    for (int i = 0; ca != nullptr; i++, ca = ca->right) {
         caseLabel[i] = Compiler_GenLabel(self);
         caseVal[i] = ca->intvalue;
         debug("case value: %d", ca->intvalue);

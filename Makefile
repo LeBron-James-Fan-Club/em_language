@@ -31,6 +31,6 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 
 # Clean up build files
 clean:
-	rm -rf $(OBJ_DIR)
+	rm -rf $(OBJ_DIR) bin/a
 
 .PHONY: all clean

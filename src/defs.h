@@ -3,12 +3,6 @@
 
 // Commonly used stuff - prevents circular includes
 
-#define CPPCMD "cpp -P -nostdinc -isystem"
-// declared in makeifle
-#ifndef INCDIR
-#define INCDIR "./bin/include"
-#endif
-
 enum OPCODES {
     T_EOF,  // 0
 

@@ -1,5 +1,4 @@
 #include "ast.h"
-
 #include "misc.h"
 #include "sym.h"
 
@@ -22,12 +21,12 @@ ASTnode ASTnode_New(enum ASTOP op, enum ASTPRIM type, ASTnode left, ASTnode mid,
 
 ASTnode ASTnode_NewLeaf(enum ASTOP op, enum ASTPRIM type, SymTableEntry ctype,
                         SymTableEntry sym, int intvalue) {
-    return ASTnode_New(op, type, NULL, NULL, NULL, ctype, sym, intvalue);
+    return ASTnode_New(op, type, nullptr, nullptr, nullptr, ctype, sym, intvalue);
 }
 
 ASTnode ASTnode_NewUnary(enum ASTOP op, enum ASTPRIM type, ASTnode left,
                          SymTableEntry ctype, SymTableEntry sym, int intvalue) {
-    return ASTnode_New(op, type, left, NULL, NULL, ctype, sym, intvalue);
+    return ASTnode_New(op, type, left, nullptr, nullptr, ctype, sym, intvalue);
 }
 
 void ASTnode_Free(ASTnode self) {
@@ -37,7 +36,7 @@ void ASTnode_Free(ASTnode self) {
     delete self;
 }
 
-static int makeLabel(void) {
+static int makeLabel() {
     static int id = 1;
     return id++;
 }

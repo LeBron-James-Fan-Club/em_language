@@ -1,7 +1,5 @@
 #include "types.h"
 
-#include <stdio.h>
-
 #include "asm.h"
 #include "ast.h"
 #include "defs.h"
@@ -39,12 +37,12 @@ ASTnode modify_type(ASTnode tree, enum ASTPRIM rtype, SymTableEntry rctype,
         if (ltype == rtype) return tree;
         // TODO: support structs later on
 
-        lsize = type_size(ltype, NULL);
-        rsize = type_size(rtype, NULL);
+        lsize = type_size(ltype, nullptr);
+        rsize = type_size(rtype, nullptr);
         if (lsize > rsize) {
-            return NULL;
+            return nullptr;
         } else if (lsize < rsize) {
-            return ASTnode_NewUnary(A_WIDEN, ltype,  tree,NULL, NULL, 0);
+            return ASTnode_NewUnary(A_WIDEN, ltype,  tree,nullptr, nullptr, 0);
         }
     }
 
@@ -71,7 +69,7 @@ ASTnode modify_type(ASTnode tree, enum ASTPRIM rtype, SymTableEntry rctype,
 
             rsize = PrimSize(value_at(rtype));
             if (rsize > 1) {
-                return ASTnode_NewUnary(A_SCALE, rtype,  tree,rctype, NULL,
+                return ASTnode_NewUnary(A_SCALE, rtype,  tree,rctype, nullptr,
                                         rsize);
             } else {
                 return tree;
@@ -80,7 +78,7 @@ ASTnode modify_type(ASTnode tree, enum ASTPRIM rtype, SymTableEntry rctype,
     }
 
     // Types are incompatible
-    return NULL;
+    return nullptr;
 }
 
 enum ASTPRIM pointer_to(enum ASTPRIM type) {

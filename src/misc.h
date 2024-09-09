@@ -5,8 +5,6 @@
 
 #include "scan.h"
 
-#define noreturn _Noreturn
-
 noreturn void lfatal(Scanner s, char *msg);
 noreturn void lfatala(Scanner s, char *msg, ...);
 

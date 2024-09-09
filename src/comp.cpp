@@ -5,7 +5,7 @@ Compiler Compiler_New(char *outfile) {
     Compiler c = new compiler;
 
     c->outfile = fopen(outfile, "w");
-    if (c->outfile == NULL) {
+    if (c->outfile == nullptr) {
         fatala("OSError: Unable to open file %s", outfile);
     }
 

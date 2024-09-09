@@ -1,11 +1,7 @@
-#include "scan.h"
-
 #include <ctype.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include <string.h>
 
+#include "scan.h"
 #include "defs.h"
 #include "misc.h"
 
@@ -34,7 +30,7 @@ static int keyword(char *s);
 
 static int chrpos(char *s, int c);
 
-Scanner Scanner_New(void) {
+Scanner Scanner_New() {
     Scanner n = new scanner;
     n->line = 1;
     n->putback = '\n';
@@ -89,7 +85,7 @@ void Scanner_Scan(Scanner self, Token t) {
         // might be buggy check later
         t->token = self->rejToken->token;
         t->intvalue = self->rejToken->intvalue;
-        self->rejToken = NULL;
+        self->rejToken = nullptr;
         return;
     }
 

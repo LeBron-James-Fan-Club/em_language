@@ -1,5 +1,7 @@
-#include "decl.h"
+#include <stdlib.h>
+#include <string.h>
 
+#include "decl.h"
 #include "defs.h"
 #include "flags.h"
 #include "misc.h"
@@ -44,7 +46,7 @@ static SymTableEntry symbol_declare(Compiler c, Scanner s, SymTable st,
                                     Token tok, Context ctx, enum ASTPRIM type,
                                     SymTableEntry cType, enum STORECLASS _class,
                                     ASTnode *tree) {
-    SymTableEntry sym = NULL;
+    SymTableEntry sym = nullptr;
     char *varName = strdup(s->text);
 
     ident(s, tok);
@@ -61,20 +63,20 @@ static SymTableEntry symbol_declare(Compiler c, Scanner s, SymTable st,
         case C_EXTERN:
         case C_STATIC:
         case C_GLOBAL:
-            if (SymTable_FindGlob(st, s) != NULL) {
+            if (SymTable_FindGlob(st, s) != nullptr) {
                 lfatala(s, "DuplicateError: Duplicate global variable %s",
                         s->text);
             }
             break;
         case C_LOCAL:
         case C_PARAM:
-            if (SymTable_FindLocl(st, s, ctx) != NULL) {
+            if (SymTable_FindLocl(st, s, ctx) != nullptr) {
                 lfatala(s, "DuplicateError: Duplicate local variable %s",
                         s->text);
             }
             break;
         case C_MEMBER:
-            if (SymTable_FindMember(st, s) != NULL) {
+            if (SymTable_FindMember(st, s) != nullptr) {
                 lfatala(s, "DuplicateError: Duplicate member %s", s->text);
             }
             break;
@@ -103,7 +105,7 @@ static int parse_literal(Compiler c, Scanner s, SymTable st, Token tok,
         tree->left->type = tree->type;
         ASTnode temp = tree;
         tree = tree->left;
-        temp->left = NULL;
+        temp->left = nullptr;
         free(temp);
     }
 
@@ -113,7 +115,7 @@ static int parse_literal(Compiler c, Scanner s, SymTable st, Token tok,
 
     if (type == pointer_to(P_CHAR) ||
         (inttype(type) &&
-         type_size(type, NULL) >= type_size(tree->type, NULL))) {
+         type_size(type, nullptr) >= type_size(tree->type, nullptr))) {
         int value = tree->intvalue;
         ASTnode_Free(tree);
         return value;
@@ -126,9 +128,9 @@ static SymTableEntry scalar_declare(Compiler c, Scanner s, SymTable st,
                                     Token tok, Context ctx, char *varName,
                                     enum ASTPRIM type, SymTableEntry cType,
                                     enum STORECLASS _class, ASTnode *tree) {
-    SymTableEntry sym = NULL;
+    SymTableEntry sym = nullptr;
     ASTnode varNode, exprNode;
-    *tree = NULL;
+    *tree = nullptr;
 
     switch (_class) {
         case C_STATIC:
@@ -177,12 +179,12 @@ static SymTableEntry scalar_declare(Compiler c, Scanner s, SymTable st,
 
             exprNode =
                 modify_type(exprNode, varNode->type, varNode->ctype, A_NONE);
-            if (exprNode == NULL) {
+            if (exprNode == nullptr) {
                 fatal("TypeError: incompatible types in assignment\n");
             }
 
-            *tree = ASTnode_New(A_ASSIGN, exprNode->type, exprNode, NULL,
-                                varNode, exprNode->ctype, NULL, 0);
+            *tree = ASTnode_New(A_ASSIGN, exprNode->type, exprNode, nullptr,
+                                varNode, exprNode->ctype, nullptr, 0);
         }
     }
 
@@ -282,12 +284,12 @@ static int param_declare_list(Compiler c, Scanner s, SymTable st, Token tok,
     enum ASTPRIM type;
     int paramCnt = 0;
 
-    SymTableEntry protoPtr = NULL;
+    SymTableEntry protoPtr = nullptr;
     SymTableEntry cType;
 
     // * if a proto, member exists
 
-    if (oldFuncSym != NULL) {
+    if (oldFuncSym != nullptr) {
         protoPtr = oldFuncSym->member;
     }
 
@@ -315,7 +317,7 @@ static int param_declare_list(Compiler c, Scanner s, SymTable st, Token tok,
             lfatal(s, "InvalidTypeError: invalid parameter type");
         }
 
-        if (protoPtr != NULL) {
+        if (protoPtr != nullptr) {
             if (type != protoPtr->type) {
                 lfatal(s,
                        "InvalidParamsError: parameter type mismatch for proto");
@@ -332,7 +334,7 @@ static int param_declare_list(Compiler c, Scanner s, SymTable st, Token tok,
         }
     }
 
-    if (oldFuncSym != NULL && paramCnt != oldFuncSym->nElems) {
+    if (oldFuncSym != nullptr && paramCnt != oldFuncSym->nElems) {
         lfatal(s, "InvalidParamsError: parameter count mismatch for proto");
     }
 
@@ -346,7 +348,7 @@ enum ASTPRIM declare_list(Compiler c, Scanner s, SymTable st, Token tok,
     enum ASTPRIM initType, type;
     SymTableEntry sym;
     ASTnode tree;
-    *glueTree = NULL;
+    *glueTree = nullptr;
 
     if ((initType = parse_type(c, s, st, tok, ctx, cType, &_class)) == -1) {
         return initType;
@@ -368,10 +370,10 @@ enum ASTPRIM declare_list(Compiler c, Scanner s, SymTable st, Token tok,
         }
         debug("went over???");
 
-        *glueTree = (*glueTree == NULL)
+        *glueTree = (*glueTree == nullptr)
                         ? tree
-                        : ASTnode_New(A_GLUE, P_NONE, *glueTree, NULL, tree,
-                                      NULL, NULL, 0);
+                        : ASTnode_New(A_GLUE, P_NONE, *glueTree, nullptr, tree,
+                                      nullptr, nullptr, 0);
 
         if (tok->token == end1 || tok->token == end2) {
             return type;
@@ -394,20 +396,20 @@ SymTableEntry function_declare(Compiler c, Scanner s, SymTable st, Token tok,
                                SymTableEntry cType) {
     int paramCnt;
 
-    SymTableEntry oldFuncSym, newFuncSym = NULL;
+    SymTableEntry oldFuncSym, newFuncSym = nullptr;
 
     ASTnode tree, finalstmt;
 
     debug("DECLARING FUNCTION");
 
-    if ((oldFuncSym = SymTable_FindSymbol(st, s, ctx)) != NULL) {
+    if ((oldFuncSym = SymTable_FindSymbol(st, s, ctx)) != nullptr) {
         if (oldFuncSym->stype != S_FUNC) {
-            oldFuncSym = NULL;
+            oldFuncSym = nullptr;
         }
     }
 
-    if (oldFuncSym == NULL) {
-        newFuncSym = SymTable_AddGlob(st, s->text, type, NULL, S_FUNC, C_GLOBAL,
+    if (oldFuncSym == nullptr) {
+        newFuncSym = SymTable_AddGlob(st, s->text, type, nullptr, S_FUNC, C_GLOBAL,
                                       1, false);
     }
 
@@ -425,7 +427,7 @@ SymTableEntry function_declare(Compiler c, Scanner s, SymTable st, Token tok,
         SymTable_FreeParams(st);
     }
 
-    st->paramHead = st->paramTail = NULL;
+    st->paramHead = st->paramTail = nullptr;
 
     // This is only a proto
     if (tok->token == T_SEMI) {
@@ -442,11 +444,11 @@ SymTableEntry function_declare(Compiler c, Scanner s, SymTable st, Token tok,
     rbrace(s, tok);
 
     if (type != P_VOID) {
-        if (tree == NULL) {
+        if (tree == nullptr) {
             fatal("NoReturnError: non-void function must return a value\n");
         }
         finalstmt = tree->op == A_GLUE ? tree->right : tree;
-        if (finalstmt == NULL || finalstmt->op != A_RETURN) {
+        if (finalstmt == nullptr || finalstmt->op != A_RETURN) {
             fatal("NoReturnError: non-void function must return a value\n");
         }
     }
@@ -464,7 +466,7 @@ SymTableEntry function_declare(Compiler c, Scanner s, SymTable st, Token tok,
     ASTnode_Free(tree);
 
     SymTable_FreeLocls(st);
-    Context_SetFunctionId(ctx, NULL);
+    Context_SetFunctionId(ctx, nullptr);
 
     return oldFuncSym;
 }
@@ -579,7 +581,7 @@ enum ASTPRIM parse_cast(Compiler c, Scanner s, SymTable st, Token tok,
 static SymTableEntry composite_declare(Compiler c, Scanner s, SymTable st,
                                        Token tok, Context ctx,
                                        enum ASTPRIM type) {
-    SymTableEntry cType = NULL;
+    SymTableEntry cType = nullptr;
     SymTableEntry memb;
 
     int offset;
@@ -600,7 +602,7 @@ static SymTableEntry composite_declare(Compiler c, Scanner s, SymTable st,
     }
 
     if (tok->token != T_LBRACE) {
-        if (cType == NULL) {
+        if (cType == nullptr) {
             lfatala(s, "UndefinedError: struct/union %s is not defined",
                     s->text);
         }
@@ -638,13 +640,13 @@ static SymTableEntry composite_declare(Compiler c, Scanner s, SymTable st,
     }
 
     rbrace(s, tok);
-    if (st->membHead == NULL) {
+    if (st->membHead == nullptr) {
         fatala("EmptyStructError: struct/union has no members, %s",
                cType->name);
     }
 
     cType->member = st->membHead;
-    st->membHead = st->membTail = NULL;
+    st->membHead = st->membTail = nullptr;
 
     memb = cType->member;
     memb->posn = 0;
@@ -653,7 +655,7 @@ static SymTableEntry composite_declare(Compiler c, Scanner s, SymTable st,
     // for union
     int maxSize = 0;
 
-    for (memb = memb->next; memb != NULL; memb = memb->next) {
+    for (memb = memb->next; memb != nullptr; memb = memb->next) {
         if (type == P_STRUCT) {
             memb->posn = MIPS_Align(memb->type, offset, 1);
             // Calculates offset of next free byte
@@ -677,8 +679,8 @@ static SymTableEntry composite_declare(Compiler c, Scanner s, SymTable st,
 }
 
 static void enum_declare(Scanner s, SymTable st, Token tok) {
-    SymTableEntry eType = NULL;
-    char *name = NULL;
+    SymTableEntry eType = nullptr;
+    char *name = nullptr;
     int intVal = 0;
 
     Scanner_Scan(s, tok);
@@ -690,7 +692,7 @@ static void enum_declare(Scanner s, SymTable st, Token tok) {
     }
 
     if (tok->token != T_LBRACE) {
-        if (eType == NULL) {
+        if (eType == nullptr) {
             lfatala(s, "UndefinedError: enum %s is not defined", name);
         }
         if (name) free(name);
@@ -699,7 +701,7 @@ static void enum_declare(Scanner s, SymTable st, Token tok) {
 
     Scanner_Scan(s, tok);
 
-    if (eType != NULL) {
+    if (eType != nullptr) {
         lfatala(s, "DuplicateError: enum %s already defined", eType->name);
     }
 
@@ -712,7 +714,7 @@ static void enum_declare(Scanner s, SymTable st, Token tok) {
         name = strdup(s->text);
 
         eType = SymTable_FindEnumVal(st, s);
-        if (eType != NULL) {
+        if (eType != nullptr) {
             lfatala(s, "DuplicateError: enum value %s already defined", name);
         }
 
@@ -753,7 +755,7 @@ static enum ASTPRIM typedef_declare(Compiler c, Scanner s, SymTable st,
         lfatal(s, "TypeError: typedef cannot have extern");
     }
 
-    if (SymTable_FindTypeDef(st, s) != NULL) {
+    if (SymTable_FindTypeDef(st, s) != nullptr) {
         lfatala(s, "DuplicateError: typedef %s already defined", s->text);
     }
 
@@ -769,7 +771,7 @@ static enum ASTPRIM typedef_type(Scanner s, SymTable st, Token tok,
 
     type = SymTable_FindTypeDef(st, s);
     debug("typedef is %d :)", type->type);
-    if (type == NULL) {
+    if (type == nullptr) {
         lfatala(s, "UndefinedError: typedef %s is not defined", s->text);
     }
 
