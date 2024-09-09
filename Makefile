@@ -31,6 +31,6 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 
 # Clean up build files
 clean:
-	rm -rf ./$(OBJ_DIR)/*.o ./$(OBJ_DIR)/*.d
+	rm -rf $(OBJ_DIR)
 
 .PHONY: all clean
