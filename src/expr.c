@@ -204,7 +204,7 @@ static ASTnode paren_expression(Compiler c, Scanner s, SymTable st, Token t,
     if (type == P_NONE) {
         rparen(s, t);
     } else {
-        n = ASTnode_NewUnary(A_CAST, type,  n,cType, NULL, 0);
+        n = ASTnode_NewUnary(A_CAST, type, n, cType, NULL, 0);
     }
 
     // If shit was scanned in before
@@ -255,7 +255,7 @@ static void orderOp(Compiler c, Scanner s, SymTable st, Token t, Context ctx,
         right->rvalue = 1;
         left->rvalue = 1;
         ltemp = modify_type(left, right->type, right->ctype, op);
-        rtemp = modify_type(right, left->type, left->type, op);
+        rtemp = modify_type(right, left->type, left->ctype, op);
 
         if (ltemp == NULL && rtemp == NULL) {
             lfatal(s, "SyntaxError: Incompatible types in expression");
@@ -463,7 +463,7 @@ static ASTnode ASTnode_Prefix(Compiler c, Scanner s, SymTable st, Token tok,
                     "SyntaxError: * Operator must be followed by an identifier "
                     "or *");
             }
-            t = ASTnode_NewUnary(A_DEREF, t->ctype, value_at(t->type), t, NULL,
+            t = ASTnode_NewUnary(A_DEREF, value_at(t->type), t, t->ctype, NULL,
                                  0);
             break;
         case T_INC:
@@ -475,26 +475,26 @@ static ASTnode ASTnode_Prefix(Compiler c, Scanner s, SymTable st, Token tok,
                 lfatal(s, "SyntaxError: ++ must be followed by an identifier");
             }
             debug("pre inc");
-            t = ASTnode_NewUnary(A_PREINC, t->ctype, t->type, t, NULL, 0);
+            t = ASTnode_NewUnary(A_PREINC, t->type, t, t->ctype, NULL, 0);
             break;
         case T_MINUS:
             Scanner_Scan(s, tok);
             // for ---a
             t = ASTnode_Prefix(c, s, st, tok, ctx);
             t->rvalue = 1;
-            t = ASTnode_NewUnary(A_NEGATE, t->ctype, t->type, t, NULL, 0);
+            t = ASTnode_NewUnary(A_NEGATE, t->type, t, t->ctype, NULL, 0);
             break;
         case T_INVERT:
             Scanner_Scan(s, tok);
             t = ASTnode_Prefix(c, s, st, tok, ctx);
             t->rvalue = 1;
-            t = ASTnode_NewUnary(A_INVERT, t->ctype, t->type, t, NULL, 0);
+            t = ASTnode_NewUnary(A_INVERT, t->type, t, t->ctype, NULL, 0);
             break;
         case T_LOGNOT:
             Scanner_Scan(s, tok);
             t = ASTnode_Prefix(c, s, st, tok, ctx);
             t->rvalue = 1;
-            t = ASTnode_NewUnary(A_LOGNOT, t->ctype, t->type, t, NULL, 0);
+            t = ASTnode_NewUnary(A_LOGNOT, t->type, t, t->ctype, NULL, 0);
             break;
         case T_DEC:
             Scanner_Scan(s, tok);
@@ -502,7 +502,7 @@ static ASTnode ASTnode_Prefix(Compiler c, Scanner s, SymTable st, Token tok,
             if (t->op != A_IDENT) {
                 lfatal(s, "SyntaxError: -- must be followed by an identifier");
             }
-            t = ASTnode_NewUnary(A_PREDEC, t->ctype, t->type, t, NULL, 0);
+            t = ASTnode_NewUnary(A_PREDEC, t->type, t, t->ctype, NULL, 0);
             break;
         default:
             t = ASTnode_Postfix(c, s, st, tok, ctx);
@@ -601,9 +601,9 @@ static ASTnode ASTnode_MemberAccess(Scanner s, SymTable st, Token tok,
 
     right = ASTnode_NewLeaf(A_INTLIT, P_INT, NULL, NULL, m->posn);
 
-    left = ASTnode_New(A_ADD, pointer_to(m->type), m->ctype, left, NULL, right,
-                       NULL, 0);
-    left = ASTnode_NewUnary(A_DEREF, m->type, m->ctype, left, NULL, 0);
+    left = ASTnode_New(A_ADD, pointer_to(m->type), left,  NULL, right,
+                       m->ctype,NULL, 0);
+    left = ASTnode_NewUnary(A_DEREF, m->type, left, m->ctype, NULL, 0);
 
     Scanner_RejectToken(s, tok);
 

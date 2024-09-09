@@ -408,7 +408,6 @@ static void dumpTable(SymTableEntry head, char *name, int indent) {
     }
 }
 
-
 void SymTable_Dump(SymTable this) {
     dumpTable(this->globHead, "Globals", 0);
     printf("\n");

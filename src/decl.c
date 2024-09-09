@@ -181,8 +181,8 @@ static SymTableEntry scalar_declare(Compiler c, Scanner s, SymTable st,
                 fatal("TypeError: incompatible types in assignment\n");
             }
 
-            *tree = ASTnode_New(A_ASSIGN, exprNode->type, exprNode->ctype,
-                                exprNode, NULL, varNode, NULL, 0);
+            *tree = ASTnode_New(A_ASSIGN, exprNode->type, exprNode, NULL,
+                                varNode, exprNode->ctype, NULL, 0);
         }
     }
 
@@ -435,7 +435,7 @@ SymTableEntry function_declare(Compiler c, Scanner s, SymTable st, Token tok,
         }
     }
 
-    tree = ASTnode_NewUnary(A_FUNCTION, type, cType, tree, oldFuncSym, 0);
+    tree = ASTnode_NewUnary(A_FUNCTION, type, tree, cType, oldFuncSym, 0);
 
     // optimise!!!
     tree = Optimise(tree);
