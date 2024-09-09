@@ -2,8 +2,18 @@
 #include "asm.h"
 #include "misc.h"
 
-static char *reglist[MAX_REG] = {"$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7", "$t8", "$t9", "$a0", "$a1",
-                                 "$a2", "$a3"};
+static const char *REGISTER_NAMES[] = {
+        "$zero", "$at",
+        "$v0", "$v1",
+        "$a0", "$a1", "$a2", "$a3",
+        "$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7",
+        "$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7",
+        "$t8", "$t9",
+        "$k0", "$k1",
+        "$gp", "$sp", "$fp", "$ra",
+};
+
+static Register reglist[MAX_REG] = {T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, A0, A1, A2, A3};
 
 static void freeReg(Compiler self, int reg1);
 
@@ -44,6 +54,11 @@ void print_arg(FILE *file, bool first, const int &arg) {
     fprintf(file, "%d", arg);
 }
 
+template<>
+void print_arg(FILE *file, bool first, const Register &arg) {
+    print_arg(file, first, REGISTER_NAMES[arg]);
+}
+
 // Base case: No additional arguments
 static void write_mnemonic(Compiler self, const char *mnemonic) {
     fprintf(self->outfile, "\t%s\n", mnemonic);
@@ -65,8 +80,8 @@ static void write_mnemonic(Compiler self, const char *mnemonic, First first_arg,
     fprintf(self->outfile, "\n");
 }
 
-static std::string mem_offset(const char *base, int offset) {
-    return std::to_string(offset) + "(" + base + ")";
+static std::string mem_offset(Register base, int offset) {
+    return std::to_string(offset) + "(" + REGISTER_NAMES[base] + ")";
 }
 
 static std::string as_label(int index) {
@@ -104,25 +119,25 @@ void MIPS_Pre(Compiler self) {
     // $a0 = register to compare
     // $a1 = base address of jump table
     fputs("\nswitch:\n", self->outfile);
-    write_mnemonic(self, "move", "$t0", "$a0");
+    write_mnemonic(self, "move", Register::T0, Register::A0);
     // scan no of cases
-    write_mnemonic(self, "lw", "$t1", mem_offset("$a1", 0));
+    write_mnemonic(self, "lw", Register::T1, mem_offset(Register::A1, 0));
     fputs("\nnext:\n", self->outfile);
-    write_mnemonic(self, "addi", "$a1", "$a1", 4);
-    write_mnemonic(self, "lw", "$t2", mem_offset("$a1", 0));
+    write_mnemonic(self, "addi", Register::A1, Register::A1, 4);
+    write_mnemonic(self, "lw", Register::T2, mem_offset(Register::A1, 0));
     // load label
-    write_mnemonic(self, "addi", "$a1", "$a1", 4);
-    write_mnemonic(self, "bne", "$t0", "$t2", "fail");
-    write_mnemonic(self, "lw", "$t3", mem_offset("$a1", 0));
-    write_mnemonic(self, "jr", "$t3");
+    write_mnemonic(self, "addi", Register::A1, Register::A1, 4);
+    write_mnemonic(self, "bne", Register::T0, Register::T2, "fail");
+    write_mnemonic(self, "lw", Register::T3, mem_offset(Register::A1, 0));
+    write_mnemonic(self, "jr", Register::T3);
     fputs("\nfail:\n", self->outfile);
-    write_mnemonic(self, "addi", "$t1", "$t1", -1);
-    write_mnemonic(self, "bgtz", "$t1", "next");
-    write_mnemonic(self, "addi", "$a1", "$a1", 4);
+    write_mnemonic(self, "addi", Register::T1, Register::T1, -1);
+    write_mnemonic(self, "bgtz", Register::T1, "next");
+    write_mnemonic(self, "addi", Register::A1, Register::A1, 4);
     // last is just label so scan that
     // and go to default
-    write_mnemonic(self, "lw", "$t3", mem_offset("$a1", 0));
-    write_mnemonic(self, "jr", "$t3");
+    write_mnemonic(self, "lw", Register::T3, mem_offset(Register::A1, 0));
+    write_mnemonic(self, "jr", Register::T3);
 }
 
 void MIPS_Post(Compiler self) {
@@ -181,7 +196,7 @@ void MIPS_PreFunc(Compiler self, SymTable st, Context ctx) {
         fprintf(self->outfile, "%s, ", curr->name);
     }
 
-    fputs("$fp, $ra", self->outfile);
+    fprintf(self->outfile, "%s, %s", REGISTER_NAMES[Register::FP], REGISTER_NAMES[Register::RA]);
 
     if (st->loclHead != nullptr) {
         fputs(", ", self->outfile);
@@ -201,7 +216,7 @@ void MIPS_PreFunc(Compiler self, SymTable st, Context ctx) {
     debug("skip is %d", skip);
 
     for (int i = 0; i < skip; i++) {
-        fprintf(self->outfile, "%s", reglist[FIRST_PARAM_REG + i]);
+        fprintf(self->outfile, "%s", REGISTER_NAMES[reglist[FIRST_PARAM_REG + i]]);
         if ((i + 1) < skip) {
             fputs(", ", self->outfile);
         }
@@ -210,7 +225,7 @@ void MIPS_PreFunc(Compiler self, SymTable st, Context ctx) {
     fputs("\n# Clobbers:\t", self->outfile);
 
     for (int i = 0; i < skip; i++) {
-        fprintf(self->outfile, "%s", reglist[FIRST_PARAM_REG + i]);
+        fprintf(self->outfile, "%s", REGISTER_NAMES[reglist[FIRST_PARAM_REG + i]]);
         if ((i + 1) < skip) {
             fputs(", ", self->outfile);
         }
@@ -260,11 +275,11 @@ void MIPS_PreFunc(Compiler self, SymTable st, Context ctx) {
 
     write_mnemonic(self, "begin");
     fputs("\n", self->outfile);
-    write_mnemonic(self, "push", "$ra");
+    write_mnemonic(self, "push", Register::RA);
 
     // Actual offset for locals if have been initialised
     if (st->loclHead) {
-        write_mnemonic(self, "addiu", "$sp", "$sp", -self->localOffset);
+        write_mnemonic(self, "addiu", Register::SP, Register::SP, -self->localOffset);
     }
 
     fputs("\n", self->outfile);
@@ -275,12 +290,12 @@ void MIPS_PostFunc(Compiler self, Context ctx) {
     // TODO: we don't add return label
     MIPS_ReturnLabel(self, ctx);
     if (self->localOffset > 0) {
-        write_mnemonic(self, "addiu", "$sp", "$sp", self->localOffset);
+        write_mnemonic(self, "addiu", Register::SP, Register::SP, self->localOffset);
     }
 
-    write_mnemonic(self, "pop", "$ra");
+    write_mnemonic(self, "pop", Register::RA);
     write_mnemonic(self, "end");
-    write_mnemonic(self, "jr", "$ra");
+    write_mnemonic(self, "jr", Register::RA);
     fputs("\n", self->outfile);
 
     /*
@@ -351,20 +366,20 @@ int MIPS_Mod(Compiler self, int r1, int r2) {
 }
 
 void MIPS_PrintInt(Compiler self, int r) {
-    write_mnemonic(self, "li", "$v0", 1);
-    write_mnemonic(self, "move", "$a0", reglist[r]);
+    write_mnemonic(self, "li", Register::V0, 1);
+    write_mnemonic(self, "move", Register::A0, reglist[r]);
     write_mnemonic(self, "syscall");
 }
 
 void MIPS_PrintChar(Compiler self, int r) {
-    write_mnemonic(self, "li", "$v0", 11);
-    write_mnemonic(self, "move", "$a0", reglist[r]);
+    write_mnemonic(self, "li", Register::V0, 11);
+    write_mnemonic(self, "move", Register::A0, reglist[r]);
     write_mnemonic(self, "syscall");
 }
 
 void MIPS_PrintStr(Compiler self, int r) {
-    write_mnemonic(self, "li", "$v0", 4);
-    write_mnemonic(self, "move", "$a0", reglist[r]);
+    write_mnemonic(self, "li", Register::V0, 4);
+    write_mnemonic(self, "move", Register::A0, reglist[r]);
     write_mnemonic(self, "syscall");
 }
 
@@ -462,34 +477,34 @@ int MIPS_LoadLocal(Compiler self, SymTableEntry sym, enum ASTOP op) {
 
     switch (sym->type) {
         case P_INT:
-            write_mnemonic(self, "lw", reglist[r], mem_offset("$sp", sym->posn));
+            write_mnemonic(self, "lw", reglist[r], mem_offset(Register::SP, sym->posn));
             if (op == A_PREINC || op == A_PREDEC) {
                 write_mnemonic(self, "addi", reglist[r], reglist[r], op == A_PREINC ? "1" : "-1");
-                write_mnemonic(self, "sw", reglist[r], mem_offset("$sp", sym->posn));
+                write_mnemonic(self, "sw", reglist[r], mem_offset(Register::SP, sym->posn));
             }
 
             if (op == A_POSTINC || op == A_POSTDEC) {
                 r2 = allocReg(self);
                 write_mnemonic(self, "move", reglist[r2], reglist[r]);
                 write_mnemonic(self, "addi", reglist[r2], reglist[r2], op == A_POSTINC ? "1" : "-1");
-                write_mnemonic(self, "sw", reglist[r2], mem_offset("$sp", sym->posn));
+                write_mnemonic(self, "sw", reglist[r2], mem_offset(Register::SP, sym->posn));
                 freeReg(self, r2);
             }
 
             break;
         case P_CHAR:
-            write_mnemonic(self, "lbu", reglist[r], mem_offset("$sp", sym->posn));
+            write_mnemonic(self, "lbu", reglist[r], mem_offset(Register::SP, sym->posn));
 
             if (op == A_PREINC || op == A_PREDEC) {
                 write_mnemonic(self, "addi", reglist[r], reglist[r], op == A_PREINC ? "1" : "-1");
-                write_mnemonic(self, "sb", reglist[r], mem_offset("$sp", sym->posn));
+                write_mnemonic(self, "sb", reglist[r], mem_offset(Register::SP, sym->posn));
             }
 
             if (op == A_POSTINC || op == A_POSTDEC) {
                 r2 = allocReg(self);
                 write_mnemonic(self, "move", reglist[r2], reglist[r]);
                 write_mnemonic(self, "addi", reglist[r2], reglist[r2], op == A_POSTINC ? "1" : "-1");
-                write_mnemonic(self, "sb", reglist[r2], mem_offset("$sp", sym->posn));
+                write_mnemonic(self, "sb", reglist[r2], mem_offset(Register::SP, sym->posn));
                 freeReg(self, r2);
             }
 
@@ -501,18 +516,18 @@ int MIPS_LoadLocal(Compiler self, SymTableEntry sym, enum ASTOP op) {
                 debug("load local error");
                 fatala("InternalError: Unknown type %d", sym->type);
             }
-            write_mnemonic(self, "lw", reglist[r], mem_offset("$sp", sym->posn));
+            write_mnemonic(self, "lw", reglist[r], mem_offset(Register::SP, sym->posn));
 
             if (op == A_PREINC || op == A_PREDEC) {
                 write_mnemonic(self, "addi", reglist[r], reglist[r], op == A_PREINC ? "1" : "-1");
-                write_mnemonic(self, "sw", reglist[r], mem_offset("$sp", sym->posn));
+                write_mnemonic(self, "sw", reglist[r], mem_offset(Register::SP, sym->posn));
             }
 
             if (op == A_POSTINC || op == A_POSTDEC) {
                 r2 = allocReg(self);
                 write_mnemonic(self, "move", reglist[r2], reglist[r]);
                 write_mnemonic(self, "addi", reglist[r2], reglist[r2], op == A_POSTINC ? "1" : "-1");
-                write_mnemonic(self, "sw", reglist[r2], mem_offset("$sp", sym->posn));
+                write_mnemonic(self, "sw", reglist[r2], mem_offset(Register::SP, sym->posn));
                 freeReg(self, r2);
             }
             break;
@@ -565,10 +580,10 @@ int MIPS_StoreLocal(Compiler self, int r1, SymTableEntry sym) {
 
     switch (sym->type) {
         case P_INT:
-            write_mnemonic(self, "sw", reglist[r1], mem_offset("$sp", sym->posn));
+            write_mnemonic(self, "sw", reglist[r1], mem_offset(Register::SP, sym->posn));
             break;
         case P_CHAR:
-            write_mnemonic(self, "sb", reglist[r1], mem_offset("$sp", sym->posn));
+            write_mnemonic(self, "sb", reglist[r1], mem_offset(Register::SP, sym->posn));
             break;
         default:
             if (!ptrtype(sym->type)) {
@@ -576,7 +591,7 @@ int MIPS_StoreLocal(Compiler self, int r1, SymTableEntry sym) {
                 fatala("InternalError: Unknown type %d", sym->type);
             }
 
-            write_mnemonic(self, "sw", reglist[r1], mem_offset("$sp", sym->posn));
+            write_mnemonic(self, "sw", reglist[r1], mem_offset(Register::SP, sym->posn));
             break;
     }
 
@@ -683,28 +698,28 @@ void MIPS_GlobSym(Compiler self, SymTableEntry sym) {
 }
 
 int MIPS_InputInt(Compiler self) {
-    write_mnemonic(self, "li", "$v0", 5);
+    write_mnemonic(self, "li", Register::V0, 5);
     write_mnemonic(self, "syscall");
 
     // Call store glob later on
     // fprintf(self->outfile, "\tsw\t$v0, %s\n", g->Gsym[id].name);
     int r = allocReg(self);
-    write_mnemonic(self, "move", reglist[r], "$v0");
+    write_mnemonic(self, "move", reglist[r], Register::V0);
     return r;
 }
 
 int MIPS_InputChar(Compiler self) {
-    write_mnemonic(self, "li", "$v0", 12);
+    write_mnemonic(self, "li", Register::V0, 12);
     write_mnemonic(self, "syscall");
     int r = allocReg(self);
-    write_mnemonic(self, "move", reglist[r], "$v0");
+    write_mnemonic(self, "move", reglist[r], Register::V0);
     return r;
 }
 
 void MIPS_InputString(Compiler self, char *name, int size) {
-    write_mnemonic(self, "la", "$a0", name);
-    write_mnemonic(self, "li", "$a1", size);
-    write_mnemonic(self, "li", "$v0", 8);
+    write_mnemonic(self, "la", Register::A0, name);
+    write_mnemonic(self, "li", Register::A1, size);
+    write_mnemonic(self, "li", Register::V0, 8);
     write_mnemonic(self, "syscall");
 }
 
@@ -808,9 +823,9 @@ void MIPS_ReturnJump(Compiler self, Context ctx) {
 
 void MIPS_Return(Compiler self, int r, Context ctx) {
     if (ctx->functionId->type == P_INT) {
-        write_mnemonic(self, "move", "$v0", reglist[r]);
+        write_mnemonic(self, "move", Register::V0, reglist[r]);
     } else if (ctx->functionId->type == P_CHAR) {
-        write_mnemonic(self, "move", "$v0", reglist[r]);
+        write_mnemonic(self, "move", Register::V0, reglist[r]);
         // I dont think we need the below
         // fprintf(self->outfile, "\tandi\t$v0, %s, 0xFF\n", reglist[r]);
     } else {
@@ -822,7 +837,7 @@ void MIPS_Return(Compiler self, int r, Context ctx) {
 int MIPS_Call(Compiler self, SymTableEntry sym) {
     int outr = allocReg(self);
     write_mnemonic(self, "jal", sym->name);
-    write_mnemonic(self, "move", reglist[outr], "$v0");
+    write_mnemonic(self, "move", reglist[outr], Register::V0);
     // Calculates the length of parameters
     int offset = 0;
 
@@ -835,7 +850,7 @@ int MIPS_Call(Compiler self, SymTableEntry sym) {
         offset += PrimSize(curr->type);
     }
     if (offset > 16)
-        write_mnemonic(self, "addiu", "$sp", "$sp", offset - 16);
+        write_mnemonic(self, "addiu", Register::SP, Register::SP, offset - 16);
 
     for (int i = 0; i < self->paramRegCount; i++) {
         write_mnemonic(self, "pop", reglist[FIRST_PARAM_REG + i]);
@@ -883,7 +898,7 @@ int MIPS_Address(Compiler self, SymTableEntry sym) {
     if (sym->_class == C_GLOBAL || sym->_class == C_EXTERN || sym->_class == C_STATIC) {
         write_mnemonic(self, "la", reglist[r], sym->name);
     } else {
-        write_mnemonic(self, "la", reglist[r], mem_offset("$sp", sym->posn));
+        write_mnemonic(self, "la", reglist[r], mem_offset(Register::SP, sym->posn));
     }
     return r;
 }
@@ -962,10 +977,10 @@ int MIPS_ToBool(Compiler self, enum ASTOP parentOp, int r, int label) {
     if (parentOp == A_WHILE || parentOp == A_IF) {
         // fake instruction
         // used to be bltu - but for some reason it never works
-        write_mnemonic(self, "beq", reglist[r], "$zero", as_label(label));
+        write_mnemonic(self, "beq", reglist[r], Register::ZERO, as_label(label));
         return r;
     } else {
-        write_mnemonic(self, "seq", reglist[r], reglist[r], "$zero");
+        write_mnemonic(self, "seq", reglist[r], reglist[r], Register::ZERO);
     }
 
     return r;
@@ -1033,8 +1048,8 @@ void MIPS_Switch(Compiler self, int r, int caseCount, int topLabel, int *caseLab
     MIPS_Label(self, topLabel);
 
     // TODO: PUSH $a0, $a1 to stack if it is used
-    write_mnemonic(self, "move", "$a0", reglist[r]);
-    write_mnemonic(self, "la", "$a1", as_label(label));
+    write_mnemonic(self, "move", Register::A0, reglist[r]);
+    write_mnemonic(self, "la", Register::A1, as_label(label));
     // fprintf(self->outfile, "\tla\t$v1, L%d\n", label);
 
     write_mnemonic(self, "jal", "switch");
