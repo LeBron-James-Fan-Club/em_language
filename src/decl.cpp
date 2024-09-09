@@ -255,7 +255,7 @@ static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
                 maxElems += TABLE_INCREMENT;
                 int *newarr = new int[maxElems];
                 memcpy( newarr, initList, oldSize * sizeof(int) );
-                delete [] initList;
+                delete[] initList;
                 initList = newarr;
             }
 

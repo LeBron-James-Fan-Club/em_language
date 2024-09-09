@@ -30,19 +30,6 @@ static int keyword(char *s);
 
 static int chrpos(char *s, int c);
 
-Scanner Scanner_New() {
-    Scanner n = new scanner;
-    n->line = 1;
-    n->putback = '\n';
-
-    return n;
-}
-
-void Scanner_Free(Scanner self) {
-    pclose(self->infile);
-    delete self;
-}
-
 static char next(Scanner self) {
     char c;
     if (self->putback) {
@@ -494,3 +481,7 @@ void lparen(Scanner s, Token t) { match(s, t, T_LPAREN, "("); }
 void rparen(Scanner s, Token t) { match(s, t, T_RPAREN, ")"); }
 
 void comma(Scanner s, Token t) { match(s, t, T_COMMA, ","); }
+
+scanner::~scanner() {
+    pclose(this->infile);
+}

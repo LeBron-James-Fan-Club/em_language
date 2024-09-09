@@ -14,19 +14,19 @@ struct scanner {
     char *infilename;
 
     // character to put back
-    char putback;
+    char putback{'\n'};
     // current line number
-    int line;
+    int line{1};
 
     char text[TEXTLEN + 1];
 
     Token rejToken;
+
+    ~scanner();
 };
 
 typedef struct scanner *Scanner;
 
-Scanner Scanner_New();
-void Scanner_Free(Scanner);
 void Scanner_Scan(Scanner self, Token t);
 void Scanner_Putback(Scanner self, char c);
 void Scanner_RejectToken(Scanner self, Token t);

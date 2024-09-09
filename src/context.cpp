@@ -1,10 +1,6 @@
 #include "context.h"
 #include "sym.h"
 
-Context Context_New() { return new context; }
-
-void Context_Free(Context self) { delete self; }
-
 void Context_SetFunctionId(Context self, SymTableEntry sym) { self->functionId = sym; }
 
 SymTableEntry Context_GetFunctionId(Context self) { return self->functionId; }

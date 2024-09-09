@@ -64,13 +64,12 @@ struct symTable {
     SymTableEntry typeHead{}, typeTail{};
 
     // for annoymous
-    int anon{};
+    int anon{1};
+
+    ~symTable();
 };
 
 typedef struct symTable *SymTable;
-
-SymTable SymTable_New();
-void SymTable_Free(SymTable);
 
 SymTableEntry SymTable_AddGlob(SymTable self, char *name, enum ASTPRIM type,
                                SymTableEntry ctype, enum STRUCTTYPE stype,

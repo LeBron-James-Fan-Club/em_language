@@ -86,17 +86,13 @@ int main(int argc, char *argv[]) {
 
     int i = argParse(argc, argv);
 
-    Scanner s = Scanner_New();
+    Scanner s = new scanner;
     preprocess(s, argv[i]);
 
-    if (s == nullptr) {
-        fatal("InternalError: unable to initialise scanner\n");
-    }
-
-    Compiler c = Compiler_New(argv[i + 1]);
-    SymTable st = SymTable_New();
+    Compiler c = new compiler{argv[i + 1]};
+    SymTable st = new symTable;
     Token tok = new token;
-    Context ctx = Context_New();
+    Context ctx = new context;
 
     MIPS_Pre(c);
 
@@ -111,11 +107,11 @@ int main(int argc, char *argv[]) {
         SymTable_Dump(st);
     }
 
-    Scanner_Free(s);
-    Compiler_Free(c);
-    SymTable_Free(st);
+    delete s;
+    delete c;
+    delete st;
     delete tok;
-    Context_Free(ctx);
+    delete ctx;
 
     printf(
         "\033[32m"

@@ -1,22 +1,6 @@
 #include "comp.h"
 #include "misc.h"
 
-Compiler Compiler_New(char *outfile) {
-    Compiler c = new compiler;
-
-    c->outfile = fopen(outfile, "w");
-    if (c->outfile == nullptr) {
-        fatala("OSError: Unable to open file %s", outfile);
-    }
-
-    return c;
-}
-
-void Compiler_Free(Compiler self) {
-    fclose(self->outfile);
-    delete self;
-}
-
 void Compiler_ResetOffset(Compiler self) {
 
     self->localOffset = 0;
@@ -37,4 +21,16 @@ int Compiler_GetParamOffset(Compiler self, enum ASTPRIM type) {
     self->paramOffset += (PrimSize(type) > 4) ? PrimSize(type) : 4;
     debug("after the param offset is %d", self->paramOffset);
     return self->paramOffset;
+}
+
+compiler::compiler(char *outfile) {
+    this->outfile = fopen(outfile, "w");
+
+    if (this->outfile == nullptr) {
+        fatala("OSError: Unable to open file %s", outfile);
+    }
+}
+
+compiler::~compiler() {
+    fclose(this->outfile);
 }

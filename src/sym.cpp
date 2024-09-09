@@ -204,13 +204,6 @@ SymTableEntry SymTable_FindSymbol(SymTable self, Scanner s, Context c) {
     return SymTable_FindGlob(self, s);
 }
 
-SymTable SymTable_New() {
-    SymTable g = new symTable;
-    g->anon = 1;
-
-    return g;
-}
-
 static void freeList(SymTableEntry head) {
     SymTableEntry tmp;
     while (head != nullptr) {
@@ -230,19 +223,6 @@ static void freeList(SymTableEntry head) {
         head = head->next;
         delete tmp;
     }
-}
-
-void SymTable_Free(SymTable self) {
-    freeList(self->globHead);
-    freeList(self->loclHead);
-    freeList(self->paramHead);
-    freeList(self->membHead);
-    freeList(self->structHead);
-    freeList(self->unionHead);
-    freeList(self->enumHead);
-    freeList(self->typeHead);
-
-    delete self;
 }
 
 void SymTable_FreeParams(SymTable self) {
@@ -406,4 +386,15 @@ void SymTable_Dump(SymTable self) {
     dumpTable(self->enumHead, "Enums", 0);
     printf("\n");
     dumpTable(self->typeHead, "Typedefs", 0);
+}
+
+symTable::~symTable() {
+    freeList(this->globHead);
+    freeList(this->loclHead);
+    freeList(this->paramHead);
+    freeList(this->membHead);
+    freeList(this->structHead);
+    freeList(this->unionHead);
+    freeList(this->enumHead);
+    freeList(this->typeHead);
 }

@@ -11,10 +11,6 @@ struct context {
     int switchLevel{};
 };
 
-Context Context_New();
-
-void Context_Free(Context self);
-
 void Context_SetFunctionId(Context self, SymTableEntry sym);
 SymTableEntry Context_GetFunctionId(Context self);
 
