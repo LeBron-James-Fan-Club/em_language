@@ -1,7 +1,6 @@
 #include "sym.h"
 
 // TODO: cross-compatability for windows
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,10 +26,7 @@ static SymTableEntry SymTableEntryNew(char *name, enum ASTPRIM type,
                                       enum STRUCTTYPE stype,
                                       enum STORECLASS _class, int nElems,
                                       int posn) {
-    SymTableEntry e = calloc(1, sizeof(struct symTableEntry));
-    if (e == NULL) {
-        fatal("InternalError: Unable to allocate memory for SymTableEntry");
-    }
+    SymTableEntry e = new symTableEntry;
 
     debug("Adding symbol %s, nElems %d", name, nElems);
 
@@ -210,10 +206,7 @@ SymTableEntry SymTable_FindSymbol(SymTable self, Scanner s, Context c) {
 }
 
 SymTable SymTable_New(void) {
-    SymTable g = calloc(1, sizeof(struct symTable));
-    if (g == NULL) {
-        fatal("InternalError: Unable to allocate memory for SymTable");
-    }
+    SymTable g = new symTable;
     g->anon = 1;
 
     return g;

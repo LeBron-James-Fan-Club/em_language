@@ -2,10 +2,7 @@
 #include "misc.h"
 
 Compiler Compiler_New(char *outfile) {
-    Compiler c = calloc(1, sizeof(struct compiler));
-    if (c == NULL) {
-        fatal("InternalError: Unable to allocate memory for compiler");
-    }
+    Compiler c = new compiler;
 
     c->outfile = fopen(outfile, "w");
     if (c->outfile == NULL) {

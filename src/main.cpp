@@ -1,4 +1,3 @@
-#define _GNU_SOURCE
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -93,7 +92,7 @@ int main(int argc, char *argv[]) {
 
     Compiler c = Compiler_New(argv[i + 1]);
     SymTable st = SymTable_New();
-    Token tok = calloc(1, sizeof(struct token));
+    Token tok = new token;
     Context ctx = Context_New();
 
     MIPS_Pre(c);

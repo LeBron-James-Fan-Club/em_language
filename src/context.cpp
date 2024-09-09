@@ -3,7 +3,7 @@
 #include "sym.h"
 
 
-Context Context_New(void) { return calloc(1, sizeof(struct context)); }
+Context Context_New(void) { return new context; }
 
 void Context_Free(Context self) { free(self); }
 

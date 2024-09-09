@@ -35,7 +35,7 @@ static int keyword(char *s);
 static int chrpos(char *s, int c);
 
 Scanner Scanner_New(void) {
-    Scanner n = calloc(1, sizeof(struct scanner));
+    Scanner n = new scanner;
     n->line = 1;
     n->putback = '\n';
 

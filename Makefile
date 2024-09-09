@@ -1,5 +1,5 @@
 # Compiler and flags
-CC = clang
+CC = clang++
 INCDIR = ./bin/include
 CFLAGS = -MMD -MP -Wall -Wextra -g -fsanitize=address,undefined -DINCDIR=\"$(INCDIR)\"
 LDFLAGS = -fsanitize=address,undefined
@@ -10,9 +10,9 @@ OBJ_DIR = obj
 TARGET = bin/a
 
 # Source files
-SRC_FILES = $(wildcard $(SRC_DIR)/**/*.c $(SRC_DIR)/*.c)
+SRC_FILES = $(wildcard $(SRC_DIR)/**/*.cpp $(SRC_DIR)/*.cpp)
 # Corresponding object files
-OBJ_FILES = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC_FILES))
+OBJ_FILES = $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRC_FILES))
 
 # Default target
 all: $(TARGET)
@@ -22,7 +22,7 @@ $(TARGET): $(OBJ_FILES)
 	$(CC) $(LDFLAGS) $(OBJ_FILES) -o $@
 
 # Rule to compile each source file to an object file
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 

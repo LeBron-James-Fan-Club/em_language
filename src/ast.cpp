@@ -6,10 +6,7 @@
 ASTnode ASTnode_New(enum ASTOP op, enum ASTPRIM type, ASTnode left, ASTnode mid,
                     ASTnode right, SymTableEntry ctype, SymTableEntry sym,
                     int intvalue) {
-    ASTnode n = calloc(1, sizeof(struct astnode));
-    if (n == NULL) {
-        fatal("InternalError: Unable to allocate memory for ASTnode\n");
-    }
+    ASTnode n = new astnode;
 
     n->op = op;
     n->type = type;

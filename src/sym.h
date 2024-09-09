@@ -4,7 +4,6 @@
 
 #include <stdbool.h>
 
-#define _GNU_SOURCE
 #include <stdio.h>
 
 #include "defs.h"
