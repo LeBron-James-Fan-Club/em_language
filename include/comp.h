@@ -14,7 +14,7 @@
 
 #define FIRST_PARAM_REG 10
 
-#define FREE_REG 4
+#define TEMP_MAX_REG 10
 
 
 struct compiler {

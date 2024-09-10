@@ -10,6 +10,8 @@ static char *reglist[MAX_REG] = {"$t0", "$t1", "$t2", "$t3", "$t4",
 
 static void freeReg(Compiler this, int reg1);
 static void Compiler_FreeAllStyleReg(Compiler this);
+static void spillAllRegs(Compiler this);
+static void unspillAllRegs(Compiler this);
 
 int PrimSize(enum ASTPRIM type) {
     if (ptrtype(type)) {
@@ -1062,21 +1064,46 @@ void MIPS_Switch(Compiler this, int r, int caseCount, int topLabel,
 }
 
 int allocReg(Compiler this) {
-    for (int i = 0; i < MAX_REG; i++) {
+    for (int i = 0; i < TEMP_MAX_REG; i++) {
         if (!this->regUsed[i]) {
             this->styleRegUsed[i] = true;
             this->regUsed[i] = true;
             return i;
         }
     }
-    fatal("InternalError: Out of registers");
+    int reg = this->spillReg % TEMP_MAX_REG;
+    this->spillReg++;
+    MIPS_RegPush(this, reg);
+    fprintf(this->outfile, "\t# we spill the %s\n", reglist[reg]);
+    return reg;
 }
 
 static void freeReg(Compiler this, int reg1) {
     if (!this->regUsed[reg1]) {
         fatal("InternalError: Trying to free a free register");
     }
-    this->regUsed[reg1] = false;
+    if (this->spillReg > 0) {
+        this->spillReg--;
+        reg1 = this->spillReg % TEMP_MAX_REG;
+        fprintf(this->outfile, "\t# we unspill the %s\n", reglist[reg1]);
+        MIPS_RegPop(this, reg1);
+    } else {
+        this->regUsed[reg1] = false;
+    }
+}
+
+// might not use tbh
+// since we already cover the registers manually
+static void spillAllRegs(Compiler this) { 
+    for (int i = 0; i < TEMP_MAX_REG; i++) {
+        MIPS_RegPush(this, i);
+    }
+}
+
+static void unspillAllRegs(Compiler this) {
+    for (int i = TEMP_MAX_REG - 1; i >= 0; i--) {
+        MIPS_RegPop(this, i);
+    }
 }
 
 int Compiler_GenLabel(Compiler this) { return this->label++; }
