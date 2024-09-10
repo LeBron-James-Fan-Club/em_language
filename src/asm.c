@@ -1047,16 +1047,15 @@ void MIPS_Switch(Compiler this, int r, int caseCount, int topLabel,
     fprintf(this->outfile, "\t.word\tL%d\n", defaultLabel);
     MIPS_Label(this, topLabel);
 
-    // TODO: PUSH $a0, $a1 to stack if it is used
-    fprintf(this->outfile, "\tmove\t$a0, %s\n", reglist[r]);
-    fprintf(this->outfile, "\tla\t$a1, L%d\n", label);
-
     if (this->paramRegCount > 0) {
         MIPS_RegPush(this, FIRST_PARAM_REG);
     }
     if (this->paramRegCount > 1) {
         MIPS_RegPush(this, FIRST_PARAM_REG + 1);
     }
+
+    fprintf(this->outfile, "\tmove\t$a0, %s\n", reglist[r]);
+    fprintf(this->outfile, "\tla\t$a1, L%d\n", label);
 
     fputs("\tjal\tswitch\n", this->outfile);
 
