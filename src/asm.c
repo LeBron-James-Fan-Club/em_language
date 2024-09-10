@@ -611,8 +611,10 @@ int MIPS_Align(enum ASTPRIM type, int offset, int dir) {
         case P_INT:
             break;
         default:
-            debug("align error");
-            fatala("InternalError: Unknown type %d", type);
+            if (!ptrtype(type)) {
+                debug("align error");
+                fatala("InternalError: Unknown type %d", type);
+            }
     }
 
     align = 4;
@@ -703,7 +705,8 @@ void MIPS_InputString(Compiler this, char *name, int size) {
             "\tla\t$a0, %s\n"
             "\tli\t$a1, %d\n"
             "\tli\t$v0, 8\n"
-            "\tsyscall\n", name, size);
+            "\tsyscall\n",
+            name, size);
 }
 
 int MIPS_EqualSet(Compiler this, int r1, int r2) {
