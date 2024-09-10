@@ -23,7 +23,10 @@ struct compiler {
     bool styleRegUsed[MAX_REG];
     int styleSeek;
 
+    bool sawSwitch;
+
     int paramRegCount;
+    int spillReg;
 
     FILE *outfile;
     int label;

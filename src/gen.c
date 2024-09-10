@@ -48,6 +48,7 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
         case A_WHILE:
             return genWHILEAST(this, st, ctx, n);
         case A_SWITCH:
+            this->sawSwitch = true;
             return genSWITCHAST(this, st, ctx, n);
         case A_GLUE:
             genAST(this, st, ctx, n->left, ifLabel, loopTopLabel, loopEndLabel,

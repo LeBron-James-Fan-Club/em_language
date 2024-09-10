@@ -33,44 +33,37 @@ void MIPS_Pre(Compiler this) {
         "\n"
         "main:\n",
         this->outfile);*/
-
-    // switch shit
-    // TODO: only put this in if there is a switch
-    // TODO: (might be a tad bit weird tho ngl)
-
-    // accepts two parameters
-    // $a0 = register to compare
-    // $a1 = base address of jump table
-    fputs(
-        "\nswitch:\n"
-        "\tmove\t$t0, $a0\n"
-        // scan no of cases
-        "\tlw\t$t1, 0($a1)\n"
-        "\nnext:\n"
-        "\taddi\t$a1, $a1, 4\n"
-        "\tlw\t$t2, 0($a1)\n"
-        // load label
-        "\taddi\t$a1, $a1, 4\n"
-        "\tbne\t$t0, $t2, fail\n"
-        "\tlw\t$t3, 0($a1)\n"
-        "\tjr\t$t3\n"
-        "\nfail:\n"
-        "\taddi\t$t1, $t1, -1\n"
-        "\tbgtz\t$t1, next\n"
-        "\taddi\t$a1, $a1, 4\n"
-        // last is just label so scan that
-        // and go to default
-        "\tlw\t$t3, 0($a1)\n"
-        "\tjr\t$t3\n",
-        this->outfile);
 }
 
 void MIPS_Post(Compiler this) {
-    Compiler_FreeAllStyleReg(this);
-    /*fputs(
-        "\tli\t$v0, 10\n"
-        "\tsyscall\n",
-        this->outfile);*/
+    // switch shit
+    // accepts two parameters
+    // $a0 = register to compare
+    // $a1 = base address of jump table
+
+    if (this->sawSwitch)
+        fputs(
+            "\nswitch:\n"
+            "\tmove\t$t0, $a0\n"
+            // scan no of cases
+            "\tlw\t$t1, 0($a1)\n"
+            "\nnext:\n"
+            "\taddi\t$a1, $a1, 4\n"
+            "\tlw\t$t2, 0($a1)\n"
+            // load label
+            "\taddi\t$a1, $a1, 4\n"
+            "\tbne\t$t0, $t2, fail\n"
+            "\tlw\t$t3, 0($a1)\n"
+            "\tjr\t$t3\n"
+            "\nfail:\n"
+            "\taddi\t$t1, $t1, -1\n"
+            "\tbgtz\t$t1, next\n"
+            "\taddi\t$a1, $a1, 4\n"
+            // last is just label so scan that
+            // and go to default
+            "\tlw\t$t3, 0($a1)\n"
+            "\tjr\t$t3\n",
+            this->outfile);
 }
 
 /**
@@ -227,6 +220,7 @@ void MIPS_PostFunc(Compiler this, Context ctx) {
         "\tend\n"
         "\tjr\t$ra\n\n",
         this->outfile);
+    Compiler_FreeAllStyleReg(this);
 
     /*
     int toSeek = this->styleSeek;
