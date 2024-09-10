@@ -234,7 +234,7 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
             int reg;
             if (n->type == pointer_to(P_CHAR)) {
                 reg = NO_REG;
-                MIPS_InputString(this, n->sym->name, n->sym->size);
+                MIPS_InputString(this, n->sym->name, n->sym->nElems);
             } else if (n->type == P_CHAR) {
                 reg = MIPS_InputChar(this);
             } else {

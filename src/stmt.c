@@ -92,8 +92,12 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
             return print_statement(c, s, st, tok, ctx);
         case T_IDENT:
             if (SymTable_FindTypeDef(st, s) == NULL) {
-                stmt = ASTnode_Order(c, s, st, tok, ctx);
+                stmt = ASTnode_Order(c, s, st, tok, ctx, 0);
                 semi(s, tok);
+                debug("after %s", tok->tokstr);
+                if (tok->token == T_SEMI) {
+                    semi(s, tok);
+                }
                 return stmt;
             }
         case T_CHAR:
@@ -140,7 +144,7 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
             rbrace(s, tok);
             return stmt;
         default:
-            stmt = ASTnode_Order(c, s, st, tok, ctx);
+            stmt = ASTnode_Order(c, s, st, tok, ctx, 0);
             semi(s, tok);
             return stmt;
     }
@@ -151,9 +155,9 @@ static ASTnode poke_statement(Compiler c, Scanner s, SymTable st, Token tok,
     ASTnode param1, param2;
     match(s, tok, T_POKE, "poke");
     lparen(s, tok);
-    param1 = ASTnode_Order(c, s, st, tok, ctx);
+    param1 = ASTnode_Order(c, s, st, tok, ctx, 0);
     comma(s, tok);
-    param2 = ASTnode_Order(c, s, st, tok, ctx);
+    param2 = ASTnode_Order(c, s, st, tok, ctx ,0);
     rparen(s, tok);
     return ASTnode_New(A_POKE, P_NONE, param2, NULL, param1, NULL, NULL, 0);
 }
@@ -174,7 +178,7 @@ static ASTnode print_statement(Compiler c, Scanner s, SymTable st, Token tok,
         if (parent) {
             Scanner_Scan(s, tok);
         }
-        t = ASTnode_Order(c, s, st, tok, ctx);
+        t = ASTnode_Order(c, s, st, tok, ctx, 0);
 
         int rightType = t->type;
         t->rvalue = true;
@@ -212,7 +216,7 @@ static ASTnode input_statement(Scanner s, SymTable st, Token tok, Context ctx) {
     lparen(s, tok);
 
     ident(s, tok);
-    
+
     if ((var = SymTable_FindSymbol(st, s, ctx)) == NULL) {
         lfatala(s, "UndefinedError: Undefined variable %s", s->text);
     }
@@ -222,26 +226,29 @@ static ASTnode input_statement(Scanner s, SymTable st, Token tok, Context ctx) {
     ASTnode left;
     bool isStr = false;
 
+    // ! BUG HERE int and char input doesnt work
     switch (tok->token) {
         case T_CHAR:
             Scanner_Scan(s, tok);
             if (tok->token == T_STAR) {
                 debug("FOUND STRING");
-                Scanner_Scan(s, tok);
                 isStr = true;
                 left =
                     ASTnode_NewLeaf(A_INPUT, pointer_to(P_CHAR), NULL, var, 0);
             } else {
                 Scanner_RejectToken(s, tok);
+                debug("bussin with the char");
                 left = ASTnode_NewLeaf(A_INPUT, P_CHAR, NULL, NULL, 0);
             }
             break;
         case T_INT:
+            debug("we got the int bro");
             left = ASTnode_NewLeaf(A_INPUT, P_INT, NULL, NULL, 0);
             break;
         default:
             lfatal(s, "TypeError: Unknown type given for input");
     }
+    Scanner_Scan(s, tok);
 
     if (isStr) {
         rparen(s, tok);
@@ -249,7 +256,7 @@ static ASTnode input_statement(Scanner s, SymTable st, Token tok, Context ctx) {
         return left;
     }
 
-    ASTnode right =  ASTnode_NewLeaf(A_IDENT, var->type, var->ctype, var, 0);
+    ASTnode right = ASTnode_NewLeaf(A_IDENT, var->type, var->ctype, var, 0);
     right->rvalue = 0;  // We do not need to load the value of the variable
 
     ASTnode tree = modify_type(right, left->type, left->ctype, A_NONE);
@@ -269,7 +276,7 @@ static ASTnode if_statement(Compiler c, Scanner s, SymTable st, Token tok,
     match(s, tok, T_IF, "if");
     lparen(s, tok);
 
-    condAST = ASTnode_Order(c, s, st, tok, ctx);
+    condAST = ASTnode_Order(c, s, st, tok, ctx, 0);
 
     // Might remove this guard later
     if (condAST->op < A_EQ || condAST->op > A_GE) {
@@ -296,7 +303,7 @@ static ASTnode while_statement(Compiler c, Scanner s, SymTable st, Token tok,
     match(s, tok, T_WHILE, "while");
     lparen(s, tok);
 
-    condAST = ASTnode_Order(c, s, st, tok, ctx);
+    condAST = ASTnode_Order(c, s, st, tok, ctx, 0);
     if (condAST->op < A_EQ || condAST->op > A_GE) {
         fprintf(stderr, "Error: Bad comparison operator\n");
         exit(-1);
@@ -325,7 +332,7 @@ static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok,
 
     debug("WE ARE COND :L");
 
-    condAST = ASTnode_Order(c, s, st, tok, ctx);
+    condAST = ASTnode_Order(c, s, st, tok, ctx, 0);
     if (condAST->op < A_EQ || condAST->op > A_GE) {
         fprintf(stderr, "Error: Bad comparison operator\n");
         exit(-1);
@@ -391,7 +398,7 @@ static ASTnode return_statement(Compiler c, Scanner s, SymTable st, Token tok,
 
     match(s, tok, T_RETURN, "return");
 
-    t = ASTnode_Order(c, s, st, tok, ctx);
+    t = ASTnode_Order(c, s, st, tok, ctx, 0);
     t->rvalue = 1;
 
     debug("func type %d, t type %d", func->type, t->type);
@@ -432,7 +439,7 @@ static ASTnode switch_statement(Compiler c, Scanner s, SymTable st, Token tok,
     Scanner_Scan(s, tok);
 
     lparen(s, tok);
-    left = ASTnode_Order(c, s, st, tok, ctx);
+    left = ASTnode_Order(c, s, st, tok, ctx, 0);
     rparen(s, tok);
 
     lbrace(s, tok);
@@ -473,7 +480,7 @@ static ASTnode switch_statement(Compiler c, Scanner s, SymTable st, Token tok,
                     debug("A CASE");
                     op = A_CASE;
                     Scanner_Scan(s, tok);
-                    left = ASTnode_Order(c, s, st, tok, ctx);
+                    left = ASTnode_Order(c, s, st, tok, ctx, 0);
 
                     if (left->op != A_INTLIT) {
                         lfatal(

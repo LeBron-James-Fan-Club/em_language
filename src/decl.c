@@ -96,7 +96,7 @@ static SymTableEntry symbol_declare(Compiler c, Scanner s, SymTable st,
 
 static int parse_literal(Compiler c, Scanner s, SymTable st, Token tok,
                          Context ctx, enum ASTPRIM type) {
-    ASTnode tree = Optimise(ASTnode_Order(c, s, st, tok, ctx));
+    ASTnode tree = Optimise(ASTnode_Order(c, s, st, tok, ctx, 0));
 
     // if cast then mark it having the type from cast
     if (tree->op == A_CAST) {
@@ -172,7 +172,7 @@ static SymTableEntry scalar_declare(Compiler c, Scanner s, SymTable st,
         } else if (class == C_LOCAL) {
             varNode = ASTnode_NewLeaf(A_IDENT, sym->type, sym->ctype, sym, 0);
 
-            exprNode = ASTnode_Order(c, s, st, tok, ctx);
+            exprNode = ASTnode_Order(c, s, st, tok, ctx, 0);
             exprNode->rvalue = 1;
 
             exprNode =

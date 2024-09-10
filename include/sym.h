@@ -108,7 +108,7 @@ SymTableEntry SymTable_FindEnumType(SymTable st, Scanner s);
 SymTableEntry SymTable_FindEnumVal(SymTable st, Scanner s);
 SymTableEntry SymTable_FindTypeDef(SymTable this, Scanner s);
 
-void SymTable_SetText(SymTable this, Scanner s, SymTableEntry e);
+void SymTable_SetText(SymTable this, char *text, SymTableEntry e);
 void SymTable_FreeLocls(SymTable this);
 void SymTable_FreeParams(SymTable this);
 

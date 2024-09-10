@@ -8,13 +8,12 @@
 #include "types.h"
 
 static enum ASTOP arithOp(Scanner s, enum OPCODES tok);
-static int precedence(enum ASTOP op);
+static int precedence(enum OPCODES op);
+static bool rightAssoc(enum OPCODES op);
 static ASTnode primary(Compiler c, Scanner s, SymTable st, Token t,
                        Context ctx);
 static ASTnode paren_expression(Compiler c, Scanner s, SymTable st, Token t,
                                 Context ctx);
-static void orderOp(Compiler c, Scanner s, SymTable st, Token t, Context ctx,
-                    ASTnode *stack, enum ASTOP *opStack, int *top, int *opTop);
 
 static ASTnode ASTnode_FuncCall(Compiler c, Scanner s, SymTable st, Token tok,
                                 Context ctx);
@@ -40,7 +39,7 @@ static enum ASTOP arithOp(Scanner s, enum OPCODES tok) {
     lfatala(s, "SyntaxError: %d", tok);
 }
 
-static int precedence(enum ASTOP op) {
+static int precedence(enum OPCODES op) {
     switch (op) {
         case T_LT:
         case T_GT:
@@ -88,7 +87,7 @@ static int precedence(enum ASTOP op) {
     }
 }
 
-static bool rightAssoc(enum ASTOP op) {
+static bool rightAssoc(enum OPCODES op) {
     return op >= T_ASSIGN && op <= T_ASMOD;
 }
 
@@ -107,7 +106,31 @@ static ASTnode primary(Compiler c, Scanner s, SymTable st, Token t,
                 var = SymTable_AddGlob(st, name, pointer_to(P_CHAR), NULL,
                                        S_VAR, C_GLOBAL, 1, 0);
                 free(name);
-                SymTable_SetText(st, s, var);
+
+                char *text = s->text;
+                bool madeNew = false;
+
+                while (true) {
+                    Scanner_Scan(s, t);
+                    if (t->token != T_STRLIT) break;
+                    Scanner_RejectToken(s, t);
+
+                    char *otherText = s->text;
+                    char *new = malloc(strlen(text) + strlen(otherText) + 1);
+                    strcpy(new, text);
+                    strcat(new, otherText);
+
+                    free(text);
+                    free(otherText);
+
+                    text = new;
+                    madeNew = true;
+                    Scanner_Scan(s, t);
+                }
+                SymTable_SetText(st, text, var);
+                if (madeNew) free(text);
+                Scanner_RejectToken(s, t);
+                debug("finished making annoymous string");
                 n = ASTnode_NewLeaf(A_STRLIT, pointer_to(P_CHAR), NULL, var, 0);
             }
             break;
@@ -165,6 +188,8 @@ static ASTnode primary(Compiler c, Scanner s, SymTable st, Token t,
                     t->tokstr);
     }
 
+    Scanner_Scan(s, t);
+
     return n;
 }
 
@@ -179,7 +204,7 @@ static ASTnode paren_expression(Compiler c, Scanner s, SymTable st, Token t,
     switch (t->token) {
         case T_IDENT:
             if (SymTable_FindTypeDef(st, s) == NULL) {
-                n = ASTnode_Order(c, s, st, t, ctx);
+                n = ASTnode_Order(c, s, st, t, ctx, 0);
                 break;
             }
         case T_VOID:
@@ -196,7 +221,7 @@ static ASTnode paren_expression(Compiler c, Scanner s, SymTable st, Token t,
             // * Please work with the shunting algorithm
             // * I beg you
             debug("falling INTO THE FUCKING VOID");
-            n = ASTnode_Order(c, s, st, t, ctx);
+            n = ASTnode_Order(c, s, st, t, ctx, 0);
             debug("token now %s", t->tokstr);
     }
 
@@ -207,163 +232,92 @@ static ASTnode paren_expression(Compiler c, Scanner s, SymTable st, Token t,
         n = ASTnode_NewUnary(A_CAST, type, n, cType, NULL, 0);
     }
 
-    // If shit was scanned in before
-    Scanner_RejectToken(s, t);
-
     return n;
 }
 
-static void orderOp(Compiler c, Scanner s, SymTable st, Token t, Context ctx,
-                    ASTnode *stack, enum ASTOP *opStack, int *top, int *opTop) {
-    ASTnode ltemp, rtemp;
-    if (*opTop < 0) {
-        lfatal(s, "SyntaxError: (opTop < 0)");
-    }
+ASTnode ASTnode_Order(Compiler c, Scanner s, SymTable st, Token t, Context ctx,
+                      int prePreced) {
+    ASTnode left, right;
+    ASTnode lTemp, rTemp;
+    enum OPCODES tokenType;
+    enum ASTOP op;
 
-    enum ASTOP op = opStack[(*opTop)--];
-
-    if (*top < 1) {
-        lfatal(s, "SyntaxError: (top < 1)");
-    }
-
-    debug("%d top", *top);
-    ASTnode right = stack[(*top)--];
-    ASTnode left = stack[(*top)--];
-
-    // ! THIS MIGHT CAUSE BUG
-    if (op == A_TERNARY) {
-        debug("Ternary operator");
-        match(s, t, T_COLON, ":");
-        ltemp = ASTnode_Order(c, s, st, t, ctx);
-        stack[++(*top)] = ASTnode_New(A_TERNARY, right->type, left, right,
-                                      ltemp, right->ctype, NULL, 0);
-        return;
-
-    } else if (op == A_ASSIGN) {
-        right->rvalue = 1;
-        debug("The assign called it");
-        right = modify_type(right, left->type, left->ctype, A_NONE);
-        if (right == NULL) {
-            lfatal(s, "SyntaxError: incompatible types in assignment");
-        }
-        ltemp = left;
-        left = right;
-        right = ltemp;
-    } else {
-        debug("The assign did not call it");
-        debug("op %d", op);
-        right->rvalue = 1;
+    left = ASTnode_Prefix(c, s, st, t, ctx);
+    tokenType = t->token;
+    if (tokenType == T_SEMI || tokenType == T_RPAREN ||
+        tokenType == T_RBRACKET || tokenType == T_COMMA ||
+        tokenType == T_COLON || tokenType == T_RBRACE) {
         left->rvalue = 1;
-        ltemp = modify_type(left, right->type, right->ctype, op);
-        rtemp = modify_type(right, left->type, left->ctype, op);
-
-        if (ltemp == NULL && rtemp == NULL) {
-            lfatal(s, "SyntaxError: Incompatible types in expression");
-        }
-
-        if (ltemp != NULL) left = ltemp;
-        if (rtemp != NULL) right = rtemp;
+        return left;
     }
-    stack[++(*top)] =
-        ASTnode_New(op, left->type, left, NULL, right, left->ctype, NULL, 0);
-    debug("%d top", *top);
-}
 
-ASTnode ASTnode_Order(Compiler c, Scanner s, SymTable st, Token t,
-                      Context ctx) {
-    ASTnode *stack = calloc(MAX_STACK, sizeof(ASTnode));
-    enum ASTOP *opStack = calloc(MAX_STACK, sizeof(enum ASTOP));
-    enum ASTOP curOp;
-
-    bool expectPreOp = true;
-
-    int top = -1, opTop = -1;
-
-    debug("GET IN ORDER");
-
-    do {
-        debug("token %s", t->tokstr);
-
-        switch (t->token) {
-            case T_SEMI:
-            case T_EOF:
-            case T_COMMA:
-            case T_COLON:
-            case T_RPAREN:
-            case T_RBRACKET:
-            case T_RBRACE:
-                // Breaks out of loop if parenthesis are not balanced
-                debug("(breaking out) top %d token %s", top, t->tokstr);
-                debug("GTFO OUT OF ORDER NOW");
-                goto out;
-            case T_LPAREN:
-            case T_INTLIT:
-            case T_IDENT:
-            case T_STRLIT:
-            case T_PEEK:
-            case T_SIZEOF:
-                stack[++top] = primary(c, s, st, t, ctx);
-                expectPreOp = false;
-                break;
-            default:
-                if ((t->token == T_STAR || t->token == T_AMPER ||
-                     t->token == T_INC || t->token == T_DEC) &&
-                    expectPreOp) {
-                    // need to somehow add rvalue here
-                    stack[++top] = ASTnode_Prefix(c, s, st, t, ctx);
-                    break;
-                }
-
-                //! THE 1:1 THING HAPPENS HERE
-
-                // TODO: Handle the other assignment ops
-
-                // The last node added
-                // Should be a identifier
-                // If not, then it's a syntax error
-
-                curOp = arithOp(s, t->token);
-                debug("curOp %d %s", curOp, t->tokstr);
-                while (opTop != -1 &&
-                       (precedence(opStack[opTop]) >= precedence(curOp) ||
-                        (rightAssoc(opStack[opTop]) &&
-                         precedence(opStack[opTop]) == precedence(curOp)))) {
-                    orderOp(c, s, st, t, ctx, stack, opStack, &top, &opTop);
-                }
-                opStack[++opTop] = curOp;
-
-                expectPreOp = true;
-        }
-
+    while (precedence(tokenType) > prePreced ||
+           (rightAssoc(tokenType) && precedence(tokenType) == prePreced)) {
         Scanner_Scan(s, t);
-    } while (true);
-out:
 
-    debug("Top op: %d", stack[top]->op);
-    while (opTop != -1) {
-        orderOp(c, s, st, t, ctx, stack, opStack, &top, &opTop);
+        right = ASTnode_Order(c, s, st, t, ctx, precedence(tokenType));
+
+        op = arithOp(s, tokenType);
+
+        if (op == A_TERNARY) {
+            debug("Ternary operator");
+            match(s, t, T_COLON, ":");
+            lTemp = ASTnode_Order(c, s, st, t, ctx, 0);
+            return ASTnode_New(A_TERNARY, right->type, left, right, lTemp,
+                               right->ctype, NULL, 0);
+
+        } else if (op == A_ASSIGN) {
+            right->rvalue = 1;
+            debug("The assign called it");
+            right = modify_type(right, left->type, left->ctype, A_NONE);
+            if (right == NULL) {
+                lfatal(s, "SyntaxError: incompatible types in assignment");
+            }
+            lTemp = left;
+            left = right;
+            right = lTemp;
+        } else {
+            debug("The assign did not call it");
+            debug("op %d", op);
+            right->rvalue = 1;
+            left->rvalue = 1;
+            lTemp = modify_type(left, right->type, right->ctype, op);
+            rTemp = modify_type(right, left->type, left->ctype, op);
+
+            if (lTemp == NULL && rTemp == NULL) {
+                lfatal(s, "SyntaxError: Incompatible types in expression");
+            }
+
+            if (lTemp != NULL) left = lTemp;
+            if (rTemp != NULL) right = rTemp;
+        }
+
+        left = ASTnode_New(op, left->type, left, NULL, right, left->ctype, NULL,
+                           0);
+
+        switch (op) {
+            case A_LOGOR:
+            case A_LOGAND:
+            case A_EQ:
+            case A_NE:
+            case A_LT:
+            case A_GT:
+            case A_LE:
+            case A_GE:
+                left->type = P_INT;
+        }
+
+        tokenType = t->token;
+        if (tokenType == T_SEMI || tokenType == T_RPAREN ||
+            tokenType == T_RBRACKET || tokenType == T_COMMA ||
+            tokenType == T_COLON || tokenType == T_RBRACE) {
+            left->rvalue = 1;
+            return left;
+        }
     }
 
-    debug("Top op: %d", stack[top]->op);
-    if (stack[top]->left) {
-        debug("Left %d", stack[top]->left->op);
-    }
-    if (stack[top]->right) {
-        debug("Right %d", stack[top]->right->op);
-    }
-
-    if (top != 0) {
-        lfatal(s, "SyntaxError: Invalid expression");
-    }
-
-    ASTnode n = stack[top];
-
-    free(stack);
-    free(opStack);
-
-    // Might break it?
-    n->rvalue = 1;
-    return n;
+    left->rvalue = 1;
+    return left;
 }
 
 static ASTnode ASTnode_FuncCall(Compiler c, Scanner s, SymTable st, Token tok,
@@ -383,7 +337,6 @@ static ASTnode ASTnode_FuncCall(Compiler c, Scanner s, SymTable st, Token tok,
 
     rparen(s, tok);
 
-    Scanner_RejectToken(s, tok);
     return t;
 }
 
@@ -392,7 +345,7 @@ ASTnode expression_list(Compiler c, Scanner s, SymTable st, Token tok,
     ASTnode tree = NULL, child = NULL;
     int exprCount = 0;
     while (tok->token != endToken) {
-        child = ASTnode_Order(c, s, st, tok, ctx);
+        child = ASTnode_Order(c, s, st, tok, ctx, 0);
         exprCount++;
 
         debug("expression generation %d", exprCount);
@@ -411,7 +364,6 @@ ASTnode expression_list(Compiler c, Scanner s, SymTable st, Token tok,
 static ASTnode ASTnode_ArrayRef(Compiler c, Scanner s, SymTable st, Token tok,
                                 Context ctx, ASTnode left) {
     ASTnode right;
-    SymTableEntry var;
 
     if (!ptrtype(left->type)) {
         lfatala(s, "TypeError: Array index must be a pointer or array, %s",
@@ -421,7 +373,7 @@ static ASTnode ASTnode_ArrayRef(Compiler c, Scanner s, SymTable st, Token tok,
     // eat [
     Scanner_Scan(s, tok);
 
-    right = ASTnode_Order(c, s, st, tok, ctx);
+    right = ASTnode_Order(c, s, st, tok, ctx, 0);
 
     match(s, tok, T_RBRACKET, "]");
 
@@ -435,7 +387,6 @@ static ASTnode ASTnode_ArrayRef(Compiler c, Scanner s, SymTable st, Token tok,
 
     left =
         ASTnode_New(A_ADD, left->type, left, NULL, right, left->ctype, NULL, 0);
-    Scanner_RejectToken(s, tok);
 
     return ASTnode_NewUnary(A_DEREF, value_at(left->type), left, left->ctype,
                             NULL, 0);
@@ -468,7 +419,7 @@ static ASTnode ASTnode_Prefix(Compiler c, Scanner s, SymTable st, Token tok,
             break;
         case T_INC:
             Scanner_Scan(s, tok);
-            t = ASTnode_Postfix(c, s, st, tok, ctx);
+            t = ASTnode_Prefix(c, s, st, tok, ctx);
 
             // * temp check - cause inc also sets the rvalue
             if (t->op != A_IDENT) {
@@ -498,7 +449,7 @@ static ASTnode ASTnode_Prefix(Compiler c, Scanner s, SymTable st, Token tok,
             break;
         case T_DEC:
             Scanner_Scan(s, tok);
-            t = ASTnode_Postfix(c, s, st, tok, ctx);
+            t = ASTnode_Prefix(c, s, st, tok, ctx);
             if (t->op != A_IDENT) {
                 lfatal(s, "SyntaxError: -- must be followed by an identifier");
             }
@@ -512,8 +463,9 @@ static ASTnode ASTnode_Prefix(Compiler c, Scanner s, SymTable st, Token tok,
 
 static ASTnode ASTnode_Postfix(Compiler c, Scanner s, SymTable st, Token tok,
                                Context ctx) {
-
     ASTnode n = primary(c, s, st, tok, ctx);
+
+    debug("out of primary");
 
     // Converts enum to a specific int
 
@@ -602,11 +554,9 @@ static ASTnode ASTnode_MemberAccess(Scanner s, SymTable st, Token tok,
 
     right = ASTnode_NewLeaf(A_INTLIT, P_INT, NULL, NULL, m->posn);
 
-    left = ASTnode_New(A_ADD, pointer_to(m->type), left,  NULL, right,
-                       m->ctype,NULL, 0);
+    left = ASTnode_New(A_ADD, pointer_to(m->type), left, NULL, right, m->ctype,
+                       NULL, 0);
     left = ASTnode_NewUnary(A_DEREF, m->type, left, m->ctype, NULL, 0);
-
-    Scanner_RejectToken(s, tok);
 
     return left;
 }
@@ -616,10 +566,9 @@ static ASTnode peek_operator(Compiler c, Scanner s, SymTable st, Token tok,
     ASTnode n;
     match(s, tok, T_PEEK, "peek");
     lparen(s, tok);
-    n = ASTnode_Order(c, s, st, tok, ctx);
+    n = ASTnode_Order(c, s, st, tok, ctx, 0);
     n->rvalue = true;
     rparen(s, tok);
-    Scanner_RejectToken(s, tok);
     return ASTnode_NewUnary(A_PEEK, P_INT, n, NULL, NULL, 0);
 }
 
@@ -637,7 +586,6 @@ static ASTnode sizeof_operator(Compiler c, Scanner s, SymTable st, Token tok,
     debug("cType %p", cType);
     size = type_size(type, cType);
     rparen(s, tok);
-    Scanner_RejectToken(s, tok);
 
     return ASTnode_NewLeaf(A_INTLIT, P_INT, NULL, NULL, size);
 }

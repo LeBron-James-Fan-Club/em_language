@@ -25,6 +25,12 @@ ASTnode modify_type(ASTnode tree, enum ASTPRIM rtype, SymTableEntry rctype,
 
     ltype = tree->type;
 
+    if (op == A_LOGOR || op == A_LOGAND) {
+        if (!inttype(ltype) && !ptrtype(ltype)) return NULL;
+        if (!inttype(rtype) && !ptrtype(rtype)) return NULL;
+        return tree;
+    }
+
     if (ltype == P_STRUCT || ltype == P_UNION) {
         fatal("InternalError: Struct/Union type in modify_type");
     }
@@ -33,9 +39,7 @@ ASTnode modify_type(ASTnode tree, enum ASTPRIM rtype, SymTableEntry rctype,
     }
 
     // TODO: Change this and see if anything breaks
-    if ((inttype(ltype) && inttype(rtype)) ||
-        // For assignment operator
-        (ptrtype(ltype) && ptrtype(rtype))) {
+    if ((inttype(ltype) && inttype(rtype))) {
         if (ltype == rtype) return tree;
         // TODO: support structs later on
 
@@ -44,7 +48,7 @@ ASTnode modify_type(ASTnode tree, enum ASTPRIM rtype, SymTableEntry rctype,
         if (lsize > rsize) {
             return NULL;
         } else if (lsize < rsize) {
-            return ASTnode_NewUnary(A_WIDEN, ltype,  tree,NULL, NULL, 0);
+            return ASTnode_NewUnary(A_WIDEN, ltype, tree, NULL, NULL, 0);
         }
     }
 
@@ -71,7 +75,7 @@ ASTnode modify_type(ASTnode tree, enum ASTPRIM rtype, SymTableEntry rctype,
 
             rsize = PrimSize(value_at(rtype));
             if (rsize > 1) {
-                return ASTnode_NewUnary(A_SCALE, rtype,  tree,rctype, NULL,
+                return ASTnode_NewUnary(A_SCALE, rtype, tree, rctype, NULL,
                                         rsize);
             } else {
                 return tree;

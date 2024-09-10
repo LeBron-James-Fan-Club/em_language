@@ -265,13 +265,13 @@ void SymTable_FreeLocls(SymTable this) {
     this->paramHead = this->paramTail = NULL;
 }
 
-void SymTable_SetText(SymTable this, Scanner s, SymTableEntry e) {
+void SymTable_SetText(SymTable this, char *text, SymTableEntry e) {
     if (e->strValue) {
         free(e->strValue);
     }
-    e->size = strlen(s->text) + 1;
+    e->size = strlen(text) + 1;
     e->isStr = true;
-    e->strValue = strdup(s->text);
+    e->strValue = strdup(text);
 }
 
 static void dumpSym(SymTableEntry sym, int indent) {
