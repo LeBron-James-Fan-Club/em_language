@@ -54,14 +54,6 @@ ASTnode Compound_Statement(Compiler c, Scanner s, SymTable st, Token tok,
         if (tree != NULL) {
             debug("op %d", tree->op);
         }
-        if (tree != NULL &&
-            (/*(tree->op >= A_ASSIGN && tree->op <= A_IDENT) ||*/
-             tree->op == A_RETURN || tree->op == A_FUNCCALL ||
-             tree->op == A_LABEL || tree->op == A_GOTO || tree->op == A_POKE ||
-             tree->op == A_BREAK || tree->op == A_CONTINUE)) {
-            debug("consume semi");
-            semi(s, tok);
-        }
 
         if (tree) {
             left = (left == NULL) ? tree
@@ -157,8 +149,9 @@ static ASTnode poke_statement(Compiler c, Scanner s, SymTable st, Token tok,
     lparen(s, tok);
     param1 = ASTnode_Order(c, s, st, tok, ctx, 0);
     comma(s, tok);
-    param2 = ASTnode_Order(c, s, st, tok, ctx ,0);
+    param2 = ASTnode_Order(c, s, st, tok, ctx, 0);
     rparen(s, tok);
+    semi(s, tok);
     return ASTnode_New(A_POKE, P_NONE, param2, NULL, param1, NULL, NULL, 0);
 }
 
@@ -362,6 +355,7 @@ static ASTnode label_statement(Scanner s, SymTable st, Token tok) {
                                          C_GLOBAL, 0, false);
 
     ASTnode t = ASTnode_NewLeaf(A_LABEL, P_NONE, NULL, var, 0);
+    semi(s, tok);
 
     return t;
 }
@@ -377,37 +371,38 @@ static ASTnode goto_statement(Scanner s, SymTable st, Token tok) {
     }
 
     ASTnode t = ASTnode_NewLeaf(A_GOTO, P_NONE, NULL, var, 0);
+    semi(s, tok);
 
     return t;
 }
 
 static ASTnode return_statement(Compiler c, Scanner s, SymTable st, Token tok,
                                 Context ctx) {
-    ASTnode t;
-    SymTableEntry func = Context_GetFunctionId(ctx);
-    if (func == NULL || func->name == NULL) {
-        fprintf(stderr, "Error: Return outside of function on line %d\n",
-                s->line);
-        exit(-1);
-    }
-
-    if (func->type == P_VOID) {
-        fprintf(stderr, "Error: Return in void function on line %d\n", s->line);
-        exit(-1);
-    }
+    ASTnode t = NULL;
+    // no need to read as compound statements are only called inside functions
+    // :)
 
     match(s, tok, T_RETURN, "return");
 
-    t = ASTnode_Order(c, s, st, tok, ctx, 0);
-    t->rvalue = 1;
+    if (tok->token != T_SEMI) {
+        t = ASTnode_Order(c, s, st, tok, ctx, 0);
+        t->rvalue = 1;
 
-    debug("func type %d, t type %d", func->type, t->type);
-
-    t = modify_type(t, func->type, func->ctype, A_NONE);
-    if (t == NULL) {
-        fprintf(stderr, "Error: Type mismatch in return on line %d\n", s->line);
-        exit(-1);
+        t = modify_type(t, ctx->functionId->type, ctx->functionId->ctype,
+                        A_NONE);
+        if (t == NULL) {
+            lfatal(s, "TypeError: Type mismatch in return");
+        }
+    } else {
+        if (ctx->functionId->type != P_VOID) {
+            lfatal(
+                s,
+                "TypeError: Value must be returned from a non-void function");
+        }
     }
+
+    semi(s, tok);
+
     return ASTnode_NewUnary(A_RETURN, P_NONE, t, NULL, NULL, 0);
 }
 
@@ -416,6 +411,7 @@ static ASTnode break_statement(Scanner s, Token tok, Context ctx) {
         lfatal(s, "SyntaxError: break outside of loop");
     }
     Scanner_Scan(s, tok);
+    semi(s, tok);
     return ASTnode_NewLeaf(A_BREAK, P_NONE, NULL, NULL, 0);
 }
 
@@ -424,6 +420,7 @@ static ASTnode continue_statement(Scanner s, Token tok, Context ctx) {
         lfatal(s, "SyntaxError: continue outside of loop");
     }
     Scanner_Scan(s, tok);
+    semi(s, tok);
     return ASTnode_NewLeaf(A_CONTINUE, P_NONE, NULL, NULL, 0);
 }
 

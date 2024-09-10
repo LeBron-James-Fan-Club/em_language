@@ -764,7 +764,6 @@ static enum ASTPRIM typedef_type(Scanner s, SymTable st, Token tok,
     SymTableEntry type;
 
     type = SymTable_FindTypeDef(st, s);
-    debug("typedef is %d :)", type->type);
     if (type == NULL) {
         lfatala(s, "UndefinedError: typedef %s is not defined", s->text);
     }
