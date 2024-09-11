@@ -21,6 +21,7 @@ static int genWHILEAST(Compiler this, SymTable st, Context ctx, ASTnode n);
 static int genSWITCHAST(Compiler this, SymTable st, Context ctx, ASTnode n);
 static int genFUNCCALLAST(Compiler this, SymTable st, Context ctx, ASTnode n);
 static int genTERNARYAST(Compiler this, SymTable st, Context ctx, ASTnode n);
+static int genLOGANDORAST(Compiler this, SymTable st, Context ctx, ASTnode n);
 
 int Compiler_Gen(Compiler this, SymTable st, Context ctx, ASTnode n) {
     int reg;
@@ -69,6 +70,10 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
             return genFUNCCALLAST(this, st, ctx, n);
         case A_TERNARY:
             return genTERNARYAST(this, st, ctx, n);
+        case A_LOGAND:
+            return genLOGANDORAST(this, st, ctx, n);
+        case A_LOGOR:
+            return genLOGANDORAST(this, st, ctx, n);
         default:
             // stfu compiler
             break;
@@ -130,10 +135,6 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
                 return MIPS_LessThanEqualJump(this, leftReg, rightReg, ifLabel);
             else
                 return MIPS_GreaterThanEqualSet(this, leftReg, rightReg);
-        case A_LOGAND:
-            return MIPS_LogAnd(this, leftReg, rightReg);
-        case A_LOGOR:
-            return MIPS_LogOr(this, leftReg, rightReg);
         case A_INTLIT:
             return MIPS_Load(this, n->intvalue);
         case A_IDENT:
@@ -445,6 +446,8 @@ static int genFUNCCALLAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
     ASTnode tree = n->left;
     int reg, numArgs = 0;
 
+    Compiler_SpillAllRegs(this);
+
     while (tree) {
         reg = genAST(this, st, ctx, tree->right, NO_LABEL, NO_LABEL, NO_LABEL,
                      n->op);
@@ -484,6 +487,34 @@ static int genTERNARYAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
         genAST(this, st, ctx, n->right, NO_LABEL, NO_LABEL, NO_LABEL, n->op);
     MIPS_Move(this, expReg, reg);
     Compiler_FreeAllReg(this, reg);
+    MIPS_Label(this, Lend);
+    return reg;
+}
+
+static int genLOGANDORAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
+    int Lfalse = Compiler_GenLabel(this);
+    int Lend = Compiler_GenLabel(this);
+    int reg;
+
+    reg = genAST(this, st, ctx, n->left, NO_LABEL, NO_LABEL, NO_LABEL, 0);
+    MIPS_Boolean(this, reg, n->op, Lfalse);
+    Compiler_FreeAllReg(this, NO_REG);
+
+    reg = genAST(this, st, ctx, n->right, NO_LABEL, NO_LABEL, NO_LABEL, 0);
+    MIPS_Boolean(this, reg, n->op, Lfalse);
+    Compiler_FreeAllReg(this, reg);
+
+    if (n->op == A_LOGAND) {
+        MIPS_LoadBoolean(this, reg, 1);
+        MIPS_Jump(this, Lend);
+        MIPS_Label(this, Lfalse);
+        MIPS_LoadBoolean(this, reg, 0);
+    } else {
+        MIPS_LoadBoolean(this, reg, 0);
+        MIPS_Jump(this, Lend);
+        MIPS_Label(this, Lfalse);
+        MIPS_LoadBoolean(this, reg, 1);
+    }
     MIPS_Label(this, Lend);
     return reg;
 }

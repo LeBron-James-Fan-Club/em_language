@@ -10,7 +10,6 @@ static char *reglist[MAX_REG] = {"$t0", "$t1", "$t2", "$t3", "$t4",
 
 static void freeReg(Compiler this, int reg1);
 static void Compiler_FreeAllStyleReg(Compiler this);
-static void spillAllRegs(Compiler this);
 static void unspillAllRegs(Compiler this);
 
 int PrimSize(enum ASTPRIM type) {
@@ -835,8 +834,11 @@ int MIPS_Call(Compiler this, SymTableEntry sym) {
     for (SymTableEntry curr = sym->member; curr != NULL; curr = curr->next) {
         offset += PrimSize(curr->type);
     }
+
     if (offset > 16)
         fprintf(this->outfile, "\taddiu\t$sp, $sp, %d\n", offset - 16);
+
+    unspillAllRegs(this);
 
     for (int i = 0; i < this->paramRegCount; i++) {
         fprintf(this->outfile, "\tpop\t%s\n", reglist[FIRST_PARAM_REG + i]);
@@ -1016,6 +1018,26 @@ int MIPS_LogAnd(Compiler this, int r1, int r2) {
     return r1;
 }
 
+int MIPS_Boolean(Compiler this, int r, enum ASTOP op, int label) {
+    switch (op) {
+        case A_IF:
+        case A_WHILE:
+        case A_LOGAND:
+            fprintf(this->outfile, "\tbeqz\tL%d\n", label);
+            break;
+        case A_LOGOR:
+            fprintf(this->outfile, "\tbnez\tL%d\n", label);
+            break;
+        default:
+            fprintf(this->outfile, "\tsne\t%s, %s, $zero\n", reglist[r]);
+    }
+    return r;
+}
+
+void MIPS_LoadBoolean(Compiler this, int r, int val) {
+    fprintf(this->outfile, "\tli\t%s, %d\n", reglist[r], val);
+}
+
 void MIPS_Poke(Compiler this, int r1, int r2) {
     fprintf(this->outfile, "\tsw\t%s, 0(%s)\n", reglist[r1], reglist[r2]);
 }
@@ -1092,9 +1114,7 @@ static void freeReg(Compiler this, int reg1) {
     }
 }
 
-// might not use tbh
-// since we already cover the registers manually
-static void spillAllRegs(Compiler this) { 
+void Compiler_SpillAllRegs(Compiler this) {
     for (int i = 0; i < TEMP_MAX_REG; i++) {
         MIPS_RegPush(this, i);
     }

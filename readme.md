@@ -38,6 +38,8 @@
  - Ternary operator
  - || and && operators
  - Function headings (WIP)
+ - Register spilling  (broken at the moment)
+ - Lazy Evaluation
 
 ## What will be added soon (Hopefully)
  - Local arrays
@@ -46,8 +48,8 @@
     - Including the ability to manually name any label
  - Namespace
  - Inline assembly and registers
- - Scopes
- - scope creation
+ - Scopes (probs wont be done)
+ - scope creation (probs wont be done)
 
 ## Low chance of being added but I might try
  - Heap support

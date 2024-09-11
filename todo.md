@@ -45,6 +45,8 @@
 - add static for local variables
 
 # BUGS:
+- implement the register keyword
+
 - make it so that multiple files are included
     - if in include directory, automatically include the file
     - (crappy solution) append each file to each other and hope to god that

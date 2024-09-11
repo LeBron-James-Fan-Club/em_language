@@ -99,8 +99,13 @@ int MIPS_BitOR(Compiler, int r1, int r2);
 int MIPS_BitXOR(Compiler, int r1, int r2);
 
 int MIPS_ToBool(Compiler this, enum ASTOP parentOp, int r, int label);
+
+// Old
 int MIPS_LogOr(Compiler this, int r1, int r2);
 int MIPS_LogAnd(Compiler this, int r1, int r2);
+
+int MIPS_Boolean(Compiler this, int r, enum ASTOP op, int label);
+void MIPS_LoadBoolean(Compiler this, int r, int val);
 
 void MIPS_Poke(Compiler this, int r1, int r2);
 int MIPS_Peek(Compiler this, int r1, int r2);
@@ -112,6 +117,8 @@ int Compiler_GenLabel(Compiler this);
 void Compiler_FreeAllReg(Compiler, int keepReg);
 void Compiler_GenData(Compiler, SymTable st);
 int allocReg(Compiler this);
+
+void Compiler_SpillAllRegs(Compiler this);
 
 int PrimSize(enum ASTPRIM type);
 
