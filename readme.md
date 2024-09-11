@@ -52,6 +52,8 @@
 - Inline assembly and registers
 - Scopes (probs wont be done)
 - scope creation (probs wont be done)
+- statement commenting
+    - prints the original statement in assembly file next to instruction as comment
 
 ## Low chance of being added but I might try
 
