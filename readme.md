@@ -52,6 +52,7 @@
 - Inline assembly and registers
 - Scopes (probs wont be done)
 - scope creation (probs wont be done)
+- header comments
 - statement commenting
     - prints the original statement in assembly file next to instruction as comment
 
@@ -700,4 +701,54 @@ Also its currently not working as intended.
     print(sizeof(i8), 10);
     print(sizeof(i32*), 10);
     print(sizeof(i8*), 10);
+```
+
+## Compiler directives
+
+#### Custom Label Names
+```
+    // Strings
+    print("Hello" [hello_string], 10);
+    // if statements
+    if [if_statement] (a == 2) {
+        print("a is 2", 10);
+    } else {
+        print("a is not 2", 10);
+    }
+    // while loops
+    while [while_loop] (a < 10) {
+        print(a, 10);
+        a = a + 1;
+    }
+    // for loops
+    for [for_loop] (a = 0; a < 10; a++) {
+        print(a, 10);
+    }
+    // switch
+    switch [switch_statement] (a) {
+        case [case_1] 1:
+            print("a is 1", 10);
+            break;
+        case [case_2] 2:
+            print("a is 2", 10);
+            break;
+        default [default_case]:
+            print("a is not 1 or 2", 10);
+            break;
+    }
+    
+```
+
+## Exit Function
+
+#### BNF for exit function:
+
+```
+    <exit> ::= "exit" "(" <expr> ")"
+```
+
+#### Example:
+
+```
+    exit(0);
 ```

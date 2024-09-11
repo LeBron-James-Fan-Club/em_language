@@ -51,6 +51,8 @@
     - if in include directory, automatically include the file
     - (crappy solution) append each file to each other and hope to god that
     - the preprocessor solves it somehow
+    - (better solution) read each file individually then add to assembly file
+        - should handle itself because of the way it works
 
 - recursive typedef not supported
 
@@ -70,7 +72,7 @@
 - need somewhere to store the register $a0 before its used for a syscall
     - will need to push then pop - fixed
 
-- unncessary space created when creating union
+- unncessary space created when creating union - fixed
 
 - (BUG) - caused by non initialised variables - fixed
 - annyomous strings need to declared first (probs iterate the whole global first for annoymous) - fixed
