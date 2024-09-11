@@ -6,7 +6,7 @@
 
 ## Features
 
-- If statements
+- If statementsz
 - While/For loops
 - Gotos/Labels
 - Hexadecimal support
