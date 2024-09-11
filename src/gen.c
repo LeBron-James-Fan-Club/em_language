@@ -1,22 +1,24 @@
+#define _GNU_SOURCE
+
 #include "gen.h"
 
 #include <stdbool.h>
+
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "ast.h"
 #include "misc.h"
 #include "scan.h"
 #include "sym.h"
 
-#define NO_LABEL -1
-
 // TODO: change labels to strings
 // TODO: as im going to implement compiler directives that names the labels
 
-static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n, int label,
-                  int loopTopLabel, int loopEndLabel, int parentASTop);
+static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n, char *ifLabel,
+                  char *loopTopLabel, char *loopEndLabel, enum ASTOP parentASTop);
 static int genIFAST(Compiler this, SymTable st, Context ctx, ASTnode n,
-                    int loopTopLabel, int loopEndLabel);
+                    char *loopTopLabel, char *loopEndLabel);
 static int genWHILEAST(Compiler this, SymTable st, Context ctx, ASTnode n);
 static int genSWITCHAST(Compiler this, SymTable st, Context ctx, ASTnode n);
 static int genFUNCCALLAST(Compiler this, SymTable st, Context ctx, ASTnode n);
@@ -30,8 +32,8 @@ int Compiler_Gen(Compiler this, SymTable st, Context ctx, ASTnode n) {
 }
 
 static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
-                  int ifLabel, int loopTopLabel, int loopEndLabel,
-                  int parentASTop) {
+                  char *ifLabel, char *loopTopLabel, char *loopEndLabel,
+                  enum ASTOP parentASTop) {
     int leftReg, rightReg;
 
     // May use stack system to prevent stack overflow
@@ -347,11 +349,22 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
 }
 
 static int genIFAST(Compiler this, SymTable st, Context ctx, ASTnode n,
-                    int loopTopLabel, int loopEndLabel) {
-    int Lfalse, Lend;
+                    char *loopTopLabel, char *loopEndLabel) {
+    char *Lfalse, *Lend;
 
-    Lfalse = Compiler_GenLabel(this);
-    if (n->right) Lend = Compiler_GenLabel(this);
+    if (n->label.hasCustomLabel) {
+        asprintf(&Lfalse, "%s_is_false", n->label.customLabel);
+    } else {
+        asprintf(&Lfalse, "L%d", Compiler_GenLabel(this));
+    }
+
+    if (n->right) {
+        if (n->label.hasCustomLabel) {
+            asprintf(&Lend, "%s_end", n->label.customLabel);
+        } else {
+            asprintf(&Lend, "L%d", Compiler_GenLabel(this));
+        }
+    }
 
     // reg acts as parameter for label
     genAST(this, st, ctx, n->left, Lfalse, NO_LABEL, NO_LABEL, n->op);
@@ -369,14 +382,22 @@ static int genIFAST(Compiler this, SymTable st, Context ctx, ASTnode n,
         MIPS_Label(this, Lend);
     }
 
+    free(Lfalse);
+    if (n->right) free(Lend);
+
     return NO_REG;
 }
 
 static int genWHILEAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
-    int Lstart, Lend;
+    char *Lstart, *Lend;
 
-    Lstart = Compiler_GenLabel(this);
-    Lend = Compiler_GenLabel(this);
+    if (n->label.hasCustomLabel) {
+        asprintf(&Lstart, "%s_start", n->label.customLabel);
+        asprintf(&Lend, "%s_end", n->label.customLabel);
+    } else {
+        asprintf(&Lstart, "L%d", Compiler_GenLabel(this));
+        asprintf(&Lend, "L%d", Compiler_GenLabel(this));
+    }
 
     MIPS_Label(this, Lstart);
 
@@ -389,20 +410,28 @@ static int genWHILEAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
     MIPS_Jump(this, Lstart);
     MIPS_Label(this, Lend);
 
+    free(Lstart);
+    free(Lend);
+
     return NO_REG;
 }
 
 static int genSWITCHAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
-    int *caseVal, *caseLabel;
-    int LjumpTop, Lend;
-    int reg, defaultLabel = 0, caseCount = 0;
+    char **caseLabel, *defaultLabel;
+    char *LjumpTop, *Lend;
+    int *caseVal, reg, caseCount = 0;
     ASTnode ca;
 
-    caseVal = calloc(n->intvalue + 1, sizeof(int));
-    caseLabel = calloc(n->intvalue + 1, sizeof(int));
+    if (n->label.hasCustomLabel) {
+        asprintf(&LjumpTop, "%s_switch", n->label.customLabel);
+        asprintf(&Lend, "%s_end", n->label.customLabel);
+    } else {
+        asprintf(&LjumpTop, "L%d", Compiler_GenLabel(this));
+        asprintf(&Lend, "L%d", Compiler_GenLabel(this));
+    }
 
-    LjumpTop = Compiler_GenLabel(this);
-    Lend = Compiler_GenLabel(this);
+    caseVal = calloc(n->intvalue + 1, sizeof(int));
+    caseLabel = calloc(n->intvalue + 1, sizeof(char *));
 
     defaultLabel = Lend;
 
@@ -413,13 +442,14 @@ static int genSWITCHAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
 
     ca = n->right;
     for (int i = 0; ca != NULL; i++, ca = ca->right) {
-        caseLabel[i] = Compiler_GenLabel(this);
+        if (ca->label.hasCustomLabel) {
+            asprintf(&caseLabel[i], "case_%s", ca->label.customLabel);
+        } else {
+            asprintf(&caseLabel[i], "L%d", Compiler_GenLabel(this));
+        }
         caseVal[i] = ca->intvalue;
-        debug("case value: %d", ca->intvalue);
-        debug("caseVal[%d] = %d", i, caseVal[i]);
         MIPS_Label(this, caseLabel[i]);
         if (ca->op == A_DEFAULT) {
-            debug("hit default");
             defaultLabel = caseLabel[i];
         } else {
             debug("op (SWITCH) %d", ca->op);
@@ -433,11 +463,18 @@ static int genSWITCHAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
     MIPS_Jump(this, Lend);
 
     MIPS_Switch(this, reg, caseCount, LjumpTop, caseLabel, caseVal,
-                defaultLabel);
+                defaultLabel, n->label);
     MIPS_Label(this, Lend);
 
     free(caseVal);
+
+    for (int i = 0; i < n->intvalue + 1; i++) {
+        free(caseLabel[i]);
+    }
     free(caseLabel);
+    
+    free(LjumpTop);
+    free(Lend);
 
     return NO_REG;
 }
@@ -465,11 +502,16 @@ static int genFUNCCALLAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
 }
 
 static int genTERNARYAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
-    int Lfalse, Lend;
+    char *Lfalse, *Lend;
     int reg, expReg;
 
-    Lfalse = Compiler_GenLabel(this);
-    Lend = Compiler_GenLabel(this);
+    if (n->label.hasCustomLabel) {
+        asprintf(&Lfalse, "%s_false", n->label.customLabel);
+        asprintf(&Lend, "%s_end", n->label.customLabel);
+    } else {
+        asprintf(&Lfalse, "L%d", Compiler_GenLabel(this));
+        asprintf(&Lend, "L%d", Compiler_GenLabel(this));
+    }
 
     genAST(this, st, ctx, n->left, Lfalse, NO_LABEL, NO_LABEL, n->op);
     Compiler_FreeAllReg(this, NO_REG);
@@ -488,12 +530,25 @@ static int genTERNARYAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
     MIPS_Move(this, expReg, reg);
     Compiler_FreeAllReg(this, reg);
     MIPS_Label(this, Lend);
+
+    free(Lfalse);
+    free(Lend);
+
     return reg;
 }
 
+// TODO: Implement custom labels for && and ||
 static int genLOGANDORAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
-    int Lfalse = Compiler_GenLabel(this);
-    int Lend = Compiler_GenLabel(this);
+    char *Lfalse, *Lend;
+
+    if (n->label.hasCustomLabel) {
+        asprintf(&Lfalse, "%s_false", n->label.customLabel);
+        asprintf(&Lend, "%s_end", n->label.customLabel);
+    } else {
+        asprintf(&Lfalse, "L%d", Compiler_GenLabel(this));
+        asprintf(&Lend, "L%d", Compiler_GenLabel(this));
+    }
+
     int reg;
 
     reg = genAST(this, st, ctx, n->left, NO_LABEL, NO_LABEL, NO_LABEL, 0);
@@ -516,5 +571,9 @@ static int genLOGANDORAST(Compiler this, SymTable st, Context ctx, ASTnode n) {
         MIPS_LoadBoolean(this, reg, 1);
     }
     MIPS_Label(this, Lend);
+    
+    free(Lfalse);
+    free(Lend);
+
     return reg;
 }

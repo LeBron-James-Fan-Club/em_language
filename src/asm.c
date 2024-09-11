@@ -1,6 +1,9 @@
+#define _GNU_SOURCE
+
 #include "asm.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "misc.h"
 
@@ -714,8 +717,8 @@ int MIPS_EqualSet(Compiler this, int r1, int r2) {
 
 // ALl the jumps are reversed -> eq -> neq
 
-int MIPS_EqualJump(Compiler this, int r1, int r2, int l) {
-    fprintf(this->outfile, "\tbne\t%s, %s, L%d\n", reglist[r1], reglist[r2], l);
+int MIPS_EqualJump(Compiler this, int r1, int r2, char *l) {
+    fprintf(this->outfile, "\tbne\t%s, %s, %s\n", reglist[r1], reglist[r2], l);
     Compiler_FreeAllReg(this, NO_REG);
     return NO_REG;
 }
@@ -727,8 +730,8 @@ int MIPS_NotEqualSet(Compiler this, int r1, int r2) {
     return r2;
 }
 
-int MIPS_NotEqualJump(Compiler this, int r1, int r2, int l) {
-    fprintf(this->outfile, "\tbeq\t%s, %s, L%d\n", reglist[r1], reglist[r2], l);
+int MIPS_NotEqualJump(Compiler this, int r1, int r2, char *l) {
+    fprintf(this->outfile, "\tbeq\t%s, %s, %s\n", reglist[r1], reglist[r2], l);
     Compiler_FreeAllReg(this, NO_REG);
     return NO_REG;
 }
@@ -740,8 +743,8 @@ int MIPS_LessThanSet(Compiler this, int r1, int r2) {
     return r2;
 }
 
-int MIPS_LessThanJump(Compiler this, int r1, int r2, int l) {
-    fprintf(this->outfile, "\tbge\t%s, %s, L%d\n", reglist[r1], reglist[r2], l);
+int MIPS_LessThanJump(Compiler this, int r1, int r2, char *l) {
+    fprintf(this->outfile, "\tbge\t%s, %s, %s\n", reglist[r1], reglist[r2], l);
     Compiler_FreeAllReg(this, NO_REG);
     return NO_REG;
 }
@@ -753,8 +756,8 @@ int MIPS_GreaterThanSet(Compiler this, int r1, int r2) {
     return r2;
 }
 
-int MIPS_GreaterThanJump(Compiler this, int r1, int r2, int l) {
-    fprintf(this->outfile, "\tble\t%s, %s, L%d\n", reglist[r1], reglist[r2], l);
+int MIPS_GreaterThanJump(Compiler this, int r1, int r2, char *l) {
+    fprintf(this->outfile, "\tble\t%s, %s, %s\n", reglist[r1], reglist[r2], l);
     Compiler_FreeAllReg(this, NO_REG);
     return NO_REG;
 }
@@ -766,8 +769,8 @@ int MIPS_LessThanEqualSet(Compiler this, int r1, int r2) {
     return r2;
 }
 
-int MIPS_LessThanEqualJump(Compiler this, int r1, int r2, int l) {
-    fprintf(this->outfile, "\tbgt\t%s, %s, L%d\n", reglist[r1], reglist[r2], l);
+int MIPS_LessThanEqualJump(Compiler this, int r1, int r2, char *l) {
+    fprintf(this->outfile, "\tbgt\t%s, %s, %s\n", reglist[r1], reglist[r2], l);
     Compiler_FreeAllReg(this, NO_REG);
     return NO_REG;
 }
@@ -779,16 +782,16 @@ int MIPS_GreaterThanEqualSet(Compiler this, int r1, int r2) {
     return r2;
 }
 
-int MIPS_GreaterThanEqualJump(Compiler this, int r1, int r2, int l) {
-    fprintf(this->outfile, "\tblt\t%s, %s, L%d\n", reglist[r1], reglist[r2], l);
+int MIPS_GreaterThanEqualJump(Compiler this, int r1, int r2, char *l) {
+    fprintf(this->outfile, "\tblt\t%s, %s, %s\n", reglist[r1], reglist[r2], l);
     Compiler_FreeAllReg(this, NO_REG);
     return NO_REG;
 }
 
-void MIPS_Label(Compiler this, int l) { fprintf(this->outfile, "L%d:\n", l); }
+void MIPS_Label(Compiler this, char *l) { fprintf(this->outfile, "%s:\n", l); }
 
-void MIPS_Jump(Compiler this, int l) {
-    fprintf(this->outfile, "\tb\tL%d\n", l);
+void MIPS_Jump(Compiler this, char *l) {
+    fprintf(this->outfile, "\tb\t%s\n", l);
 }
 
 void MIPS_GotoLabel(Compiler this, SymTableEntry sym) {
@@ -971,11 +974,11 @@ int MIPS_BitXOR(Compiler this, int r1, int r2) {
     return r2;
 }
 
-int MIPS_ToBool(Compiler this, enum ASTOP parentOp, int r, int label) {
+int MIPS_ToBool(Compiler this, enum ASTOP parentOp, int r, char *label) {
     if (parentOp == A_WHILE || parentOp == A_IF) {
         // fake instruction
         // used to be bltu - but for some reason it never works
-        fprintf(this->outfile, "\tbeq\t%s, $zero, L%d\n", reglist[r], label);
+        fprintf(this->outfile, "\tbeq\t%s, $zero, %s\n", reglist[r], label);
         return r;
     } else {
         fprintf(this->outfile, "\tseq\t%s, %s, $zero\n", reglist[r],
@@ -984,53 +987,19 @@ int MIPS_ToBool(Compiler this, enum ASTOP parentOp, int r, int label) {
     return r;
 }
 
-int MIPS_LogOr(Compiler this, int r1, int r2) {
-    int Ltrue = Compiler_GenLabel(this);
-    int Lend = Compiler_GenLabel(this);
-
-    fprintf(this->outfile, "\tbnez\t%s, L%d\n", reglist[r1], Ltrue);
-    fprintf(this->outfile, "\tbnez\t%s, L%d\n", reglist[r2], Ltrue);
-
-    fprintf(this->outfile, "\tli\t%s, 0\n", reglist[r1]);
-    fprintf(this->outfile, "\tb\tL%d\n", Lend);
-
-    MIPS_Label(this, Ltrue);
-    fprintf(this->outfile, "\tli\t%s, 1\n", reglist[r1]);
-    MIPS_Label(this, Lend);
-
-    freeReg(this, r2);
-    return r1;
-}
-
-int MIPS_LogAnd(Compiler this, int r1, int r2) {
-    int Lfalse = Compiler_GenLabel(this);
-    int Lend = Compiler_GenLabel(this);
-
-    fprintf(this->outfile, "\tbeqz\t%s, L%d\n", reglist[r1], Lfalse);
-    fprintf(this->outfile, "\tbeqz\t%s, L%d\n", reglist[r2], Lfalse);
-
-    fprintf(this->outfile, "\tli\t%s, 1\n", reglist[r1]);
-    fprintf(this->outfile, "\tb\tL%d\n", Lend);
-
-    MIPS_Label(this, Lfalse);
-    fprintf(this->outfile, "\tli\t%s, 0\n", reglist[r1]);
-    MIPS_Label(this, Lend);
-    freeReg(this, r2);
-    return r1;
-}
-
-int MIPS_Boolean(Compiler this, int r, enum ASTOP op, int label) {
+int MIPS_Boolean(Compiler this, int r, enum ASTOP op, char *label) {
     switch (op) {
         case A_IF:
         case A_WHILE:
         case A_LOGAND:
-            fprintf(this->outfile, "\tbeqz\tL%d\n", label);
+            fprintf(this->outfile, "\tbeqz\t%s\n", label);
             break;
         case A_LOGOR:
-            fprintf(this->outfile, "\tbnez\tL%d\n", label);
+            fprintf(this->outfile, "\tbnez\t%s\n", label);
             break;
         default:
-            fprintf(this->outfile, "\tsne\t%s, %s, $zero\n", reglist[r], reglist[r]);
+            fprintf(this->outfile, "\tsne\t%s, %s, $zero\n", reglist[r],
+                    reglist[r]);
     }
     return r;
 }
@@ -1049,9 +1018,16 @@ int MIPS_Peek(Compiler this, int r1, int r2) {
     return r1;
 }
 
-void MIPS_Switch(Compiler this, int r, int caseCount, int topLabel,
-                 int *caseLabel, int *caseVal, int defaultLabel) {
-    int label = Compiler_GenLabel(this);
+void MIPS_Switch(Compiler this, int r, int caseCount, char *topLabel,
+                 char **caseLabel, int *caseVal, char *defaultLabel,
+                 struct label nodeLabel) {
+    char *label;
+    if (nodeLabel.hasCustomLabel) {
+        asprintf(&label, "%s_jump_table", nodeLabel.customLabel);
+    } else {
+        asprintf(&label, "L%d", Compiler_GenLabel(this));
+    }
+
     MIPS_Label(this, label);
 
     if (caseCount == 0) {
@@ -1059,11 +1035,12 @@ void MIPS_Switch(Compiler this, int r, int caseCount, int topLabel,
         caseLabel[0] = defaultLabel;
         caseCount = 1;
     }
+
     fprintf(this->outfile, "\t.word\t%d\n", caseCount);
     for (int i = 0; i < caseCount; i++) {
-        fprintf(this->outfile, "\t.word\t%d, L%d\n", caseVal[i], caseLabel[i]);
+        fprintf(this->outfile, "\t.word\t%d, %s\n", caseVal[i], caseLabel[i]);
     }
-    fprintf(this->outfile, "\t.word\tL%d\n", defaultLabel);
+    fprintf(this->outfile, "\t.word\t%s\n", defaultLabel);
     MIPS_Label(this, topLabel);
 
     if (this->paramRegCount > 0) {
@@ -1074,7 +1051,7 @@ void MIPS_Switch(Compiler this, int r, int caseCount, int topLabel,
     }
 
     fprintf(this->outfile, "\tmove\t$a0, %s\n", reglist[r]);
-    fprintf(this->outfile, "\tla\t$a1, L%d\n", label);
+    fprintf(this->outfile, "\tla\t$a1, %s\n", label);
 
     fputs("\tjal\tswitch\n", this->outfile);
 
@@ -1084,6 +1061,8 @@ void MIPS_Switch(Compiler this, int r, int caseCount, int topLabel,
     if (this->paramRegCount > 1) {
         MIPS_RegPop(this, FIRST_PARAM_REG + 1);
     }
+
+    free(label);
 }
 
 int allocReg(Compiler this) {

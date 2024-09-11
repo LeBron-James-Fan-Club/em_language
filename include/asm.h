@@ -44,29 +44,29 @@ int MIPS_StoreLocal(Compiler this, int r1, SymTableEntry sym);
 int MIPS_Align( enum ASTPRIM type, int offset, int dir);
 
 int MIPS_EqualSet(Compiler, int r1, int r2);
-int MIPS_EqualJump(Compiler, int r1, int r2, int l);
+int MIPS_EqualJump(Compiler, int r1, int r2, char *l);
 
 int MIPS_NotEqualSet(Compiler, int r1, int r2);
-int MIPS_NotEqualJump(Compiler, int r1, int r2, int l);
+int MIPS_NotEqualJump(Compiler, int r1, int r2, char *l);
 
 int MIPS_LessThanSet(Compiler, int r1, int r2);
-int MIPS_LessThanJump(Compiler, int r1, int r2, int l);
+int MIPS_LessThanJump(Compiler, int r1, int r2, char *l);
 
 int MIPS_GreaterThanSet(Compiler, int r1, int r2);
-int MIPS_GreaterThanJump(Compiler, int r1, int r2, int l);
+int MIPS_GreaterThanJump(Compiler, int r1, int r2, char *l);
 
 int MIPS_LessThanEqualSet(Compiler, int r1, int r2);
-int MIPS_LessThanEqualJump(Compiler, int r1, int r2, int l);
+int MIPS_LessThanEqualJump(Compiler, int r1, int r2, char *l);
 
 int MIPS_GreaterThanEqualSet(Compiler, int r1, int r2);
-int MIPS_GreaterThanEqualJump(Compiler, int r1, int r2, int l);
+int MIPS_GreaterThanEqualJump(Compiler, int r1, int r2, char *l);
 
 int MIPS_InputInt(Compiler);
 int MIPS_InputChar(Compiler this);
 void MIPS_InputString(Compiler this, char *name, int size);
 
-void MIPS_Label(Compiler, int l);
-void MIPS_Jump(Compiler, int l);
+void MIPS_Label(Compiler, char *l);
+void MIPS_Jump(Compiler, char *l);
 
 void MIPS_GotoLabel(Compiler, SymTableEntry sym);
 void MIPS_GotoJump(Compiler, SymTableEntry sym);
@@ -98,19 +98,16 @@ int MIPS_BitAND(Compiler, int r1, int r2);
 int MIPS_BitOR(Compiler, int r1, int r2);
 int MIPS_BitXOR(Compiler, int r1, int r2);
 
-int MIPS_ToBool(Compiler this, enum ASTOP parentOp, int r, int label);
+int MIPS_ToBool(Compiler this, enum ASTOP parentOp, int r, char *label);
 
-// Old
-int MIPS_LogOr(Compiler this, int r1, int r2);
-int MIPS_LogAnd(Compiler this, int r1, int r2);
-
-int MIPS_Boolean(Compiler this, int r, enum ASTOP op, int label);
+int MIPS_Boolean(Compiler this, int r, enum ASTOP op, char *label);
 void MIPS_LoadBoolean(Compiler this, int r, int val);
 
 void MIPS_Poke(Compiler this, int r1, int r2);
 int MIPS_Peek(Compiler this, int r1, int r2);
-void MIPS_Switch(Compiler this, int r, int caseCount, int topLabel,
-                 int *caseLabel, int *caseVal, int defaultLabel);
+void MIPS_Switch(Compiler this, int r, int caseCount, char *topLabel,
+                 char **caseLabel, int *caseVal, char *defaultLabel,
+                 struct label nodeLabel);
 
 int Compiler_GenLabel(Compiler this);
 

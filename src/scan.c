@@ -497,4 +497,8 @@ void lparen(Scanner s, Token t) { match(s, t, T_LPAREN, "("); }
 
 void rparen(Scanner s, Token t) { match(s, t, T_RPAREN, ")"); }
 
+void lbracket(Scanner s, Token t) { match(s, t, T_LBRACKET, "["); }
+
+void rbracket(Scanner s, Token t) { match(s, t, T_RBRACKET, "]"); }
+
 void comma(Scanner s, Token t) { match(s, t, T_COMMA, ","); }

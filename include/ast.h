@@ -9,7 +9,7 @@
 #include "sym.h"
 
 // used for debugging
-#define NO_LABEL -1
+#define NO_LABEL NULL
 
 struct astnode {
     enum ASTOP op;
@@ -26,6 +26,9 @@ struct astnode {
         int intvalue; // for INTLIT
         int size; // for A_SCALE: size to scale
     };
+    
+    // for custom labels
+    struct label label;
 };
 
 typedef struct astnode *ASTnode;
@@ -39,5 +42,5 @@ ASTnode ASTnode_NewLeaf(enum ASTOP op, enum ASTPRIM type, SymTableEntry ctype,
                         SymTableEntry sym, int intvalue);
 ASTnode ASTnode_NewUnary(enum ASTOP op, enum ASTPRIM type, ASTnode left,
                          SymTableEntry ctype, SymTableEntry sym, int intvalue);
-void ASTnode_Dump(ASTnode n, SymTable st, int label, int level);
+void ASTnode_Dump(ASTnode n, SymTable st, char *label, int level);
 #endif

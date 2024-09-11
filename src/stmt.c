@@ -267,6 +267,20 @@ static ASTnode if_statement(Compiler c, Scanner s, SymTable st, Token tok,
     ASTnode condAST, trueAST, falseAST = NULL;
 
     match(s, tok, T_IF, "if");
+
+    bool customLabel = false;
+    char *label = NULL;
+
+    if (tok->token == T_LBRACKET) {
+        Scanner_Scan(s, tok);
+        customLabel = true;
+        if (tok->token != T_IDENT)
+            lfatal(s, "SyntaxError: Expected identifier in custom label");
+        label = strdup(s->text);
+        Scanner_Scan(s, tok);
+        rbracket(s, tok);
+    }
+
     lparen(s, tok);
 
     condAST = ASTnode_Order(c, s, st, tok, ctx, 0);
@@ -286,7 +300,14 @@ static ASTnode if_statement(Compiler c, Scanner s, SymTable st, Token tok,
         falseAST = single_statement(c, s, st, tok, ctx);
     }
 
-    return ASTnode_New(A_IF, P_NONE, condAST, trueAST, falseAST, NULL, NULL, 0);
+    ASTnode n =
+        ASTnode_New(A_IF, P_NONE, condAST, trueAST, falseAST, NULL, NULL, 0);
+    if (customLabel) {
+        n->label.customLabel = label;
+        n->label.hasCustomLabel = customLabel;
+    }
+
+    return n;
 }
 
 static ASTnode while_statement(Compiler c, Scanner s, SymTable st, Token tok,
@@ -294,6 +315,20 @@ static ASTnode while_statement(Compiler c, Scanner s, SymTable st, Token tok,
     ASTnode condAST, bodyAST;
 
     match(s, tok, T_WHILE, "while");
+
+    bool customLabel = false;
+    char *label = NULL;
+
+    if (tok->token == T_LBRACKET) {
+        Scanner_Scan(s, tok);
+        customLabel = true;
+        if (tok->token != T_IDENT)
+            lfatal(s, "SyntaxError: Expected identifier in custom label");
+        label = strdup(s->text);
+        Scanner_Scan(s, tok);
+        rbracket(s, tok);
+    }
+
     lparen(s, tok);
 
     condAST = ASTnode_Order(c, s, st, tok, ctx, 0);
@@ -308,7 +343,14 @@ static ASTnode while_statement(Compiler c, Scanner s, SymTable st, Token tok,
     bodyAST = single_statement(c, s, st, tok, ctx);
     Context_DecLoopLevel(ctx);
 
-    return ASTnode_New(A_WHILE, P_NONE, condAST, NULL, bodyAST, NULL, NULL, 0);
+    ASTnode n =
+        ASTnode_New(A_WHILE, P_NONE, condAST, NULL, bodyAST, NULL, NULL, 0);
+    if (customLabel) {
+        n->label.customLabel = label;
+        n->label.hasCustomLabel = customLabel;
+    }
+
+    return n;
 }
 
 static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok,
@@ -318,6 +360,20 @@ static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok,
     ASTnode t;
 
     match(s, tok, T_FOR, "for");
+
+    bool customLabel = false;
+    char *label = NULL;
+
+    if (tok->token == T_LBRACKET) {
+        Scanner_Scan(s, tok);
+        customLabel = true;
+        if (tok->token != T_IDENT)
+            lfatal(s, "SyntaxError: Expected identifier in custom label");
+        label = strdup(s->text);
+        Scanner_Scan(s, tok);
+        rbracket(s, tok);
+    }
+
     lparen(s, tok);
 
     preopAST = expression_list(c, s, st, tok, ctx, T_SEMI);
@@ -344,6 +400,11 @@ static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok,
 
     t = ASTnode_New(A_GLUE, P_NONE, bodyAST, NULL, postopAST, NULL, NULL, 0);
     t = ASTnode_New(A_WHILE, P_NONE, condAST, NULL, t, NULL, NULL, 0);
+    if (customLabel) {
+        t->label.customLabel = label;
+        t->label.hasCustomLabel = customLabel;
+    }
+
     return ASTnode_New(A_GLUE, P_NONE, preopAST, NULL, t, NULL, NULL, 0);
 }
 
@@ -435,6 +496,19 @@ static ASTnode switch_statement(Compiler c, Scanner s, SymTable st, Token tok,
 
     Scanner_Scan(s, tok);
 
+    bool customLabel = false;
+    char *label = NULL;
+
+    if (tok->token == T_LBRACKET) {
+        Scanner_Scan(s, tok);
+        customLabel = true;
+        if (tok->token != T_IDENT)
+            lfatal(s, "SyntaxError: Expected identifier in custom label");
+        label = strdup(s->text);
+        Scanner_Scan(s, tok);
+        rbracket(s, tok);
+    }
+
     lparen(s, tok);
     left = ASTnode_Order(c, s, st, tok, ctx, 0);
     rparen(s, tok);
@@ -448,6 +522,11 @@ static ASTnode switch_statement(Compiler c, Scanner s, SymTable st, Token tok,
     }
 
     n = ASTnode_NewUnary(A_SWITCH, P_NONE, left, NULL, NULL, 0);
+
+    if (customLabel) {
+        n->label.customLabel = label;
+        n->label.hasCustomLabel = customLabel;
+    }
 
     Context_IncSwitchLevel(ctx);
     while (inLoop) {
@@ -466,6 +545,9 @@ static ASTnode switch_statement(Compiler c, Scanner s, SymTable st, Token tok,
                         s,
                         "SyntaxError: case or default after existing default");
                 }
+
+                bool caseCustomLabel = false;
+                char *caseLabel = NULL;
 
                 if (tok->token == T_DEFAULT) {
                     debug("A DEFAULT");
@@ -498,6 +580,19 @@ static ASTnode switch_statement(Compiler c, Scanner s, SymTable st, Token tok,
                     // Free it we don't need it anymore
                     ASTnode_Free(left);
                 }
+
+                if (tok->token == T_LBRACKET) {
+                    Scanner_Scan(s, tok);
+                    caseCustomLabel = true;
+                    if (tok->token != T_IDENT)
+                        lfatal(
+                            s,
+                            "SyntaxError: Expected identifier in custom label");
+                    caseLabel = strdup(s->text);
+                    Scanner_Scan(s, tok);
+                    rbracket(s, tok);
+                }
+
                 match(s, tok, T_COLON, ":");
 
                 // Edge case : empty
@@ -513,13 +608,17 @@ static ASTnode switch_statement(Compiler c, Scanner s, SymTable st, Token tok,
                 if (caseTree == NULL) {
                     caseTree = caseTail = ASTnode_NewUnary(
                         op, P_NONE, left, NULL, NULL, caseValue);
-                    debug("first create %p", caseTree);
                 } else {
                     caseTail->right = ASTnode_NewUnary(op, P_NONE, left, NULL,
                                                        NULL, caseValue);
                     caseTail = caseTail->right;
-                    debug("add %p", caseTail);
                 }
+
+                if (caseCustomLabel) {
+                    caseTail->label.customLabel = caseLabel;
+                    caseTail->label.hasCustomLabel = caseCustomLabel;
+                }
+                
                 break;
             default:
                 lfatal(s, "SyntaxError: Expected case or default");

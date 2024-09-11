@@ -1,7 +1,12 @@
+#define _GNU_SOURCE
+
 #include "ast.h"
 
 #include "misc.h"
 #include "sym.h"
+
+#include <stdio.h>
+#include <stdlib.h>
 
 ASTnode ASTnode_New(enum ASTOP op, enum ASTPRIM type, ASTnode left, ASTnode mid,
                     ASTnode right, SymTableEntry ctype, SymTableEntry sym,
@@ -37,24 +42,46 @@ void ASTnode_Free(ASTnode this) {
     if (this->left) ASTnode_Free(this->left);
     if (this->mid) ASTnode_Free(this->mid);
     if (this->right) ASTnode_Free(this->right);
+    if (this->label.customLabel) free(this->label.customLabel);
     free(this);
 }
 
-static int makeLabel(void) {
+#define L_FALSE 0
+#define L_START 1
+#define L_END 2
+#define L_NONE 3
+
+static void makeLabel(struct label label, char **labelName, int type) {
     static int id = 1;
-    return id++;
+    if (label.hasCustomLabel) {
+        switch (type) {
+            case L_FALSE:
+                asprintf(labelName, "%s_false", label.customLabel);
+                break;
+            case L_START:
+                asprintf(labelName, "%s_start", label.customLabel);
+                break;
+            case L_END:
+                asprintf(labelName, "%s_en", label.customLabel);
+                break;
+            default:
+                asprintf(labelName, "%s", label.customLabel);
+        }
+    } else {
+        asprintf(labelName, "L%d", id++);
+    }
 }
 
-void ASTnode_Dump(ASTnode n, SymTable st, int label, int level) {
-    int Lfalse, Lstart, Lend;
+void ASTnode_Dump(ASTnode n, SymTable st, char *label, int level) {
+    char *Lfalse = NULL, *Lstart = NULL, *Lend = NULL;
     switch (n->op) {
         case A_IF:
-            Lfalse = makeLabel();
+            makeLabel(n->label, &Lfalse, L_FALSE);
             for (int i = 0; i < level; i++) printf(" ");
             printf("A_IF");
             if (n->right) {
-                Lend = makeLabel();
-                printf("end L%d", Lend);
+                makeLabel(n->label, &Lend, L_END);
+                printf("end %s", Lend);
             }
             printf("\n");
             ASTnode_Dump(n->left, st, Lfalse, level + 2);
@@ -62,14 +89,18 @@ void ASTnode_Dump(ASTnode n, SymTable st, int label, int level) {
             if (n->right) {
                 ASTnode_Dump(n->right, st, NO_LABEL, level + 2);
             }
+            free(Lfalse);
+            if (n->right) free(Lend);
             return;
         case A_WHILE:
-            Lstart = makeLabel();
+            makeLabel(n->label, &Lstart, L_START);
             for (int i = 0; i < level; i++) printf("  ");
-            printf("A_WHILE start L%d\n", Lstart);
-            Lend = makeLabel();
+            printf("A_WHILE start %s\n", Lstart);
+            makeLabel(n->label, &Lend, L_END);
             ASTnode_Dump(n->left, st, Lend, level + 2);
             ASTnode_Dump(n->right, st, NO_LABEL, level + 2);
+            free(Lstart);
+            free(Lend);
             return;
         default:
             break;

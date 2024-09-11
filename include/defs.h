@@ -1,6 +1,8 @@
 #ifndef DEFS_H
 #define DEFS_H
 
+#include <stdbool.h>
+
 // Commonly used stuff - prevents circular includes
 
 #define CPPCMD "cpp -P -nostdinc -isystem"
@@ -253,5 +255,12 @@ struct token {
 };
 
 typedef struct token *Token;
+
+struct label {
+    char *customLabel;
+    // honestly i probs dont even need that
+    // cause null but whatever
+    bool hasCustomLabel;
+};
 
 #endif

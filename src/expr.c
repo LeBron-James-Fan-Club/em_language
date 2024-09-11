@@ -8,7 +8,7 @@
 #include "types.h"
 
 static enum ASTOP arithOp(Scanner s, enum OPCODES tok);
-static int precedence(enum OPCODES op);
+static int precedence(Scanner s, enum OPCODES op);
 static bool rightAssoc(enum OPCODES op);
 static ASTnode primary(Compiler c, Scanner s, SymTable st, Token t,
                        Context ctx);
@@ -39,7 +39,7 @@ static enum ASTOP arithOp(Scanner s, enum OPCODES tok) {
     lfatala(s, "SyntaxError: %d", tok);
 }
 
-static int precedence(enum OPCODES op) {
+static int precedence(Scanner s, enum OPCODES op) {
     switch (op) {
         case T_LT:
         case T_GT:
@@ -83,7 +83,8 @@ static int precedence(enum OPCODES op) {
         case T_ASMOD:
             return 1;
         default:
-            fatala("InternalError: No proper precedence for operator %d", op);
+            lfatala(s, "InternalError: No proper precedence for operator %d",
+                    op);
     }
 }
 
@@ -103,11 +104,9 @@ static ASTnode primary(Compiler c, Scanner s, SymTable st, Token t,
             // cause name is declared as soon after case
             {
                 char *name = SymTableEntry_MakeAnon(st, NULL);
-                var = SymTable_AddGlob(st, name, pointer_to(P_CHAR), NULL,
-                                       S_VAR, C_GLOBAL, 1, 0);
-                free(name);
+                bool customName = false;
 
-                char *text = s->text;
+                char *text = strdup(s->text);
                 bool madeNew = false;
 
                 while (true) {
@@ -127,7 +126,24 @@ static ASTnode primary(Compiler c, Scanner s, SymTable st, Token t,
                     madeNew = true;
                     Scanner_Scan(s, t);
                 }
+
+                if (t->token == T_LBRACKET) {
+                    Scanner_Scan(s, t);
+                    customName = true;
+                    if (t->token != T_IDENT) lfatal(s, "SyntaxError: Expected identifier in custom label");
+                    free(name);
+                    name = s->text;
+                    Scanner_Scan(s, t);
+                    rbracket(s, t);
+                }
+
+                var = SymTable_AddGlob(st, name, pointer_to(P_CHAR), NULL,
+                                       S_VAR, C_GLOBAL, 1, 0);
+                
+                if (!customName) free(name);
                 SymTable_SetText(st, text, var);
+                free(text);
+                
                 if (madeNew) free(text);
                 Scanner_RejectToken(s, t);
                 debug("finished making annoymous string");
@@ -251,11 +267,11 @@ ASTnode ASTnode_Order(Compiler c, Scanner s, SymTable st, Token t, Context ctx,
         return left;
     }
 
-    while (precedence(tokenType) > prePreced ||
-           (rightAssoc(tokenType) && precedence(tokenType) == prePreced)) {
+    while (precedence(s, tokenType) > prePreced ||
+           (rightAssoc(tokenType) && precedence(s, tokenType) == prePreced)) {
         Scanner_Scan(s, t);
 
-        right = ASTnode_Order(c, s, st, t, ctx, precedence(tokenType));
+        right = ASTnode_Order(c, s, st, t, ctx, precedence(s, tokenType));
 
         op = arithOp(s, tokenType);
 

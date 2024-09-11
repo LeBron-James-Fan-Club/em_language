@@ -42,12 +42,12 @@
 - Function headings (WIP)
 - Register spilling (broken at the moment)
 - Lazy Evaluation
+- Compiler directives
+  - Including the ability to manually name any label
 
 ## What will be added soon (Hopefully)
 
 - Multidimensional arrays
-- Compiler directives
-  - Including the ability to manually name any label
 - Namespace
 - Inline assembly and registers
 - Scopes (probs wont be done)
