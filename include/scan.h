@@ -9,7 +9,7 @@
 #include "defs.h"
 
 // May god forgive me for this
-#define TEXTLEN 100000000
+#define TEXTLEN 400000
 
 struct scanner {
     // file to scan in
@@ -23,6 +23,9 @@ struct scanner {
 
     char text[TEXTLEN + 1];
 
+    char comment[TEXTLEN + 1];
+    int commentLen;
+
     Token rejToken;
 };
 
@@ -33,6 +36,7 @@ void Scanner_Free(Scanner);
 void Scanner_Scan(Scanner this, Token t);
 void Scanner_Putback(Scanner this, char c);
 void Scanner_RejectToken(Scanner this, Token t);
+void Scanner_EndComment(Scanner this);
 
 void match(Scanner s, Token t, enum OPCODES op, char *tok);
 void semi(Scanner s, Token t);

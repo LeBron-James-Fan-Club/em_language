@@ -43,6 +43,7 @@ void ASTnode_Free(ASTnode this) {
     if (this->mid) ASTnode_Free(this->mid);
     if (this->right) ASTnode_Free(this->right);
     if (this->label.customLabel) free(this->label.customLabel);
+    if (this->comment) free(this->comment);
     free(this);
 }
 

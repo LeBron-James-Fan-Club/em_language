@@ -47,7 +47,7 @@
 
 # BUGS:
 - implement the register keyword
-
+- fix unequal new lines in the assembly file
 - make it so that multiple files are included
     - if in include directory, automatically include the file
     - (crappy solution) append each file to each other and hope to god that

@@ -326,6 +326,9 @@ int MIPS_LoadGlobStr(Compiler this, SymTableEntry sym) {
 int MIPS_LoadGlob(Compiler this, SymTableEntry sym, enum ASTOP op) {
     int r = allocReg(this);
     int r2;
+
+    //fprintf(this->outfile, "# loading global %s\n", sym->name);
+
     switch (sym->type) {
         case P_INT:
             fprintf(this->outfile, "\tlw\t%s, %s\n", reglist[r], sym->name);
@@ -401,6 +404,8 @@ int MIPS_LoadGlob(Compiler this, SymTableEntry sym, enum ASTOP op) {
 int MIPS_LoadLocal(Compiler this, SymTableEntry sym, enum ASTOP op) {
     int r = allocReg(this);
     int r2;
+
+    //fprintf(this->outfile, "# loading local %s\n", sym->name);
 
     if (sym->isFirstFour) {
         debug("paramReg: %d", sym->paramReg);
@@ -1081,7 +1086,7 @@ int allocReg(Compiler this) {
     int reg = this->spillReg % TEMP_MAX_REG;
     this->spillReg++;
     MIPS_RegPush(this, reg);
-    fprintf(this->outfile, "\t# we spill the %s\n", reglist[reg]);
+    //fprintf(this->outfile, "\t# we spill the %s\n", reglist[reg]);
     return reg;
 }
 
@@ -1092,7 +1097,7 @@ static void freeReg(Compiler this, int reg1) {
     if (this->spillReg > 0) {
         this->spillReg--;
         reg1 = this->spillReg % TEMP_MAX_REG;
-        fprintf(this->outfile, "\t# we unspill the %s\n", reglist[reg1]);
+        //fprintf(this->outfile, "\t# we unspill the %s\n", reglist[reg1]);
         MIPS_RegPop(this, reg1);
     } else {
         this->regUsed[reg1] = false;

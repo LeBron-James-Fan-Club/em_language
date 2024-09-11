@@ -10,10 +10,10 @@
 #include "misc.h"
 
 static char *TokStr[] = {
-    "<EOF>",   "=",      "+=",     "-=",       "*=",         "/=",    "%%=",
+    "<EOF>",   "=",      "+=",     "-=",       "*=",         "/=",    "%=",
     "?",       "||",     "&&",     "|",        "^",          "&",     "==",
     "!=",      "<",      ">",      "<=",       ">=",         "<<",    ">>",
-    "+",       "-",      "*",      "/",        "%%",         "++",    "--",
+    "+",       "-",      "*",      "/",        "%",          "++",    "--",
     "~",       "!",      "intlit", "void",     "i8",         "i32",   "print",
     "input",   "peek",   "poke",   "exit",     "if",         "else",  "label",
     "goto",    "while",  "for",    "return",   "struct",     "union", "enum",
@@ -39,6 +39,8 @@ Scanner Scanner_New(void) {
     Scanner n = calloc(1, sizeof(struct scanner));
     n->line = 1;
     n->putback = '\n';
+    n->comment[0] = 'a';
+    n->commentLen = 0;
 
     return n;
 }
@@ -56,7 +58,10 @@ static char next(Scanner this) {
         return c;
     }
     c = fgetc(this->infile);
-    if (c == '\n') this->line++;
+    if (c == '\n') {
+        this->line++;
+    }
+
     return c;
 }
 
@@ -77,8 +82,10 @@ static char skip(Scanner this) {
     while (c == ' ' || c == '\t' || c == '\n' || c == '\r' ||
            // \f not really used much anymore
            c == '\f') {
+        if (c != '\n' && c != '\0') {
+            this->comment[this->commentLen++] = c;
+        }
         c = next(this);
-        // debug("fuck before");
     }
     return c;
 }
@@ -278,6 +285,38 @@ void Scanner_Scan(Scanner this, Token t) {
     }
 
     t->tokstr = TokStr[t->token];
+
+    if (t->token == T_SEMI || t->token == T_LBRACE || t->token == T_RBRACE) {
+        this->comment[this->commentLen] = '\0';
+        this->commentLen = 0;
+    } else if (t->token != T_IDENT && t->token != T_INTLIT && t->token != T_STRLIT) {
+        for (int i = 0; i < strlen(t->tokstr); i++) {
+            this->comment[this->commentLen] = t->tokstr[i];
+            this->commentLen++;
+        }
+    } else if (t->token == T_IDENT || t->token == T_STRLIT) {
+        for (int i = 0; i < strlen(this->text); i++) {
+            this->comment[this->commentLen] = this->text[i];
+            this->commentLen++;
+        }
+    } else {
+        char *inStr;
+        asprintf(&inStr, "%d", t->intvalue);
+        for (int i = 0; i < strlen(inStr); i++) {
+            this->comment[this->commentLen] = inStr[i];
+            this->commentLen++;
+        }
+        free(inStr);
+    }
+
+    if (t->token != T_SEMI && t->token != T_LBRACE && t->token != T_RBRACE)
+        this->comment[this->commentLen] = '\0';
+    printf("comment rn: %s\n", this->comment);
+}
+
+void Scanner_EndComment(Scanner this) {
+    this->comment[this->commentLen] = '\0';
+    this->commentLen = 0;
 }
 
 static int keyword(char *s) {

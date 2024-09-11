@@ -88,11 +88,9 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
         case T_IDENT:
             if (SymTable_FindTypeDef(st, s) == NULL) {
                 stmt = ASTnode_Order(c, s, st, tok, ctx, 0);
+                printf("stmt %s\n", s->comment);
+                stmt->comment = strdup(s->comment);
                 semi(s, tok);
-                debug("after %s", tok->tokstr);
-                if (tok->token == T_SEMI) {
-                    semi(s, tok);
-                }
                 return stmt;
             }
         case T_CHAR:
@@ -103,6 +101,9 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
         case T_TYPEDEF:
             declare_list(c, s, st, tok, ctx, &cType, C_LOCAL, T_SEMI, T_EOF,
                          &stmt);
+            if (stmt != NULL) {
+                stmt->comment = strdup(s->comment);
+            }
             semi(s, tok);
             return stmt;
         case T_POKE:
@@ -142,6 +143,8 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
             return stmt;
         default:
             stmt = ASTnode_Order(c, s, st, tok, ctx, 0);
+            printf("stmt %s\n", s->comment);
+            stmt->comment = strdup(s->comment);
             semi(s, tok);
             return stmt;
     }
@@ -166,8 +169,10 @@ static ASTnode exit_statement(Compiler c, Scanner s, SymTable st, Token tok, Con
     lparen(s, tok);
     param = ASTnode_Order(c, s, st, tok, ctx, 0);
     rparen(s, tok);
+    ASTnode stmt = ASTnode_New(A_EXIT, P_NONE, param, NULL, NULL, NULL, NULL, 0);
+    stmt->comment = strdup(s->comment);
     semi(s, tok);
-    return ASTnode_New(A_EXIT, P_NONE, param, NULL, NULL, NULL, NULL, 0);
+    return stmt;
 }
 
 static ASTnode print_statement(Compiler c, Scanner s, SymTable st, Token tok,
@@ -308,6 +313,9 @@ static ASTnode if_statement(Compiler c, Scanner s, SymTable st, Token tok,
 
     rparen(s, tok);
 
+    condAST->comment = strdup(s->comment);
+    Scanner_EndComment(s);
+
     trueAST = single_statement(c, s, st, tok, ctx);
 
     if (tok->token == T_ELSE) {
@@ -392,6 +400,7 @@ static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok,
     lparen(s, tok);
 
     preopAST = expression_list(c, s, st, tok, ctx, T_SEMI);
+    preopAST->comment = strdup(s->comment);
     semi(s, tok);
 
     debug("WE ARE COND :L");
@@ -402,6 +411,7 @@ static ASTnode for_statement(Compiler c, Scanner s, SymTable st, Token tok,
         exit(-1);
     }
     debug("EATING THE SEMMI :L");
+    condAST->comment = strdup(s->comment);
     semi(s, tok);
 
     debug("WE ARE POST :L");
@@ -476,6 +486,8 @@ static ASTnode return_statement(Compiler c, Scanner s, SymTable st, Token tok,
                 "TypeError: Value must be returned from a non-void function");
         }
     }
+
+    t->comment = strdup(s->comment);
 
     semi(s, tok);
 

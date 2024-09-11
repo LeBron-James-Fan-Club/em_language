@@ -36,10 +36,14 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
                   enum ASTOP parentASTop) {
     int leftReg, rightReg;
 
-    // May use stack system to prevent stack overflow
-
     if (n == NULL) {
         return NO_REG;
+    }
+
+    // stmt comment is printed here
+
+    if (n->comment != NULL) {
+        fprintf(this->outfile, "# %s\n", n->comment);
     }
 
     debug("AST mem: %p OP: %d left %p right %p mid %p", n, n->op, n->left,
@@ -377,11 +381,13 @@ static int genIFAST(Compiler this, SymTable st, Context ctx, ASTnode n,
     Compiler_FreeAllReg(this, NO_REG);
 
     if (n->right) MIPS_Jump(this, Lend);
+    fputs("\n", this->outfile);
     MIPS_Label(this, Lfalse);
 
     if (n->right) {
         genAST(this, st, ctx, n->right, NO_LABEL, NO_LABEL, NO_LABEL, n->op);
         Compiler_FreeAllReg(this, NO_REG);
+        fputs("\n", this->outfile);
         MIPS_Label(this, Lend);
     }
 

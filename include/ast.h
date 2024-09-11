@@ -29,6 +29,8 @@ struct astnode {
     
     // for custom labels
     struct label label;
+
+    char *comment;
 };
 
 typedef struct astnode *ASTnode;
