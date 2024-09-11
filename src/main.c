@@ -22,7 +22,12 @@ static int argParse(int argc, char *argv[]);
 static void preprocess(Scanner s, char *filename);
 
 static void usage(char *path) {
-    printf("Usage: %s [file] [outfile]\n", path);
+    printf("Options:\n");
+    printf("  -T: Dump AST\n");
+    printf("  -d: Debug\n");
+    printf("  -p: Fix parameters to 4\n");
+    printf("  -S: Dump symbol table\n");
+    printf("Usage: %s [options] [file] [outfile]\n", path);
     exit(-1);
 }
 
@@ -50,6 +55,9 @@ static int argParse(int argc, char *argv[]) {
                     break;
                 case 'p':
                     flags.paramFix = true;
+                    break;
+                case 'S':
+                    flags.dumpSym = true;
                     break;
                 default:
                     usage(argv[0]);
