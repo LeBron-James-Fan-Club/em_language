@@ -104,6 +104,10 @@ int main(int argc, char *argv[]) {
     Token tok = calloc(1, sizeof(struct token));
     Context ctx = Context_New();
 
+    printf("The author makes clear that using this tool to complete work \n
+    where it is not permitted, such as in COMP1521 lab activities\n
+    and assignments, is not condoned, and takes no responsibility for such events.\n")
+
     MIPS_Pre(c);
 
     Scanner_Scan(s, tok);
