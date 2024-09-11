@@ -588,6 +588,7 @@ static ASTnode peek_operator(Compiler c, Scanner s, SymTable st, Token tok,
     return ASTnode_NewUnary(A_PEEK, P_INT, n, NULL, NULL, 0);
 }
 
+// sizeof on variables dont work yet
 static ASTnode sizeof_operator(Compiler c, Scanner s, SymTable st, Token tok,
                                Context ctx) {
     enum ASTPRIM type;

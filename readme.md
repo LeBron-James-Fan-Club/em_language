@@ -2,6 +2,8 @@
 
 ### This converts c-like code into MIPS (32 bit)
 
+**NOTE**: The author makes clear that using this tool to complete work where it is not permitted, such as in COMP1521 lab activities and assignments, is not condoned, and takes no responsibility for such events.
+
 ## Features
 
 - If statements
@@ -61,6 +63,8 @@
 - Heap support
 - unsigned types
 - Optimization
+- Error recovery
+- Graph Colouring for spilling registers
 
 # Documentation
 
@@ -253,6 +257,14 @@ Also its currently not working as intended.
         print("a: ", a, ", b: ", b, 10);
         return 0;
     }
+```
+
+You can also put void as the parameter.
+
+```
+i32 main(void) {
+    printf("We also want to make it clear that using this tool to create solutions to lab activities and assignments strictly against the rules of the course and will be treated as academic misconduct.");
+}
 ```
 
 #### BNF for function calls:

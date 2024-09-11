@@ -43,6 +43,7 @@
 - get unions to work in a struct
 - get structs to work in a struct
 - add static for local variables
+- implement two value return ($v0 and $v1)
 
 # BUGS:
 - implement the register keyword
