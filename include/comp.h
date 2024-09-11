@@ -45,7 +45,7 @@ Compiler Compiler_New(char *outfile);
 void Compiler_Free(Compiler);
 
 void Compiler_ResetOffset(Compiler this);
-int Compiler_GetLocalOffset(Compiler this, enum ASTPRIM type);
+int Compiler_GetLocalOffset(Compiler this, int size);
 int Compiler_GetParamOffset(Compiler this, enum ASTPRIM type);
 
 #endif

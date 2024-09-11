@@ -40,9 +40,9 @@
  - Function headings (WIP)
  - Register spilling  (broken at the moment)
  - Lazy Evaluation
+ - Local arrays
 
 ## What will be added soon (Hopefully)
- - Local arrays
  - Multidimensional arrays
  - Compiler directives
     - Including the ability to manually name any label

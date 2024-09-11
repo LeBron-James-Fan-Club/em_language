@@ -28,9 +28,9 @@ void Compiler_ResetOffset(Compiler this) {
     this->paramRegCount = 0;
 }
 
-int Compiler_GetLocalOffset(Compiler this, enum ASTPRIM type) {
+int Compiler_GetLocalOffset(Compiler this, int size) {
     debug("the local offset is %d", this->localOffset);
-    this->localOffset += (PrimSize(type) > 4) ? PrimSize(type) : 4;
+    this->localOffset += (size > 4) ? size : 4;
     debug("after the local offset is %d", this->localOffset);
     return this->localOffset;
 }

@@ -179,7 +179,8 @@ void MIPS_PreFunc(Compiler this, SymTable st, Context ctx) {
         // same thing but for local
         // We subtract 4 cause its 1 off
         // e.g. a[0] instead of a[1]
-        loclCurr->posn = Compiler_GetLocalOffset(this, loclCurr->type) - 4;
+        loclCurr->posn = this->localOffset;
+        Compiler_GetLocalOffset(this, loclCurr->size);
     }
 
     for (; paramCurr != NULL; paramCurr = paramCurr->next) {
@@ -1029,7 +1030,7 @@ int MIPS_Boolean(Compiler this, int r, enum ASTOP op, int label) {
             fprintf(this->outfile, "\tbnez\tL%d\n", label);
             break;
         default:
-            fprintf(this->outfile, "\tsne\t%s, %s, $zero\n", reglist[r]);
+            fprintf(this->outfile, "\tsne\t%s, %s, $zero\n", reglist[r], reglist[r]);
     }
     return r;
 }

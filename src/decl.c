@@ -218,10 +218,14 @@ static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
             sym = SymTable_AddGlob(st, varName, pointer_to(type), cType,
                                    S_ARRAY, class, 0, 0);
             break;
+        case C_LOCAL:
+            sym = SymTable_AddLocl(st, varName, pointer_to(type), cType,
+                                   S_ARRAY, 0);
+            break;
         default:
             lfatal(s,
                    "UnsupportedError: array declaration only supported for "
-                   "globals");
+                   "globals and locals");
     }
 
     if (tok->token == T_ASSIGN) {
@@ -266,6 +270,10 @@ static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
         sym->initList = initList;
     }
 
+    if (class != C_EXTERN && nelems <= 0) {
+        lfatal(s, "TypeError: Array must have non-zero elements");
+    }
+
     sym->nElems = nelems;
     sym->size = sym->nElems * type_size(type, cType);
 
@@ -301,7 +309,6 @@ static int param_declare_list(Compiler c, Scanner s, SymTable st, Token tok,
             }
         }
 
-
         type = declare_list(c, s, st, tok, ctx, &cType, C_PARAM, T_COMMA,
                             T_RPAREN, &unused);
 
@@ -320,7 +327,7 @@ static int param_declare_list(Compiler c, Scanner s, SymTable st, Token tok,
         }
 
         paramCnt++;
-        
+
         if (tok->token == T_RPAREN) {
             break;
         } else {
