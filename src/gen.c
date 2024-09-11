@@ -255,6 +255,9 @@ static int genAST(Compiler this, SymTable st, Context ctx, ASTnode n,
             return NO_REG;
         case A_PEEK:
             return MIPS_Peek(this, leftReg, rightReg);
+        case A_EXIT:
+            MIPS_Exit(this, leftReg);
+            return NO_REG;
         case A_LABEL:
             MIPS_GotoLabel(this, n->sym);
             return NO_REG;

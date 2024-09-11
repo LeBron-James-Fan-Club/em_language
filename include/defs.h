@@ -71,6 +71,8 @@ enum OPCODES {
     T_PEEK,
     T_POKE,
 
+    T_EXIT,
+
     T_IF,
     T_ELSE,
     T_LABEL,
@@ -182,6 +184,8 @@ enum ASTOP {
 
     A_PEEK,
     A_POKE,
+    
+    A_EXIT,
 
     A_GLUE,
 

@@ -10,16 +10,17 @@
 #include "misc.h"
 
 static char *TokStr[] = {
-    "<EOF>",  "=",      "+=",       "-=",         "*=",    "/=",      "%%=",
-    "?",      "||",     "&&",       "|",          "^",     "&",       "==",
-    "!=",     "<",      ">",        "<=",         ">=",    "<<",      ">>",
-    "+",      "-",      "*",        "/",          "%%",    "++",      "--",
-    "~",      "!",      "intlit",   "void",       "i8",    "i32",     "print",
-    "input",  "peek",   "poke",     "if",         "else",  "label",   "goto",
-    "while",  "for",    "return",   "struct",     "union", "enum",    "typedef",
-    "extern", "break",  "continue", "switch",     "case",  "default", "sizeof",
-    "static", "strlit", ";",        "identifier", "{",     "}",       "(",
-    ")",      "[",      "]",        ",",          ".",     "->",      ":"};
+    "<EOF>",   "=",      "+=",     "-=",       "*=",         "/=",    "%%=",
+    "?",       "||",     "&&",     "|",        "^",          "&",     "==",
+    "!=",      "<",      ">",      "<=",       ">=",         "<<",    ">>",
+    "+",       "-",      "*",      "/",        "%%",         "++",    "--",
+    "~",       "!",      "intlit", "void",     "i8",         "i32",   "print",
+    "input",   "peek",   "poke",   "exit",     "if",         "else",  "label",
+    "goto",    "while",  "for",    "return",   "struct",     "union", "enum",
+    "typedef", "extern", "break",  "continue", "switch",     "case",  "default",
+    "sizeof",  "static", "strlit", ";",        "identifier", "{",     "}",
+    "(",       ")",      "[",      "]",        ",",          ".",     "->",
+    ":"};
 
 static char next(Scanner);
 static void putback(Scanner, char c);
@@ -296,6 +297,7 @@ static int keyword(char *s) {
             if (!strcmp(s, "else")) return T_ELSE;
             if (!strcmp(s, "enum")) return T_ENUM;
             if (!strcmp(s, "extern")) return T_EXTERN;
+            if (!strcmp(s, "exit")) return T_EXIT;
             break;
         case 'f':
             if (!strcmp(s, "for")) return T_FOR;

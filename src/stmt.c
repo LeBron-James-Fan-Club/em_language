@@ -15,6 +15,9 @@ void rparen(Scanner s, Token t);
 static ASTnode poke_statement(Compiler c, Scanner s, SymTable st, Token tok,
                               Context ctx);
 
+static ASTnode exit_statement(Compiler c, Scanner s, SymTable st, Token tok,
+                              Context ctx);
+
 static ASTnode print_statement(Compiler c, Scanner s, SymTable st, Token tok,
                                Context ctx);
 static ASTnode input_statement(Scanner s, SymTable st, Token tok, Context ctx);
@@ -104,6 +107,8 @@ static ASTnode single_statement(Compiler c, Scanner s, SymTable st, Token tok,
             return stmt;
         case T_POKE:
             return poke_statement(c, s, st, tok, ctx);
+        case T_EXIT:
+            return exit_statement(c, s, st, tok, ctx);
         case T_INPUT:
             return input_statement(s, st, tok, ctx);
         case T_IF:
@@ -153,6 +158,16 @@ static ASTnode poke_statement(Compiler c, Scanner s, SymTable st, Token tok,
     rparen(s, tok);
     semi(s, tok);
     return ASTnode_New(A_POKE, P_NONE, param2, NULL, param1, NULL, NULL, 0);
+}
+
+static ASTnode exit_statement(Compiler c, Scanner s, SymTable st, Token tok, Context ctx) {
+    ASTnode param;
+    match(s, tok, T_EXIT, "exit");
+    lparen(s, tok);
+    param = ASTnode_Order(c, s, st, tok, ctx, 0);
+    rparen(s, tok);
+    semi(s, tok);
+    return ASTnode_New(A_EXIT, P_NONE, param, NULL, NULL, NULL, NULL, 0);
 }
 
 static ASTnode print_statement(Compiler c, Scanner s, SymTable st, Token tok,

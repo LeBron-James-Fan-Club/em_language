@@ -1018,6 +1018,11 @@ int MIPS_Peek(Compiler this, int r1, int r2) {
     return r1;
 }
 
+void MIPS_Exit(Compiler this, int r) {
+    fprintf(this->outfile, "\tmove\t$v0, %s\n", reglist[r]);
+    fputs("\tli\t$v0, 10\n\tsyscall\n", this->outfile);
+}
+
 void MIPS_Switch(Compiler this, int r, int caseCount, char *topLabel,
                  char **caseLabel, int *caseVal, char *defaultLabel,
                  struct label nodeLabel) {

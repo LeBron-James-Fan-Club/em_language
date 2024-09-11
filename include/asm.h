@@ -105,6 +105,7 @@ void MIPS_LoadBoolean(Compiler this, int r, int val);
 
 void MIPS_Poke(Compiler this, int r1, int r2);
 int MIPS_Peek(Compiler this, int r1, int r2);
+void MIPS_Exit(Compiler this, int r);
 void MIPS_Switch(Compiler this, int r, int caseCount, char *topLabel,
                  char **caseLabel, int *caseVal, char *defaultLabel,
                  struct label nodeLabel);
