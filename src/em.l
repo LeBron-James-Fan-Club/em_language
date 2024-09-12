@@ -12,8 +12,12 @@
 int yyival;
 %}
 
-DIGIT		[0-9]
-HEXDIGIT	[a-fA-F0-9]
+HP		(0[xX])
+H		[a-fA-F0-9]
+NZ		[1-9]
+D		[0-9]
+O		[0-7]
+ES		(\\(['"\?\\abfnrtv]|[0-7]{1,3}|x[a-fA-F0-9]+))
 IDENTIFIER	[a-zA-Z_][a-zA-Z0-9_]*
 
 %%
@@ -58,8 +62,10 @@ IDENTIFIER	[a-zA-Z_][a-zA-Z0-9_]*
 "~"		{ return T_INVERT; }
 "!"		{ return T_LOGNOT; }
 
-{DIGIT}+	{ yyival = atoi(yytext); return T_INTLIT; }
-"0x"{HEXDIGIT}+	{ yyival = strtol(yytext + 2, NULL, 16); return T_INTLIT; }
+{HP}{H}+				{ yyival = strtol(yytext + 2, NULL, 16); return T_INTLIT; }
+{NZ}{D}*				{ yyival = strtol(yytext    , NULL, 10); return T_INTLIT; }
+"0"{O}*					{ yyival = strtol(yytext + 1, NULL,  8); return T_INTLIT; }
+"'"([^'\\\n]|{ES})+"'"			{ yyival = yytext[1]; /* todo: parse */  return T_INTLIT; }
 
 "void"		{ return T_VOID; }
 "i8"		{ return T_CHAR; }
@@ -96,7 +102,7 @@ IDENTIFIER	[a-zA-Z_][a-zA-Z0-9_]*
 "sizeof"	{ return T_SIZEOF; }
 "static"	{ return T_STATIC; }
 
-"\"".+"\""	{ return T_STRLIT; } /* todo */
+"\"".+"\""	{ /* todo */ return T_STRLIT; }
 
 ";"		{ return T_SEMI; }
 {IDENTIFIER}	{ return T_IDENT; }
