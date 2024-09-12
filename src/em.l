@@ -13,6 +13,7 @@ int yyival;
 %}
 
 DIGIT		[0-9]
+HEXDIGIT	[a-fA-F0-9]
 IDENTIFIER	[a-zA-Z_][a-zA-Z0-9_]*
 
 %%
@@ -57,7 +58,8 @@ IDENTIFIER	[a-zA-Z_][a-zA-Z0-9_]*
 "~"		{ return T_INVERT; }
 "!"		{ return T_LOGNOT; }
 
-{DIGIT}+	{ yyival = atoi(yytext); return T_INTLIT; } /* todo: hex */
+{DIGIT}+	{ yyival = atoi(yytext); return T_INTLIT; }
+"0x"{HEXDIGIT}+	{ yyival = strtol(yytext + 2, NULL, 16); return T_INTLIT; }
 
 "void"		{ return T_VOID; }
 "i8"		{ return T_CHAR; }
