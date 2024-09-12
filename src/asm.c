@@ -327,7 +327,7 @@ int MIPS_LoadGlob(Compiler this, SymTableEntry sym, enum ASTOP op) {
     int r = allocReg(this);
     int r2;
 
-    //fprintf(this->outfile, "# loading global %s\n", sym->name);
+    // fprintf(this->outfile, "# loading global %s\n", sym->name);
 
     switch (sym->type) {
         case P_INT:
@@ -405,7 +405,7 @@ int MIPS_LoadLocal(Compiler this, SymTableEntry sym, enum ASTOP op) {
     int r = allocReg(this);
     int r2;
 
-    //fprintf(this->outfile, "# loading local %s\n", sym->name);
+    // fprintf(this->outfile, "# loading local %s\n", sym->name);
 
     if (sym->isFirstFour) {
         debug("paramReg: %d", sym->paramReg);
@@ -633,17 +633,18 @@ void MIPS_GlobSym(Compiler this, SymTableEntry sym) {
     int size;
     int initValue;
     enum ASTPRIM type;
+    bool useDims = false;
 
     // ! For annoymous strings only
     if ((sym->type & P_CHAR) && ptrtype(sym->type) && sym->isStr) {
-        fprintf(this->outfile, "%s:\n\t.asciiz %s\n", sym->name,
-                sym->strValue);
+        fprintf(this->outfile, "%s:\n\t.asciiz %s\n", sym->name, sym->strValue);
         return;
     }
 
     if (sym->stype == S_ARRAY) {
         size = type_size(value_at(sym->type), sym->ctype);
         type = value_at(sym->type);
+        useDims = true;
     } else {
         size = sym->size;
         type = sym->type;
@@ -654,7 +655,13 @@ void MIPS_GlobSym(Compiler this, SymTableEntry sym) {
 
     fprintf(this->outfile, "%s:\n", sym->name);
 
-    debug("allocating global variable %s nElems: %d", sym->name, sym->nElems);
+    if (sym->stype == S_ARRAY && sym->initList == NULL) {
+        int totaldims = 1;
+        for (ArrayDim head = sym->dims; head != NULL; head = head->next) {
+            totaldims *= head->nElems;
+        }
+        fprintf(this->outfile, "\t.space %d\n", size * totaldims);
+    }
 
     for (int i = 0; i < sym->nElems; i++) {
         initValue = 0;
@@ -1086,7 +1093,7 @@ int allocReg(Compiler this) {
     int reg = this->spillReg % TEMP_MAX_REG;
     this->spillReg++;
     MIPS_RegPush(this, reg);
-    //fprintf(this->outfile, "\t# we spill the %s\n", reglist[reg]);
+    // fprintf(this->outfile, "\t# we spill the %s\n", reglist[reg]);
     return reg;
 }
 
@@ -1097,7 +1104,7 @@ static void freeReg(Compiler this, int reg1) {
     if (this->spillReg > 0) {
         this->spillReg--;
         reg1 = this->spillReg % TEMP_MAX_REG;
-        //fprintf(this->outfile, "\t# we unspill the %s\n", reglist[reg1]);
+        // fprintf(this->outfile, "\t# we unspill the %s\n", reglist[reg1]);
         MIPS_RegPop(this, reg1);
     } else {
         this->regUsed[reg1] = false;

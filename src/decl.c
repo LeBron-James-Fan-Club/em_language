@@ -39,6 +39,9 @@ static SymTableEntry scalar_declare(Compiler c, Scanner s, SymTable st,
                                     Token tok, Context ctx, char *varName,
                                     enum ASTPRIM type, SymTableEntry cType,
                                     enum STORECLASS class, ASTnode *tree);
+static void parse_array(Compiler c, Scanner s, SymTable st, Token tok,
+                        Context ctx, enum ASTPRIM type, ArrayDim dims,
+                        int *initList, int *curr);
 
 static SymTableEntry symbol_declare(Compiler c, Scanner s, SymTable st,
                                     Token tok, Context ctx, enum ASTPRIM type,
@@ -83,6 +86,7 @@ static SymTableEntry symbol_declare(Compiler c, Scanner s, SymTable st,
     }
 
     if (tok->token == T_LBRACKET) {
+        printf("array\n");
         sym = array_declare(c, s, st, tok, ctx, varName, type, cType, class);
     } else {
         sym = scalar_declare(c, s, st, tok, ctx, varName, type, cType, class,
@@ -94,6 +98,40 @@ static SymTableEntry symbol_declare(Compiler c, Scanner s, SymTable st,
     return sym;
 }
 
+// nelems is initalised values in array
+// curr is the current index in the array
+// TODO: reimplement no fixed size array
+static void parse_array(Compiler c, Scanner s, SymTable st, Token tok,
+                        Context ctx, enum ASTPRIM type, ArrayDim dims,
+                        int *initList, int *curr) {
+    match(s, tok, T_LBRACE, "{");
+
+    if (dims == NULL) {
+        lfatal(s, "InternalError: parse_array called with NULL dims");
+    }
+
+    while (true) {
+        if (tok->token == T_LBRACE) {
+            if (dims->next == NULL) {
+                lfatal(s, "TypeError: Dimension mismatch");
+            }   
+            parse_array(c, s, st, tok, ctx, type, dims->next, initList, curr);
+        } else {
+            debug("is number %s curr %d", tok->tokstr, *curr);
+            initList[(*curr)++] = parse_literal(c, s, st, tok, ctx, type);
+        }
+
+        if (tok->token == T_RBRACE) {
+            Scanner_Scan(s, tok);
+            break;
+        }
+
+        debug("we goofed here");
+        comma(s, tok);
+    }
+}
+
+// Not really a literal anymore lmao - does recursion with arrays
 static int parse_literal(Compiler c, Scanner s, SymTable st, Token tok,
                          Context ctx, enum ASTPRIM type) {
     ASTnode tree = Optimise(ASTnode_Order(c, s, st, tok, ctx, 0));
@@ -195,22 +233,47 @@ static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
                                    enum STORECLASS class) {
     SymTableEntry sym;
     int nelems = -1;
-    int maxElems;
+    int maxElems = 1;
     int *initList;
     int i = 0;
 
-    // eat [
-    Scanner_Scan(s, tok);
+    int dims = 1;
 
-    if (tok->token != T_RBRACKET) {
-        nelems = parse_literal(c, s, st, tok, ctx, P_INT);
-        if (nelems < 0) {
-            lfatala(s, "InvalidValueError: negative array size: %d", nelems);
+    ArrayDim dimsList = NULL;
+    ArrayDim dimsTail = NULL;
+
+    while (tok->token == T_LBRACKET) {
+        // eat [
+        Scanner_Scan(s, tok);
+
+        if (tok->token != T_RBRACKET) {
+            nelems = parse_literal(c, s, st, tok, ctx, P_INT);
+            if (nelems < 0) {
+                lfatala(s, "InvalidValueError: negative array size: %d",
+                        nelems);
+            }
         }
-    }
 
-    // eat ]
-    match(s, tok, T_RBRACKET, "]");
+        if (nelems == -1) {
+            lfatal(s, "TypeError: 0 size arrays are not supported");
+        }
+
+        if (dimsList == NULL) {
+            dimsList = dimsTail = calloc(1, sizeof(struct arrayDim));
+        } else {
+            dimsTail->next = calloc(1, sizeof(struct arrayDim));
+            dimsTail = dimsTail->next;
+        }
+
+        dimsTail->nElems = nelems;
+        maxElems *= nelems;
+        nelems = -1;
+
+        // eat ]
+        dims++;
+
+        match(s, tok, T_RBRACKET, "]");
+    }
 
     switch (class) {
         case C_EXTERN:
@@ -235,46 +298,21 @@ static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
                    "and static variables");
         }
         Scanner_Scan(s, tok);
-
-        match(s, tok, T_LBRACE, "{");
-
-        maxElems = (nelems == -1) ? TABLE_INCREMENT : nelems;
-
+        debug("array init %d", maxElems);
         initList = calloc(maxElems, sizeof(int));
+        parse_array(c, s, st, tok, ctx, type, dimsList, initList, &i);
 
-        while (true) {
-            if (nelems != -1 && i == maxElems) {
-                fatal(
-                    "ArraySizeError: too many elements in array initializer\n");
-            }
-
-            // TODO: Figure out how the fuck I'm going to handle custom
-            // TODO: LABELS
-            initList[i++] = parse_literal(c, s, st, tok, ctx, type);
-
-            if (nelems == -1 && i == maxElems) {
-                maxElems += TABLE_INCREMENT;
-                initList = realloc(initList, maxElems * sizeof(int));
-            }
-
-            if (tok->token == T_RBRACE) {
-                Scanner_Scan(s, tok);
-                break;
-            }
-
-            comma(s, tok);
-        }
-
-        for (int j = i; j < sym->nElems; j++) initList[j] = 0;
-        if (i > nelems) nelems = i;
+        for (int j = i; j < sym->nElems; j++) initList[j] = 0;        
         sym->initList = initList;
+        sym->nElems = maxElems;
     }
 
-    if (class != C_EXTERN && nelems <= 0) {
-        lfatal(s, "TypeError: Array must have non-zero elements");
-    }
+    // if (class != C_EXTERN && nelems <= 0) {
+    //     lfatal(s, "TypeError: Array must have non-zero elements");
+    // }
 
-    sym->nElems = nelems;
+    // sym->nElems = nelems;
+    sym->dims = dimsList;
     sym->size = sym->nElems * type_size(type, cType);
 
     return sym;
@@ -355,10 +393,14 @@ enum ASTPRIM declare_list(Compiler c, Scanner s, SymTable st, Token tok,
         return initType;
     }
 
+    debug("inside declare_list");
+
     while (true) {
         type = parse_stars(s, tok, initType);
 
+        debug("inside symbol_declare");
         sym = symbol_declare(c, s, st, tok, ctx, type, *cType, class, &tree);
+        debug("out of symbol_declare");
 
         if (sym->stype == S_FUNC) {
             if (class != C_GLOBAL && class != C_STATIC) {
@@ -734,6 +776,7 @@ static void enum_declare(Scanner s, SymTable st, Token tok) {
 
         if (tok->token == T_RBRACE) break;
 
+        printf("comma\n");
         comma(s, tok);
     }
 
@@ -785,6 +828,7 @@ void global_declare(Compiler c, Scanner s, SymTable st, Token tok,
     SymTableEntry cType;
     ASTnode unused;
     while (tok->token != T_EOF) {
+        debug("global_declare");
         declare_list(c, s, st, tok, ctx, &cType, C_GLOBAL, T_SEMI, T_EOF,
                      &unused);
 

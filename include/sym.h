@@ -20,6 +20,13 @@ bool inttype(enum ASTPRIM type);
 
 enum STRUCTTYPE { S_VAR, S_FUNC, S_LABEL, S_ARRAY };
 
+struct arrayDim {
+    int nElems;
+    struct arrayDim *next;
+}; 
+
+typedef struct arrayDim *ArrayDim;
+
 struct symTableEntry {
     char *name;
     enum ASTPRIM type;
@@ -48,6 +55,8 @@ struct symTableEntry {
     int *initList;
 
     struct symTableEntry *next;
+
+    struct arrayDim *dims;
 
     // holds parameter list
     struct symTableEntry *member;

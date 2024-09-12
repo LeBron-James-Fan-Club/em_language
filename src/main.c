@@ -114,6 +114,7 @@ int main(int argc, char *argv[]) {
     MIPS_Pre(c);
 
     Scanner_Scan(s, tok);
+    debug("global_declare 222");
     global_declare(c, s, st, tok, ctx);
     MIPS_Post(c);
 
