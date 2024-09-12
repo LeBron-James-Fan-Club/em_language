@@ -23,8 +23,6 @@ Scanner Scanner_New(void) {
     Scanner n = calloc(1, sizeof(struct scanner));
     n->line = 1;
     n->putback = '\n';
-    n->comment[0] = 'a';
-    n->commentLen = 0;
 
     return n;
 }
@@ -46,6 +44,16 @@ void Scanner_Scan(Scanner this, Token t) {
 
     if (t->token == T_IDENT) {
         strcpy(this->text, t->tokstr);
+    }
+
+    if (t->token == T_SEMI) {
+        this->comment[this->commentLen] = '\0';
+        this->commentLen = 0;
+    } else {
+        for (int i = 0; i < strlen(t->tokstr); i++) {
+            this->comment[this->commentLen++] = t->tokstr[i];
+        }
+        this->comment[this->commentLen++] = ' ';
     }
 
     debug("\t\t\t\t\t scan %d ('%s'): '%s' ('%s')", t->token, TokStr[t->token], t->tokstr, this->text);

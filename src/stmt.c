@@ -311,10 +311,10 @@ static ASTnode if_statement(Compiler c, Scanner s, SymTable st, Token tok,
             ASTnode_NewUnary(A_TOBOOL, condAST->type, condAST, NULL, NULL, 0);
     }
 
+    Scanner_EndComment(s);
+    condAST->comment = strdup(s->comment);
     rparen(s, tok);
 
-    condAST->comment = strdup(s->comment);
-    Scanner_EndComment(s);
 
     trueAST = single_statement(c, s, st, tok, ctx);
 
