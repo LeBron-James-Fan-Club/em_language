@@ -42,6 +42,7 @@ void Scanner_Scan(Scanner this, Token t) {
     }
 
     *t = em_scanner_next(this->em_scanner);
+    this->line = em_scanner_lineno(this->em_scanner);
 
     if (t->token == T_IDENT || t->token == T_STRLIT) {
         strcpy(this->text, t->tokstr);

@@ -10,6 +10,7 @@
 
 void *em_scanner_new(FILE *in);
 struct token em_scanner_next(void *internal);
+int em_scanner_lineno(void *internal);
 void em_scanner_free(void *internal);
 
 int decode_char_literal(const char *s);

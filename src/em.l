@@ -1,4 +1,4 @@
-%option nounput noinput noyywrap
+%option yylineno nounput noinput noyywrap
 %option reentrant
 %option prefix="emlexer"
 
@@ -142,6 +142,11 @@ struct token em_scanner_next(void *internal) {
 	char *tokstr = yyget_text(scanner);
 	int intvalue = yyival;
 	return (struct token) { token, tokstr, intvalue };
+}
+
+int em_scanner_lineno(void *internal) {
+	yyscan_t scanner = (yyscan_t) internal;
+	return yyget_lineno(scanner);
 }
 
 void em_scanner_free(void *internal) {
