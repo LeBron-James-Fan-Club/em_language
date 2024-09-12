@@ -8,13 +8,15 @@
 
 #include "defs.h"
 
+void *em_scanner_new(FILE *in);
+struct token em_scanner_next(void *internal);
+void em_scanner_free(void *internal);
+
 // May god forgive me for this
 #define TEXTLEN 400000
 
 struct scanner {
-    // file to scan in
-    FILE *infile;
-    char *infilename;
+    void *em_scanner;
 
     // character to put back
     char putback;
@@ -26,7 +28,8 @@ struct scanner {
     char comment[TEXTLEN + 1];
     int commentLen;
 
-    Token rejToken;
+    bool hasRejectedToken;
+    struct token rejToken;
 };
 
 typedef struct scanner *Scanner;
@@ -34,7 +37,6 @@ typedef struct scanner *Scanner;
 Scanner Scanner_New(void);
 void Scanner_Free(Scanner);
 void Scanner_Scan(Scanner this, Token t);
-void Scanner_Putback(Scanner this, char c);
 void Scanner_RejectToken(Scanner this, Token t);
 void Scanner_EndComment(Scanner this);
 

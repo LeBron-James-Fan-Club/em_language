@@ -276,7 +276,7 @@ void SymTable_SetText(SymTable this, char *text, SymTableEntry e) {
 }
 
 static void dumpSym(SymTableEntry sym, int indent) {
-    for (int i = 0; i < ident; i++) printf(" ");
+    for (int i = 0; i < indent; i++) printf(" ");
 
     switch (sym->type & (~0xf)) {
         case P_VOID:
