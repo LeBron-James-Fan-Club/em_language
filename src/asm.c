@@ -636,7 +636,7 @@ void MIPS_GlobSym(Compiler this, SymTableEntry sym) {
 
     // ! For annoymous strings only
     if ((sym->type & P_CHAR) && ptrtype(sym->type) && sym->isStr) {
-        fprintf(this->outfile, "%s:\n\t.asciiz \"%s\"\n", sym->name,
+        fprintf(this->outfile, "%s:\n\t.asciiz %s\n", sym->name,
                 sym->strValue);
         return;
     }
