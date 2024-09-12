@@ -65,7 +65,8 @@ IDENTIFIER	[a-zA-Z_][a-zA-Z0-9_]*
 {HP}{H}+				{ yyival = strtol(yytext + 2, NULL, 16); return T_INTLIT; }
 {NZ}{D}*				{ yyival = strtol(yytext    , NULL, 10); return T_INTLIT; }
 "0"{O}*					{ yyival = strtol(yytext + 1, NULL,  8); return T_INTLIT; }
-"'"([^'\\\n]|{ES})+"'"			{ yyival = yytext[1]; /* todo: parse */  return T_INTLIT; }
+"'"([^'\\\n]|{ES})+"'"			{ yyival = decode_char_literal(yytext) ; return T_INTLIT; }
+\"([^"\\\n]|{ES})*\"			{ return T_STRLIT; }
 
 "void"		{ return T_VOID; }
 "i8"		{ return T_CHAR; }
@@ -101,8 +102,6 @@ IDENTIFIER	[a-zA-Z_][a-zA-Z0-9_]*
 "default"	{ return T_DEFAULT; }
 "sizeof"	{ return T_SIZEOF; }
 "static"	{ return T_STATIC; }
-
-"\"".+"\""	{ /* todo */ return T_STRLIT; }
 
 ";"		{ return T_SEMI; }
 {IDENTIFIER}	{ return T_IDENT; }

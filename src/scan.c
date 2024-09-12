@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #include "defs.h"
 #include "misc.h"
@@ -42,7 +43,7 @@ void Scanner_Scan(Scanner this, Token t) {
 
     *t = em_scanner_next(this->em_scanner);
 
-    if (t->token == T_IDENT) {
+    if (t->token == T_IDENT || t->token == T_STRLIT) {
         strcpy(this->text, t->tokstr);
     }
 
@@ -97,3 +98,56 @@ void lbracket(Scanner s, Token t) { match(s, t, T_LBRACKET, "["); }
 void rbracket(Scanner s, Token t) { match(s, t, T_RBRACKET, "]"); }
 
 void comma(Scanner s, Token t) { match(s, t, T_COMMA, ","); }
+
+int decode_char_literal(const char *input) {
+    if (input[2] == '\'') {
+        return input[1];
+    }
+
+    switch (input[2]) {
+        case 'n':
+            return '\n';
+        case 't':
+            return '\t';
+        case 'r':
+            return '\r';
+        case 'f':
+            return '\f';
+        case 'b':
+            return '\b';
+        case 'a':
+            return '\a';
+        case 'v':
+            return '\v';
+        case '\\':
+            return '\\';
+        case '\'':
+            return '\'';
+        case '\"':
+            return '\"';
+        case '?':
+            return '\?';
+        case '0' ... '7': {
+            int value = 0;
+
+            for (int i = 1; input[i] != '\''; i++) {
+                value *= 8;
+                value += input[i] - '0';
+            }
+
+            return value;
+        }
+        case 'x': {
+            int value = 0;
+
+            for (int i = 2; isxdigit(input[i]); i++) {
+                value *= 16;
+                value += isdigit(input[i]) ? (input[i] - '0') : (tolower(input[i]) - 'a' + 10);
+            }
+
+            return value;
+        }
+        default:
+            return '\0'; // invalid
+    }
+}
