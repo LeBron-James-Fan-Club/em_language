@@ -1,101 +1,64 @@
-#define _GNU_SOURCE
-#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "ast.h"
-#include "context.h"
-#include "decl.h"
-#include "defs.h"
 #include "flags.h"
-#include "gen.h"
-#include "misc.h"
-#include "scan.h"
-#include "stmt.h"
-#include "sym.h"
 
 Flags flags;
 
-static void usage(char *path);
-static int argParse(int argc, char *argv[]);
-static void preprocess(Scanner s, char *filename);
-
-static void usage(char *path) {
-    printf("Options:\n");
-    printf("  -T: Dump AST\n");
-    printf("  -d: Debug\n");
-    printf("  -p: Fix parameters to 4\n");
-    printf("  -S: Dump symbol table\n");
-    printf("Usage: %s [options] [file] [outfile]\n", path);
-    exit(-1);
-}
-
-static int argParse(int argc, char *argv[]) {
-    if (argc < 3) {
-        usage(argv[0]);
-    }
-
-    flags = (Flags){
-        .dumpAST = false, .debug = false, .paramFix = false, .dumpSym = false};
-
-    int i;
-
-    for (i = 1; i < argc; i++) {
-        if (*argv[i] != '-') {
-            break;
-        }
-        for (int j = 1; argv[i][j] != '\0'; j++) {
-            switch (argv[i][j]) {
-                case 'T':
-                    flags.dumpAST = true;
-                    break;
-                case 'd':
-                    flags.debug = true;
-                    break;
-                case 'p':
-                    flags.paramFix = true;
-                    break;
-                case 'S':
-                    flags.dumpSym = true;
-                    break;
-                default:
-                    usage(argv[0]);
-            }
-        }
-    }
-
-    return i;
-}
-
-static void preprocess(Scanner s, char *filename) {
-    // todo: new Em
-}
-
 int main(int argc, char *argv[]) {
-    if (argc < 3) {
-        usage(argv[0]);
+    printf("NOTE: The author makes evident that using\n"
+           "this tool to complete work where it is not\n"
+           "permitted, such as in COMP1521 activities\n"
+           "and assignments, is not condoned, and takes\n"
+           "no responsibility in such events.\n\n");
+
+    int opt;
+    char *output = "-";
+
+    // Parse command line options
+    while ((opt = getopt(argc, argv, "TdpSo:")) != -1) {
+        switch (opt) {
+            case 'T':
+                flags.dumpAST = true;
+                break;
+            case 'd':
+                flags.debug = true;
+                break;
+            case 'p':
+                flags.paramFix = true;
+                break;
+            case 'S':
+                flags.dumpSym = true;
+                break;
+            case 'o':
+                output = optarg;
+                break;
+            case '?':
+                fprintf(stderr, "Usage: %s [-T] [-d] [-p] [-S] -o output_file [input_files...]\n", argv[0]);
+                exit(EXIT_FAILURE);
+            default:
+                abort();
+        }
     }
 
-    argParse(argc, argv);
+    for (int i = optind; i < argc; i++) {
+        printf("input: %s\n", argv[i]);
+    }
 
-    int i = argParse(argc, argv);
+    printf("output: %s\n", output);
 
+    /*
     Scanner s = Scanner_New();
-    preprocess(s, argv[i]);
 
     if (s == NULL) {
         fatal("InternalError: unable to initialise scanner\n");
     }
 
-    Compiler c = Compiler_New(argv[i + 1]);
+    Compiler c = Compiler_New(o_value);
     SymTable st = SymTable_New();
     Token tok = calloc(1, sizeof(struct token));
     Context ctx = Context_New();
-
-    printf("The author makes clear that using this tool to complete work \n"
-    "where it is not permitted, such as in COMP1521 lab activities\n"
-    "and assignments, is not condoned, and takes no responsibility for such events.\n");
 
     MIPS_Pre(c);
 
@@ -117,10 +80,6 @@ int main(int argc, char *argv[]) {
     free(tok);
     Context_Free(ctx);
 
-    printf(
-        "\033[32m"
-        "Success!"
-        "\033[0m\n");
-
     exit(0);
+     */
 }
