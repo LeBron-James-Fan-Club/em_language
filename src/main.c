@@ -1,10 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/wait.h>
+#include <string.h>
 
 #include "flags.h"
 
 Flags flags;
+
+static char *read_file(const char *filename);
+
+void *compiler_new();
+void compiler_accept(void *compiler, char *source);
+void compiler_assemble(void *compiler, FILE *output);
+void compiler_free(void *compiler);
 
 int main(int argc, char *argv[]) {
     printf("NOTE: The author makes evident that using\n"
@@ -25,9 +34,6 @@ int main(int argc, char *argv[]) {
             case 'd':
                 flags.debug = true;
                 break;
-            case 'p':
-                flags.paramFix = true;
-                break;
             case 'S':
                 flags.dumpSym = true;
                 break;
@@ -35,18 +41,36 @@ int main(int argc, char *argv[]) {
                 output = optarg;
                 break;
             case '?':
-                fprintf(stderr, "Usage: %s [-T] [-d] [-p] [-S] -o output_file [input_files...]\n", argv[0]);
+                fprintf(stderr, "Usage: %s [-T] [-d] [-S] -o output_file [input_files...]\n", argv[0]);
                 exit(EXIT_FAILURE);
             default:
                 abort();
         }
     }
 
+    void *compiler = compiler_new();
+
     for (int i = optind; i < argc; i++) {
-        printf("input: %s\n", argv[i]);
+        compiler_accept(compiler, read_file(argv[i]));
     }
 
-    printf("output: %s\n", output);
+    FILE *out;
+
+    if (strcmp(output, "-") == 0) {
+        out = stdout;
+    } else {
+        out = fopen(output, "w");
+
+        if (out == NULL) {
+            perror("opening output");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    compiler_assemble(compiler, out);
+    compiler_free(compiler);
+
+    return EXIT_SUCCESS;
 
     /*
     Scanner s = Scanner_New();
@@ -82,4 +106,93 @@ int main(int argc, char *argv[]) {
 
     exit(0);
      */
+}
+
+char *read_file(const char *filename) {
+    char *buffer = NULL;
+    size_t buffer_size = 0;
+
+    FILE *memstream = open_memstream(&buffer, &buffer_size);
+
+    if (memstream == NULL) {
+        perror("open_memstream");
+        exit(EXIT_FAILURE);
+    }
+
+    int pipefd[2];
+
+    if (pipe(pipefd) == -1) {
+        perror("pipe");
+        exit(EXIT_FAILURE);
+    }
+
+    pid_t pid = fork();
+
+    if (pid == -1) {
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }
+
+    if (pid == 0) {
+        // Child process
+
+        // Close the read end of the pipe in the child
+        close(pipefd[STDIN_FILENO]);
+
+        // Redirect stdout to the write end of the pipe
+        dup2(pipefd[STDOUT_FILENO], STDOUT_FILENO);
+        close(pipefd[STDOUT_FILENO]);
+
+        // Preprocess
+        execlp("cpp", "cpp", "-P", "-nostdinc", "-isystem", filename, NULL);
+
+        // Expect cpp to exit
+        perror("execlp");
+        exit(EXIT_FAILURE);
+    } else {
+        // Parent process
+
+        // Close the write end of the pipe in the parent
+        close(pipefd[STDOUT_FILENO]);
+
+        // Read from the pipe and write into the memory stream
+        char tmp_buffer[4096];
+        ssize_t n;
+
+        while ((n = read(pipefd[STDIN_FILENO], tmp_buffer, sizeof(tmp_buffer))) > 0) {
+            fwrite(tmp_buffer, 1, n, memstream);
+        }
+
+        if (n < 0) {
+            perror("read");
+            exit(EXIT_FAILURE);
+        }
+
+        // Close the read end of the pipe
+        close(pipefd[STDIN_FILENO]);
+
+        // Wait for the child process to finish
+        int status;
+        waitpid(pid, &status, 0);
+
+        fclose(memstream);
+        return buffer;
+    }
+}
+
+// debugging compiler
+void *compiler_new() {
+    return NULL;
+}
+
+void compiler_accept(void *compiler, char *source) {
+    printf("Parsing source in %s", source);
+    free(source);
+}
+
+void compiler_assemble(void *compiler, FILE *output) {
+    fprintf(output, "# todo: assemble for %p\n", compiler);
+}
+
+void compiler_free(void *compiler) {
 }
