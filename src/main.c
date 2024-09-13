@@ -5,15 +5,11 @@
 #include <string.h>
 
 #include "flags.h"
+#include "new-compiler.h"
 
 Flags flags;
 
 static char *read_file(const char *filename);
-
-void *compiler_new();
-void compiler_accept(void *compiler, char *source);
-void compiler_assemble(void *compiler, FILE *output);
-void compiler_free(void *compiler);
 
 int main(int argc, char *argv[]) {
     printf("NOTE: The author makes evident that using\n"
@@ -26,7 +22,7 @@ int main(int argc, char *argv[]) {
     char *output = "-";
 
     // Parse command line options
-    while ((opt = getopt(argc, argv, "TdpSo:")) != -1) {
+    while ((opt = getopt(argc, argv, "TdSo:")) != -1) {
         switch (opt) {
             case 'T':
                 flags.dumpAST = true;
@@ -144,7 +140,7 @@ char *read_file(const char *filename) {
         close(pipefd[STDOUT_FILENO]);
 
         // Preprocess
-        execlp("cpp", "cpp", "-P", "-nostdinc", "-isystem", filename, NULL);
+        execlp("cpp", "cpp", "-P", "-nostdinc", filename, NULL);
 
         // Expect cpp to exit
         perror("execlp");
@@ -178,21 +174,4 @@ char *read_file(const char *filename) {
         fclose(memstream);
         return buffer;
     }
-}
-
-// debugging compiler
-void *compiler_new() {
-    return NULL;
-}
-
-void compiler_accept(void *compiler, char *source) {
-    printf("Parsing source in %s", source);
-    free(source);
-}
-
-void compiler_assemble(void *compiler, FILE *output) {
-    fprintf(output, "# todo: assemble for %p\n", compiler);
-}
-
-void compiler_free(void *compiler) {
 }
