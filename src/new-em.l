@@ -8,10 +8,68 @@
   #include "new-em.tab.h"
 %}
 
+HP		(0[xX])
+H		[a-fA-F0-9]
+NZ		[1-9]
+D		[0-9]
+O		[0-7]
+ES		(\\(['"\?\\abfnrtv]|[0-7]{1,3}|x[a-fA-F0-9]+))
+IDENTIFIER	[a-zA-Z_][a-zA-Z0-9_]*
+
 %%
 
-[ \n\t]+          ;
+[ \t\n]+			/* ignore all whitespace */
 
-[[:digit:]]+      { return INT_LITERAL; }
+"+="				{ return T_ADD_EQ; }
+"-="				{ return T_SUB_EQ; }
+"*="				{ return T_MUL_EQ; }
+"/="				{ return T_DIV_EQ; }
+"%="				{ return T_REM_EQ; }
+"||"				{ return T_LOG_OR; }
+"&&"				{ return T_LOG_AND; }
+"=="				{ return T_EQ; }
+"!="				{ return T_NE; }
+"<="				{ return T_LEQ; }
+">="				{ return T_GEQ; }
+"<<"				{ return T_SHIFT_LEFT; }
+">>"				{ return T_SHIFT_RIGHT; }
+"++"				{ return T_INCREMENT; }
+"--"				{ return T_DECREMENT; }
+"->"				{ return T_ARROW; }
 
-.                 { return *yytext; }
+{HP}{H}+			{ return T_LITERAL_NUMERIC; }
+{NZ}{D}*			{ return T_LITERAL_NUMERIC; }
+"0"{O}*				{ return T_LITERAL_NUMERIC; }
+"'"([^'\\\n]|{ES})+"'"		{ return T_LITERAL_NUMERIC; }
+\"([^"\\\n]|{ES})*\"		{ return T_LITERAL_STRING; }
+
+"void"				{ return T_VOID; }
+"i8"				{ return T_CHAR; }
+"i32"				{ return T_INT; }
+"print"				{ return T_PRINT; }
+"input"				{ return T_INPUT; }
+"peek"				{ return T_PEEK; }
+"poke"				{ return T_POKE; }
+"exit"				{ return T_EXIT; }
+"if"				{ return T_IF; }
+"else"				{ return T_ELSE; }
+"label"				{ return T_LABEL; }
+"goto"				{ return T_GOTO; }
+"while"				{ return T_WHILE; }
+"for"				{ return T_FOR; }
+"return"			{ return T_RETURN; }
+"struct"			{ return T_STRUCT; }
+"union"				{ return T_UNION; }
+"enum"				{ return T_ENUM; }
+"typedef"			{ return T_TYPEDEF; }
+"extern"			{ return T_EXTERN; }
+"break"				{ return T_BREAK; }
+"continue"			{ return T_CONTINUE; }
+"switch"			{ return T_SWITCH; }
+"case"				{ return T_CASE; }
+"default"			{ return T_DEFAULT; }
+"sizeof"			{ return T_SIZEOF; }
+"static"			{ return T_STATIC; }
+{IDENTIFIER}			{ return T_IDENTIFIER; }
+
+.				{ return *yytext; }

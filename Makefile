@@ -14,8 +14,6 @@ SRC_FILES += $(wildcard $(SRC_DIR)/**/*.c $(SRC_DIR)/*.c)
 SRC_FILES += $(filter-out $(SRC_FILES),$(SRC_DIR)/new-em.tab.c)
 SRC_FILES += $(filter-out $(SRC_FILES),$(SRC_DIR)/new-em.lex.c)
 
-$(info $(SRC_FILES))
-
 # Corresponding object files
 OBJ_FILES = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC_FILES))
 
