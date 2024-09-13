@@ -1,6 +1,7 @@
 #pragma once
 
 typedef struct ast_node *AstNode;
+typedef AstNode OptionalAstNode;
 
 struct ast_node_span {
     int first_line;
@@ -10,6 +11,11 @@ struct ast_node_span {
 
     int start_byte;
     int end_byte;
+};
+
+enum ast_literal_type {
+    LITERAL_NUMERIC,
+    LITERAL_STRING,
 };
 
 #define AST_NODE(type_name, struct_name, structure) type_name,
@@ -47,10 +53,32 @@ AstNode ast_list_add(AstNode list, AstNode child);
 
 AstNode ast_list_expand(struct ast_node_span span, AstNode list, AstNode child);
 
-AstNode ast_variable_declaration(struct ast_node_span span, AstNode type, AstNode name, AstNode initializer);
+AstNode ast_variable_declaration(struct ast_node_span span, AstNode type, AstNode name, OptionalAstNode initializer);
 
-AstNode ast_function_declaration(struct ast_node_span span, AstNode type, AstNode name, AstNode parameter_list, AstNode body);
+AstNode ast_function_declaration(struct ast_node_span span, AstNode type, AstNode name, AstNode parameter_list, OptionalAstNode body);
 
 AstNode ast_struct_declaration(struct ast_node_span span, AstNode name, AstNode members);
 
 AstNode ast_type_name_pair(struct ast_node_span span, AstNode type, AstNode name);
+
+AstNode ast_expression_statement(struct ast_node_span span, AstNode expression);
+
+AstNode ast_if_statement(struct ast_node_span span, AstNode condition, AstNode truthy, AstNode falsy);
+
+AstNode ast_while_statement(struct ast_node_span span, AstNode condition, AstNode body);
+
+AstNode ast_assignment(struct ast_node_span span, AstNode name, AstNode expression);
+
+AstNode ast_literal_expression(struct ast_node_span span, AstNode literal, OptionalAstNode storage);
+
+AstNode ast_identifier(struct ast_node_span span);
+
+AstNode ast_unary_operator(struct ast_node_span span, char operator, AstNode inner);
+
+AstNode ast_binary_operator(struct ast_node_span span, char operator, AstNode left, AstNode right);
+
+AstNode ast_ternary_operator(struct ast_node_span span, AstNode condition, AstNode truthy, AstNode falsy);
+
+AstNode ast_invocation(struct ast_node_span span, AstNode function, AstNode parameterList);
+
+AstNode ast_literal(struct ast_node_span span, enum ast_literal_type type);

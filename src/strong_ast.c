@@ -63,7 +63,7 @@ AstNode ast_list_expand(struct ast_node_span span, AstNode list, AstNode child) 
     return list;
 }
 
-AstNode ast_variable_declaration(struct ast_node_span span, AstNode type, AstNode name, AstNode initializer) {
+AstNode ast_variable_declaration(struct ast_node_span span, AstNode type, AstNode name, OptionalAstNode initializer) {
     AstNode node = ast_basic_node(AST_VARIABLE_DECLARATION, span);
     node->as_variable_declaration.type = type;
     node->as_variable_declaration.name = name;
@@ -71,7 +71,7 @@ AstNode ast_variable_declaration(struct ast_node_span span, AstNode type, AstNod
     return node;
 }
 
-AstNode ast_function_declaration(struct ast_node_span span, AstNode type, AstNode name, AstNode parameter_list, AstNode body) {
+AstNode ast_function_declaration(struct ast_node_span span, AstNode type, AstNode name, AstNode parameter_list, OptionalAstNode body) {
     AstNode node = ast_basic_node(AST_FUNCTION_DECLARATION, span);
     node->as_function_declaration.type = type;
     node->as_function_declaration.name = name;

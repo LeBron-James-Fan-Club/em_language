@@ -33,7 +33,7 @@ globalDeclaration: variableDeclaration	{ $$ = ast_expand(@$, $1); }
                  | typeDeclaration	{ $$ = ast_expand(@$, $1); }
                  ;
 
-variableDeclaration: type T_IDENTIFIER				{ $$ = ast_variable_declaration(@$, $1, $2, NULL); }
+variableDeclaration: type T_IDENTIFIER ';'			{ $$ = ast_variable_declaration(@$, $1, $2, NULL); }
                    | type T_IDENTIFIER '=' expression ';'	{ $$ = ast_variable_declaration(@$, $1, $2, $4); }
                    ;
 
@@ -67,39 +67,40 @@ block: '{' statements '}'	{ $2->span = @$; $$ = $2; }
      ;
 
 statements: %empty			{ $$ = ast_list_new(@$, AST_ALL); }
-          | statement statements	{ $$ = ast_list_expand(@$, $1, $2); }
+          | statements statement	{ $$ = ast_list_expand(@$, $1, $2); }
           ;
 
-statement: expression ';'					{ $$ = NULL; }
-         | T_IF '(' expression ')' statement			{ $$ = NULL; }
-         | T_IF '(' expression ')' statement T_ELSE statement	{ $$ = NULL; }
-         | T_WHILE '(' expression ')' statement			{ $$ = NULL; }
-         | block						{ $$ = NULL; }
-         | type T_IDENTIFIER					{ $$ = NULL; }
-         | type T_IDENTIFIER '=' expression			{ $$ = NULL; }
-         | T_IDENTIFIER '=' expression ';'			{ $$ = NULL; }
+statement: expression ';'					{ $$ = ast_expression_statement(@$, $1); }
+         | T_IF '(' expression ')' statement			{ $$ = ast_if_statement(@$, $3, $5, NULL); }
+         | T_IF '(' expression ')' statement T_ELSE statement	{ $$ = ast_if_statement(@$, $3, $5, $7); }
+         | T_WHILE '(' expression ')' statement			{ $$ = ast_while_statement(@$, $3, $5); }
+         | block						{ $$ = ast_expand(@$, $1); }
+         | type T_IDENTIFIER ';'				{ $$ = ast_variable_declaration(@$, $1, $2, NULL); }
+         | type T_IDENTIFIER '=' expression ';'			{ $$ = ast_variable_declaration(@$, $1, $2, $4); }
+         | T_IDENTIFIER '=' expression ';'			{ $$ = ast_assignment(@$, $1, $3); }
          ;
 
-expression: literal						{ $$ = NULL; }
-          | T_IDENTIFIER					{ $$ = NULL; }
-          | expression '+' expression				{ $$ = NULL; }
-          | '!' expression					{ $$ = NULL; }
-          | expression '?' expression ':' expression		{ $$ = NULL; }
-          | T_IDENTIFIER '(' ')'				{ $$ = NULL; }
-          | T_IDENTIFIER '(' parameterList ')'			{ $$ = NULL; }
+expression: '(' expression ')'					{ $$ = ast_expand(@$, $1); }
+          | literal						{ $$ = ast_literal_expression(@$, $1, NULL); }
+          | literal '[' expression ']'				{ $$ = ast_literal_expression(@$, $1, $3); }
+          | T_IDENTIFIER					{ $$ = ast_identifier(@$); }
+          | expression '+' expression				{ $$ = ast_binary_operator(@$, '+', $1, $3); }
+          | '!' expression					{ $$ = ast_unary_operator(@$, '!', $2); }
+          | expression '?' expression ':' expression		{ $$ = ast_ternary_operator(@$, $1, $3, $5); }
+          | expression '(' parameterList ')'			{ $$ = ast_invocation(@$, $1, $3); }
           ;
 
-parameterList: expression					{ $$ = NULL; }
-             | expression ',' parameterList			{ $$ = NULL; }
+parameterList: %empty						{ $$ = ast_list_new(@$, AST_ALL); }
+             | parameters					{ $$ = ast_expand(@$, $1); }
              ;
 
-literal: anonymousLiteral					{ $$ = NULL; }
-       | anonymousLiteral '[' T_IDENTIFIER ']'			{ $$ = NULL; }
-       ;
+parameters: expression						{ $$ = ast_list_new(@$, AST_ALL); }
+          | parameters ',' expression				{ $$ = ast_list_expand(@$, $1, $3); }
+          ;
 
-anonymousLiteral: T_LITERAL_NUMERIC				{ $$ = NULL; }
-                | T_LITERAL_STRING				{ $$ = NULL; }
-                ;
+literal: T_LITERAL_NUMERIC					{ $$ = ast_literal(@$, LITERAL_NUMERIC); }
+       | T_LITERAL_STRING					{ $$ = ast_literal(@$, LITERAL_STRING); }
+       ;
 
 type: T_I32			{ $$ = NULL; }
     | T_I8			{ $$ = NULL; }

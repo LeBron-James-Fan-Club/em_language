@@ -9,14 +9,14 @@ AST_NODE(AST_LIST, list, {
 AST_NODE(AST_VARIABLE_DECLARATION, variable_declaration, {
     AstNode type;
     AstNode name;
-    AstNode initializer;
+    OptionalAstNode initializer;
 })
 
 AST_NODE(AST_FUNCTION_DECLARATION, function_declaration, {
     AstNode type;
     AstNode name;
     AstNode parameter_list;
-    AstNode body;
+    OptionalAstNode body;
 })
 
 AST_NODE(AST_STRUCT_DECLARATION, struct_declaration, {
