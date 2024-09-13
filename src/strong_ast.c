@@ -57,28 +57,39 @@ AstNode ast_list_add(AstNode list, AstNode child) {
     return list;
 }
 
-AstNode ast_identifier(struct ast_node_span span, enum ast_literal_type literal_type) {
-    AstNode node = ast_basic_node(AST_IDENTIFIER, span);
-    node->as_literal.literal_type = literal_type;
+AstNode ast_list_expand(struct ast_node_span span, AstNode list, AstNode child) {
+    ast_list_add(list, child);
+    ast_expand(span, list);
+    return list;
+}
+
+AstNode ast_variable_declaration(struct ast_node_span span, AstNode type, AstNode name, AstNode initializer) {
+    AstNode node = ast_basic_node(AST_VARIABLE_DECLARATION, span);
+    node->as_variable_declaration.type = type;
+    node->as_variable_declaration.name = name;
+    node->as_variable_declaration.initializer = initializer;
     return node;
 }
 
-AstNode ast_literal(struct ast_node_span span) {
-    return ast_basic_node(AST_LITERAL, span);
-}
-
-AstNode ast_unary(struct ast_node_span span, enum ast_unary_operator operator, AstNode inner) {
-    AstNode node = ast_basic_node(AST_UNARY, span);
-    node->as_unary.operator = operator;
-    node->as_unary.inner = inner;
+AstNode ast_function_declaration(struct ast_node_span span, AstNode type, AstNode name, AstNode parameter_list, AstNode body) {
+    AstNode node = ast_basic_node(AST_FUNCTION_DECLARATION, span);
+    node->as_function_declaration.type = type;
+    node->as_function_declaration.name = name;
+    node->as_function_declaration.parameter_list = parameter_list;
+    node->as_function_declaration.body = body;
     return node;
 }
 
-AstNode ast_binary(struct ast_node_span span, enum ast_binary_operator operator, AstNode left,
-                   AstNode right) {
-    AstNode node = ast_basic_node(AST_BINARY, span);
-    node->as_binary.operator = operator;
-    node->as_binary.left = left;
-    node->as_binary.right = right;
+AstNode ast_struct_declaration(struct ast_node_span span, AstNode name, AstNode members) {
+    AstNode node = ast_basic_node(AST_STRUCT_DECLARATION, span);
+    node->as_struct_declaration.name = name;
+    node->as_struct_declaration.members = members;
+    return node;
+}
+
+AstNode ast_type_name_pair(struct ast_node_span span, AstNode type, AstNode name) {
+    AstNode node = ast_basic_node(AST_TYPE_NAME_PAIR, span);
+    node->as_type_name_pair.type = type;
+    node->as_type_name_pair.name = name;
     return node;
 }

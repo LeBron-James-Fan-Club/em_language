@@ -12,19 +12,6 @@ struct ast_node_span {
     int end_byte;
 };
 
-enum ast_literal_type {
-    LITERAL_NUMERIC,
-    LITERAL_STRING,
-};
-
-enum ast_unary_operator {
-    UNARY_NOT,
-};
-
-enum ast_binary_operator {
-    BINARY_PLUS,
-};
-
 #define AST_NODE(type_name, struct_name, structure) type_name,
 #define AST_MARKER(x) x,
 enum ast_node_t {
@@ -58,10 +45,12 @@ AstNode ast_expand(struct ast_node_span span, AstNode node);
 
 AstNode ast_list_add(AstNode list, AstNode child);
 
-AstNode ast_identifier(struct ast_node_span span, enum ast_literal_type literal_type);
+AstNode ast_list_expand(struct ast_node_span span, AstNode list, AstNode child);
 
-AstNode ast_literal(struct ast_node_span span);
+AstNode ast_variable_declaration(struct ast_node_span span, AstNode type, AstNode name, AstNode initializer);
 
-AstNode ast_unary(struct ast_node_span span, enum ast_unary_operator operator, AstNode inner);
+AstNode ast_function_declaration(struct ast_node_span span, AstNode type, AstNode name, AstNode parameter_list, AstNode body);
 
-AstNode ast_binary(struct ast_node_span span, enum ast_binary_operator operator, AstNode left, AstNode right);
+AstNode ast_struct_declaration(struct ast_node_span span, AstNode name, AstNode members);
+
+AstNode ast_type_name_pair(struct ast_node_span span, AstNode type, AstNode name);

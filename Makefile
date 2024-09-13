@@ -5,12 +5,11 @@ LDFLAGS = -fsanitize=address,undefined
 
 # Directories
 SRC_DIR = src
-OBJ_DIR = obj
-TARGET = bin/a
+OBJ_DIR = build/obj
+TARGET = build/em
 
 # Source files
-SRC_FILES :=
-SRC_FILES += $(wildcard $(SRC_DIR)/**/*.c $(SRC_DIR)/*.c)
+SRC_FILES := $(wildcard $(SRC_DIR)/**/*.c $(SRC_DIR)/*.c)
 SRC_FILES += $(filter-out $(SRC_FILES),$(SRC_DIR)/new-em.tab.c)
 SRC_FILES += $(filter-out $(SRC_FILES),$(SRC_DIR)/new-em.lex.c)
 
@@ -22,7 +21,7 @@ all: $(TARGET)
 
 # Rule to link object files into the final executable
 $(TARGET): $(OBJ_FILES)
-	$(CC) $(LDFLAGS) $(OBJ_FILES) -o $@
+	$(CC) $(LDFLAGS) $^ -o $@
 
 # Rule to compile each source file to an object file
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
@@ -40,6 +39,6 @@ $(SRC_DIR)/new-em.tab.c: src/new-em.y
 
 # Clean up build files
 clean:
-	rm -rf $(OBJ_DIR)/ $(SRC_DIR)/new-em.lex.c $(SRC_DIR)/new-em.lex.h $(SRC_DIR)/new-em.tab.c $(SRC_DIR)/new-em.tab.h
+	rm -rf build/ $(SRC_DIR)/new-em.lex.c $(SRC_DIR)/new-em.lex.h $(SRC_DIR)/new-em.tab.c $(SRC_DIR)/new-em.tab.h
 
 .PHONY: all clean

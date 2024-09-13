@@ -44,8 +44,8 @@ IDENTIFIER	[a-zA-Z_][a-zA-Z0-9_]*
 \"([^"\\\n]|{ES})*\"		{ return T_LITERAL_STRING; }
 
 "void"				{ return T_VOID; }
-"i8"				{ return T_CHAR; }
-"i32"				{ return T_INT; }
+"i8"				{ return T_I8; }
+"i32"				{ return T_I32; }
 "print"				{ return T_PRINT; }
 "input"				{ return T_INPUT; }
 "peek"				{ return T_PEEK; }
