@@ -1,5 +1,3 @@
-src/scanner.c
-
 *.exe
 build/
 .vscode/

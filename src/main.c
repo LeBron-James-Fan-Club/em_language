@@ -69,21 +69,7 @@ static int argParse(int argc, char *argv[]) {
 }
 
 static void preprocess(Scanner s, char *filename) {
-    char *cmd;
-    asprintf(&cmd, "%s %s %s", CPPCMD, INCDIR, filename);
-    FILE *infile;
-
-    if ((infile = popen(cmd, "r")) == NULL) {
-        fatala("OSError: Unable to open pipe to cpp %s, error: %s", filename,
-               strerror(errno));
-    }
-
-    // todo: leaks infile
-    s->em_scanner = em_scanner_new(infile);
-
-    debug("Preprocessing %s", filename);
-
-    free(cmd);
+    // todo: new Em
 }
 
 int main(int argc, char *argv[]) {
