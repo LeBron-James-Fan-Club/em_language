@@ -3,33 +3,6 @@
 #include <stdlib.h>
 #include "strong_ast.h"
 
-struct ast_node {
-    enum ast_node_t type;
-    struct ast_node_span span;
-
-    union {
-        struct {
-            enum ast_node_t children_type;
-            AstNode *children;
-            int num_children;
-        } as_list;
-
-        /* void as_identifier; */
-        enum ast_literal_type as_literal;
-
-        struct {
-            enum ast_unary_operator operator;
-            AstNode inner;
-        } as_unary;
-
-        struct {
-            enum ast_binary_operator operator;
-            AstNode left;
-            AstNode right;
-        } as_binary;
-    };
-};
-
 static AstNode ast_basic_node(enum ast_node_t type, struct ast_node_span span) {
     AstNode node = malloc(sizeof(*node));
 
@@ -44,16 +17,13 @@ static AstNode ast_basic_node(enum ast_node_t type, struct ast_node_span span) {
 }
 
 static void ensure(AstNode node, enum ast_node_t type) {
-    if (type == AST_EXPRESSION_START) {
+    if (type == AST_ALL) {
+        assert(1);
+    } else if (type == AST_EXPRESSION_START) {
         assert(AST_EXPRESSION_START < node->type && node->type < AST_EXPRESSION_END);
     } else {
         assert(node->type == type);
     }
-}
-
-void expand_span(AstNode node, struct ast_node_span span) {
-    // todo: assert the old span is actually a subset of the new span
-    node->span = span;
 }
 
 AstNode ast_list_new(struct ast_node_span span, enum ast_node_t children_type) {
@@ -64,9 +34,15 @@ AstNode ast_list_new(struct ast_node_span span, enum ast_node_t children_type) {
     return node;
 }
 
-void ast_list_add(AstNode list, AstNode child) {
+AstNode ast_expand(struct ast_node_span span, AstNode node) {
+    // todo: assert the old span is actually a subset of the new span
+    node->span = span;
+    return node;
+}
+
+AstNode ast_list_add(AstNode list, AstNode child) {
     ensure(list, AST_LIST);
-    ensure(child, AST_EXPRESSION_START);
+    ensure(child, list->as_list.children_type);
 
     int num_children = list->as_list.num_children;
     AstNode *new_list = reallocarray(list->as_list.children, num_children + 1, sizeof(AstNode));
@@ -78,11 +54,12 @@ void ast_list_add(AstNode list, AstNode child) {
 
     list->as_list.children = new_list;
     list->as_list.num_children = num_children + 1;
+    return list;
 }
 
 AstNode ast_identifier(struct ast_node_span span, enum ast_literal_type literal_type) {
     AstNode node = ast_basic_node(AST_IDENTIFIER, span);
-    node->as_literal = literal_type;
+    node->as_literal.literal_type = literal_type;
     return node;
 }
 

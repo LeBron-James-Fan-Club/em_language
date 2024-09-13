@@ -26,7 +26,7 @@
 
 input: expr                 { *root = $1; }
 expr : T_LITERAL_NUMERIC    { $$ = ast_literal(@$); }
-     | '(' expr ')'         { expand_span($2, @$); $$ = $2; }
+     | '(' expr ')'         { $$ = ast_expand(@$, $2); }
      | expr '+' expr        { $$ = ast_binary(@$, BINARY_PLUS, $1, $3); }
      ;
 

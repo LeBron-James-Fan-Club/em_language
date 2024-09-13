@@ -1,5 +1,7 @@
 #pragma once
 
+typedef struct ast_node *AstNode;
+
 struct ast_node_span {
     int first_line;
     int first_column;
@@ -8,19 +10,6 @@ struct ast_node_span {
 
     int start_byte;
     int end_byte;
-};
-
-enum ast_node_t {
-    AST_LIST,
-
-    AST_EXPRESSION_START,   // marker, must not be used
-    AST_IDENTIFIER,
-    AST_LITERAL,
-
-    AST_UNARY,
-    AST_BINARY,
-
-    AST_EXPRESSION_END,     // marker, must not be used
 };
 
 enum ast_literal_type {
@@ -36,13 +25,38 @@ enum ast_binary_operator {
     BINARY_PLUS,
 };
 
-typedef struct ast_node *AstNode;
+#define AST_NODE(type_name, struct_name, structure) type_name,
+#define AST_MARKER(x) x,
+enum ast_node_t {
+#  include "strong_ast_nodes.h"
+};
+#undef AST_MARKER
+#undef AST_NODE
 
-void expand_span(AstNode node, struct ast_node_span span);
+#define AST_NODE(enum_name, struct_name, structure) struct ast_##struct_name structure;
+#define AST_MARKER(x)
+#  include "strong_ast_nodes.h"
+#undef AST_MARKER
+#undef AST_NODE
+
+struct ast_node {
+    enum ast_node_t type;
+    struct ast_node_span span;
+
+    union {
+#define AST_NODE(enum_name, struct_name, structure) struct ast_##struct_name as_##struct_name;
+#define AST_MARKER(x)
+#  include "strong_ast_nodes.h"
+#undef AST_MARKER
+#undef AST_NODE
+    };
+};
 
 AstNode ast_list_new(struct ast_node_span span, enum ast_node_t children_type);
 
-void ast_list_add(AstNode list, AstNode child);
+AstNode ast_expand(struct ast_node_span span, AstNode node);
+
+AstNode ast_list_add(AstNode list, AstNode child);
 
 AstNode ast_identifier(struct ast_node_span span, enum ast_literal_type literal_type);
 
