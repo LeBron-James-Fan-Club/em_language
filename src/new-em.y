@@ -135,7 +135,7 @@ parameterList: %empty						{ $$ = ast_list_new(@$, AST_ALL); }
              | parameters					{ $$ = ast_expand(@$, $1); }
              ;
 
-parameters: expression						{ $$ = ast_list_new(@$, AST_ALL); }
+parameters: expression						{ $$ = ast_list_add(ast_list_new(@$, AST_ALL), $1); }
           | parameters ',' expression				{ $$ = ast_list_expand(@$, $1, $3); }
           ;
 
