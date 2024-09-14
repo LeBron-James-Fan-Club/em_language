@@ -45,7 +45,7 @@ AST_NODE(AST_WHILE_STATEMENT, while_statement, {
 })
 
 AST_NODE(AST_ASSIGNMENT, assignment, {
-    AstNode name;
+    AstNode target;
     AstNode expression;
 })
 

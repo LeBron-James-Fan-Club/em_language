@@ -118,7 +118,7 @@ statement: expression ';'					{ $$ = ast_expand(@$, $1); }
          | block						{ $$ = ast_expand(@$, $1); }
          | type T_IDENTIFIER ';'				{ $$ = ast_variable_declaration(@$, $1, $2, NULL); }
          | type T_IDENTIFIER '=' expression ';'			{ $$ = ast_variable_declaration(@$, $1, $2, $4); }
-         | T_IDENTIFIER '=' expression ';'			{ $$ = ast_assignment(@$, $1, $3); }
+         | expression '=' expression ';'			{ $$ = ast_assignment(@$, $1, $3); }
          ;
 
 expression: '(' expression ')'					{ $$ = ast_expand(@$, $1); }

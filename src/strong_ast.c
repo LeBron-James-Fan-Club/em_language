@@ -116,9 +116,9 @@ AstNode ast_while_statement(struct ast_node_span span, AstNode condition, AstNod
     return node;
 }
 
-AstNode ast_assignment(struct ast_node_span span, AstNode name, AstNode expression) {
+AstNode ast_assignment(struct ast_node_span span, AstNode target, AstNode expression) {
     AstNode node = ast_basic_node(AST_ASSIGNMENT, span);
-    node->as_assignment.name = name;
+    node->as_assignment.target = target;
     node->as_assignment.expression = expression;
     return node;
 }
