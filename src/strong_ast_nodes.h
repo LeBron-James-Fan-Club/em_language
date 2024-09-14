@@ -29,6 +29,45 @@ AST_NODE(AST_TYPE_NAME_PAIR, type_name_pair, {
     AstNode name;
 })
 
+AST_NODE(AST_ASSIGNMENT, assignment, {
+    AstNode name;
+    AstNode expression;
+})
+
+AST_NODE(AST_EXPAND, expand, {
+    AstNode node;
+})
+
+AST_NODE(AST_LITERAL_EXPRESSION, literal_expression, {
+    AstNode literal;
+    OptionalAstNode storage;
+})
+
+AST_NODE(AST_IDENTIFIER, identifier, {
+})
+
+AST_NODE(AST_BINARY_OPERATOR, binary_operator, {
+    char operator;
+    AstNode left;
+    AstNode right;
+})
+
+AST_NODE(AST_UNARY_OPERATOR, unary_operator, {
+    char operator;
+    AstNode inner;
+})
+
+AST_NODE(AST_TERNARY_OPERATOR, ternary_operator, {
+    AstNode condition;
+    AstNode truthy;
+    AstNode falsy;
+})
+
+AST_NODE(AST_INVOCATION, invocation, {
+    AstNode function;
+    AstNode parameter_list;
+})
+
 AST_MARKER(AST_EXPRESSION_START)
 
 AST_MARKER(AST_EXPRESSION_END)

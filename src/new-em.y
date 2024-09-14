@@ -46,6 +46,21 @@
 %token T_POKE T_EXIT T_IF T_ELSE T_LABEL T_GOTO T_WHILE T_FOR T_RETURN T_STRUCT T_UNION T_ENUM T_TYPEDEF T_EXTERN
 %token T_BREAK T_CONTINUE T_SWITCH T_CASE T_DEFAULT T_SIZEOF T_STATIC T_IDENTIFIER
 
+%right T_ADD_EQ T_SUB_EQ T_MUL_EQ T_DIV_EQ T_REM_EQ '='
+%right '?' ':'
+%left T_LOG_OR
+%left T_LOG_AND
+%left '|'
+%left '^'
+%left '&'
+%left  T_SHIFT_LEFT T_SHIFT_RIGHT
+%left '+' '-'
+%left '*' '/'
+%left T_NE T_EQ
+%left T_GEQ T_LEQ
+%left '<' '>'
+%nonassoc '(' ')'
+
 %initial-action             { yylloc = (struct ast_node_span) { 1, 1, 1, 1, 0, 0 }; }
 
 %%
