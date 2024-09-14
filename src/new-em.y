@@ -59,8 +59,8 @@
 %left T_NE T_EQ
 %left T_GEQ T_LEQ
 %left '<' '>'
-%right '*'
-%right '&'
+/*%right '*'*/
+/*%right '&'*/
 %nonassoc '(' ')' '['
 
 %initial-action             { yylloc = (struct ast_node_span) { 1, 1, 1, 1, 0, 0 }; }
@@ -123,8 +123,8 @@ statement: expression ';'					{ $$ = ast_expand(@$, $1); }
          ;
 
 postfix: T_IDENTIFIER				{ $$ = ast_identifier(@$); }
-       | postfix '[' expression ']'		{ $$ = ast_literal_expression(@$, ast_identifier(@$, $1), $3); }
-       | T_IDENTIFIER '(' parameterList ')'	{ $$ = ast_invocation(@$, ast_identifier(@$, $1), $3); }
+       | postfix '[' expression ']'		{ $$ = ast_literal_expression(@$, $1, $3); }
+       | expression '(' parameterList ')'	{ $$ = ast_invocation(@$, $1, $3); }
        | postfix '.' postfix			{ $$ = ast_binary_operator(@$, MEMBER_ACCESS, $1, $3); }
        | postfix T_ARROW postfix		{ $$ = ast_binary_operator(@$, POINTER_MEMBER_ACCESS, $1, $3); }
        | postfix T_INCREMENT			{ $$ = ast_unary_operator(@$, POST_INCREMENT, $1); }
