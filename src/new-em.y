@@ -104,7 +104,7 @@ parameterDeclarations: parameterDeclaration				{ $$ = ast_list_add(ast_list_new(
 parameterDeclaration: type T_IDENTIFIER	{ $$ = ast_type_name_pair(@$, $1, $2); }
                     ;
 
-block: '{' statements '}'	{ $2->span = @$; $$ = $2; }
+block: '{' statements '}'	{ $$ = ast_block(@$, $2); }
      ;
 
 statements: %empty			{ $$ = ast_list_new(@$, AST_ALL); }

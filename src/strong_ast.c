@@ -81,6 +81,12 @@ AstNode ast_function_declaration(struct ast_node_span span, AstNode type, AstNod
     return node;
 }
 
+AstNode ast_block(struct ast_node_span span, AstNode statements) {
+    AstNode node = ast_basic_node(AST_BLOCK, span);
+    node->as_block.statements = statements;
+    return node;
+}
+
 AstNode ast_struct_declaration(struct ast_node_span span, AstNode name, AstNode members) {
     AstNode node = ast_basic_node(AST_STRUCT_DECLARATION, span);
     node->as_struct_declaration.name = name;

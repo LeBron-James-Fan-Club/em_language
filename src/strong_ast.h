@@ -61,6 +61,8 @@ AstNode ast_function_declaration(struct ast_node_span span, AstNode type, AstNod
 
 AstNode ast_struct_declaration(struct ast_node_span span, AstNode name, AstNode members);
 
+AstNode ast_block(struct ast_node_span span, AstNode statements);
+
 AstNode ast_type_name_pair(struct ast_node_span span, AstNode type, AstNode name);
 
 AstNode ast_if_statement(struct ast_node_span span, AstNode condition, AstNode truthy, AstNode falsy);

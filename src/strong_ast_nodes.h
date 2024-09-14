@@ -29,6 +29,10 @@ AST_NODE(AST_TYPE_NAME_PAIR, type_name_pair, {
     AstNode name;
 })
 
+AST_NODE(AST_BLOCK, block, {
+    AstNode statements;
+})
+
 AST_NODE(AST_IF_STATEMENT, if_statement, {
     AstNode condition;
     AstNode truthy;
