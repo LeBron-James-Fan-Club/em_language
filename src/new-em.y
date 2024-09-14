@@ -33,6 +33,8 @@
 }
 
 %code {
+  #define NULL ((void *) 0)
+
   int yylex(YYSTYPE *yylvalp, YYLTYPE *yyllocp, yyscan_t scanner);
   void yyerror(YYLTYPE *yyllocp, yyscan_t unused, AstNode *root, const char *msg);
 }
@@ -136,6 +138,7 @@ type: T_I32			{ $$ = NULL; }
 
 %%
 
+#include <stdio.h>
 #include <stdlib.h>
 
 void yyerror(YYLTYPE *yyllocp, yyscan_t unused, AstNode *root, const char *msg) {
