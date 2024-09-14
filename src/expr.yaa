@@ -1,7 +1,0 @@
-%{
-    #include "defs.h"
-%}
-
-%right T_ASSIGN T_ASPLUS T_ASMINUS T_ASSTAR T_ASSLASH T_ASMOD
-%token <number> T_INTLIT
-%token <id> T_IDENT

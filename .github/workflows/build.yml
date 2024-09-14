@@ -11,6 +11,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Install dependencies
-        run: sudo apt-get install -y clang make flex
+        run: sudo apt-get install -y clang make bison flex
       - name: Build
         run: make

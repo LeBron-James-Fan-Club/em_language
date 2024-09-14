@@ -1,5 +1,10 @@
-src/scanner.c
-
 *.exe
 build/
+obj/
 .vscode/
+cmake-build-debug/
+.idea/
+CMakeLists.txt
+test.c
+test.s
+test2.s

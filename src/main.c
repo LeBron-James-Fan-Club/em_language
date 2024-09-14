@@ -1,115 +1,84 @@
-#define _GNU_SOURCE
-#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/wait.h>
+#include <string.h>
 
-#include "ast.h"
-#include "context.h"
-#include "decl.h"
-#include "defs.h"
 #include "flags.h"
-#include "gen.h"
-#include "misc.h"
-#include "scan.h"
-#include "stmt.h"
-#include "sym.h"
+#include "new-compiler.h"
 
 Flags flags;
 
-static void usage(char *path);
-static int argParse(int argc, char *argv[]);
-static void preprocess(Scanner s, char *filename);
-
-static void usage(char *path) {
-    printf("Options:\n");
-    printf("  -T: Dump AST\n");
-    printf("  -d: Debug\n");
-    printf("  -p: Fix parameters to 4\n");
-    printf("  -S: Dump symbol table\n");
-    printf("Usage: %s [options] [file] [outfile]\n", path);
-    exit(-1);
-}
-
-static int argParse(int argc, char *argv[]) {
-    if (argc < 3) {
-        usage(argv[0]);
-    }
-
-    flags = (Flags){
-        .dumpAST = false, .debug = false, .paramFix = false, .dumpSym = false};
-
-    int i;
-
-    for (i = 1; i < argc; i++) {
-        if (*argv[i] != '-') {
-            break;
-        }
-        for (int j = 1; argv[i][j] != '\0'; j++) {
-            switch (argv[i][j]) {
-                case 'T':
-                    flags.dumpAST = true;
-                    break;
-                case 'd':
-                    flags.debug = true;
-                    break;
-                case 'p':
-                    flags.paramFix = true;
-                    break;
-                case 'S':
-                    flags.dumpSym = true;
-                    break;
-                default:
-                    usage(argv[0]);
-            }
-        }
-    }
-
-    return i;
-}
-
-static void preprocess(Scanner s, char *filename) {
-    char *cmd;
-    asprintf(&cmd, "%s %s %s", CPPCMD, INCDIR, filename);
-    FILE *infile;
-
-    if ((infile = popen(cmd, "r")) == NULL) {
-        fatala("OSError: Unable to open pipe to cpp %s, error: %s", filename,
-               strerror(errno));
-    }
-
-    // todo: leaks infile
-    s->em_scanner = em_scanner_new(infile);
-
-    debug("Preprocessing %s", filename);
-
-    free(cmd);
-}
+static char *read_file(const char *filename);
 
 int main(int argc, char *argv[]) {
-    if (argc < 3) {
-        usage(argv[0]);
+    printf("NOTE: The author makes evident that using\n"
+           "this tool to complete work where it is not\n"
+           "permitted, such as in COMP1521 activities\n"
+           "and assignments, is not condoned, and takes\n"
+           "no responsibility in such events.\n\n");
+
+    int opt;
+    char *output = "-";
+
+    // Parse command line options
+    while ((opt = getopt(argc, argv, "TdSo:")) != -1) {
+        switch (opt) {
+            case 'T':
+                flags.dumpAST = true;
+                break;
+            case 'd':
+                flags.debug = true;
+                break;
+            case 'S':
+                flags.dumpSym = true;
+                break;
+            case 'o':
+                output = optarg;
+                break;
+            case '?':
+                fprintf(stderr, "Usage: %s [-T] [-d] [-S] -o output_file [input_files...]\n", argv[0]);
+                exit(EXIT_FAILURE);
+            default:
+                abort();
+        }
     }
 
-    argParse(argc, argv);
+    NewCompiler compiler = compiler_new();
 
-    int i = argParse(argc, argv);
+    for (int i = optind; i < argc; i++) {
+        compiler_accept(compiler, read_file(argv[i]));
+    }
 
+    FILE *out;
+
+    if (strcmp(output, "-") == 0) {
+        out = stdout;
+    } else {
+        out = fopen(output, "w");
+
+        if (out == NULL) {
+            perror("opening output");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    compiler_assemble(compiler, out);
+    compiler_free(compiler);
+
+    return EXIT_SUCCESS;
+
+    /*
     Scanner s = Scanner_New();
-    preprocess(s, argv[i]);
 
     if (s == NULL) {
         fatal("InternalError: unable to initialise scanner\n");
     }
 
-    Compiler c = Compiler_New(argv[i + 1]);
+    Compiler c = Compiler_New(o_value);
     SymTable st = SymTable_New();
     Token tok = calloc(1, sizeof(struct token));
     Context ctx = Context_New();
-
-    printf("The author makes clear that using this tool to complete work \n"
-    "where it is not permitted, such as in COMP1521 lab activities\n"
-    "and assignments, is not condoned, and takes no responsibility for such events.\n");
 
     MIPS_Pre(c);
 
@@ -131,10 +100,78 @@ int main(int argc, char *argv[]) {
     free(tok);
     Context_Free(ctx);
 
-    printf(
-        "\033[32m"
-        "Success!"
-        "\033[0m\n");
-
     exit(0);
+     */
+}
+
+char *read_file(const char *filename) {
+    char *buffer = NULL;
+    size_t buffer_size = 0;
+
+    FILE *memstream = open_memstream(&buffer, &buffer_size);
+
+    if (memstream == NULL) {
+        perror("open_memstream");
+        exit(EXIT_FAILURE);
+    }
+
+    int pipefd[2];
+
+    if (pipe(pipefd) == -1) {
+        perror("pipe");
+        exit(EXIT_FAILURE);
+    }
+
+    pid_t pid = fork();
+
+    if (pid == -1) {
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }
+
+    if (pid == 0) {
+        // Child process
+
+        // Close the read end of the pipe in the child
+        close(pipefd[STDIN_FILENO]);
+
+        // Redirect stdout to the write end of the pipe
+        dup2(pipefd[STDOUT_FILENO], STDOUT_FILENO);
+        close(pipefd[STDOUT_FILENO]);
+
+        // Preprocess
+        execlp("cpp", "cpp", "-P", "-nostdinc", filename, NULL);
+
+        // Expect cpp to exit
+        perror("execlp");
+        exit(EXIT_FAILURE);
+    } else {
+        // Parent process
+
+        // Close the write end of the pipe in the parent
+        close(pipefd[STDOUT_FILENO]);
+
+        // Read from the pipe and write into the memory stream
+        char tmp_buffer[4096];
+        ssize_t n;
+
+        while ((n = read(pipefd[STDIN_FILENO], tmp_buffer, sizeof(tmp_buffer))) > 0) {
+            fwrite(tmp_buffer, 1, n, memstream);
+        }
+
+        if (n < 0) {
+            perror("read");
+            exit(EXIT_FAILURE);
+        }
+
+        // Close the read end of the pipe
+        close(pipefd[STDIN_FILENO]);
+
+        // Wait for the child process to finish
+        int status;
+        waitpid(pid, &status, 0);
+
+        fclose(memstream);
+        return buffer;
+    }
 }

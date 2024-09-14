@@ -8,21 +8,10 @@
 
 #include "defs.h"
 
-void *em_scanner_new(FILE *in);
-struct token em_scanner_next(void *internal);
-int em_scanner_lineno(void *internal);
-void em_scanner_free(void *internal);
-
-int decode_char_literal(const char *s);
-
 // May god forgive me for this
 #define TEXTLEN 400000
 
 struct scanner {
-    void *em_scanner;
-
-    // character to put back
-    char putback;
     // current line number
     int line;
 
@@ -30,9 +19,6 @@ struct scanner {
 
     char comment[TEXTLEN + 1];
     int commentLen;
-
-    bool hasRejectedToken;
-    struct token rejToken;
 };
 
 typedef struct scanner *Scanner;
