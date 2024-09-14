@@ -111,7 +111,7 @@ statements: %empty			{ $$ = ast_list_new(@$, AST_ALL); }
           | statements statement	{ $$ = ast_list_expand(@$, $1, $2); }
           ;
 
-statement: expression ';'					{ $$ = ast_expression_statement(@$, $1); }
+statement: expression ';'					{ $$ = ast_expand(@$, $1); }
          | T_IF '(' expression ')' statement			{ $$ = ast_if_statement(@$, $3, $5, NULL); }
          | T_IF '(' expression ')' statement T_ELSE statement	{ $$ = ast_if_statement(@$, $3, $5, $7); }
          | T_WHILE '(' expression ')' statement			{ $$ = ast_while_statement(@$, $3, $5); }

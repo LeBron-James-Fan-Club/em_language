@@ -95,6 +95,28 @@ AstNode ast_type_name_pair(struct ast_node_span span, AstNode type, AstNode name
     return node;
 }
 
+AstNode ast_if_statement(struct ast_node_span span, AstNode condition, AstNode truthy, AstNode falsy) {
+    AstNode node = ast_basic_node(AST_IF_STATEMENT, span);
+    node->as_if_statement.condition = condition;
+    node->as_if_statement.truthy = truthy;
+    node->as_if_statement.falsy = falsy;
+    return node;
+}
+
+AstNode ast_while_statement(struct ast_node_span span, AstNode condition, AstNode body) {
+    AstNode node = ast_basic_node(AST_WHILE_STATEMENT, span);
+    node->as_while_statement.condition = condition;
+    node->as_while_statement.body = body;
+    return node;
+}
+
+AstNode ast_assignment(struct ast_node_span span, AstNode name, AstNode expression) {
+    AstNode node = ast_basic_node(AST_ASSIGNMENT, span);
+    node->as_assignment.name = name;
+    node->as_assignment.expression = expression;
+    return node;
+}
+
 AstNode ast_literal_expression(struct ast_node_span span, AstNode literal, OptionalAstNode storage) {
     AstNode node = ast_basic_node(AST_LITERAL_EXPRESSION, span);
     node->as_literal_expression.literal = literal;
@@ -106,18 +128,18 @@ AstNode ast_identifier(struct ast_node_span span) {
     return ast_basic_node(AST_IDENTIFIER, span);
 }
 
+AstNode ast_unary_operator(struct ast_node_span span, char operator, AstNode inner) {
+    AstNode node = ast_basic_node(AST_UNARY_OPERATOR, span);
+    node->as_unary_operator.operator = operator;
+    node->as_unary_operator.inner = inner;
+    return node;
+}
+
 AstNode ast_binary_operator(struct ast_node_span span, char operator, AstNode left, AstNode right) {
     AstNode node = ast_basic_node(AST_BINARY_OPERATOR, span);
     node->as_binary_operator.operator = operator;
     node->as_binary_operator.left = left;
     node->as_binary_operator.right = right;
-    return node;
-}
-
-AstNode ast_unary_operator(struct ast_node_span span, char operator, AstNode inner) {
-    AstNode node = ast_basic_node(AST_UNARY_OPERATOR, span);
-    node->as_unary_operator.operator = operator;
-    node->as_unary_operator.inner = inner;
     return node;
 }
 
@@ -136,15 +158,10 @@ AstNode ast_invocation(struct ast_node_span span, AstNode function, AstNode para
     return node;
 }
 
-AstNode ast_assignment(struct ast_node_span span, AstNode name, AstNode expression) {
-    AstNode node = ast_basic_node(AST_ASSIGNMENT, span);
-    node->as_assignment.name = name;
-    node->as_assignment.expression = expression;
+AstNode ast_literal(struct ast_node_span span, enum ast_literal_type type) {
+    AstNode node = ast_basic_node(AST_LITERAL, span);
+    node->as_literal.type = type;
     return node;
 }
 
 void ast_free(AstNode node) {}
-AstNode ast_expression_statement(struct ast_node_span span, AstNode expression) { return NULL; }
-AstNode ast_if_statement(struct ast_node_span span, AstNode condition, AstNode truthy, AstNode falsy) { return NULL; }
-AstNode ast_while_statement(struct ast_node_span span, AstNode condition, AstNode body) { return NULL; }
-AstNode ast_literal(struct ast_node_span span, enum ast_literal_type type) { return NULL; }

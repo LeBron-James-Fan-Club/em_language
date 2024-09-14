@@ -45,8 +45,6 @@ struct ast_node {
     };
 };
 
-void ast_free(AstNode node);
-
 AstNode ast_parse(char *source);
 
 AstNode ast_list_new(struct ast_node_span span, enum ast_node_t children_type);
@@ -64,8 +62,6 @@ AstNode ast_function_declaration(struct ast_node_span span, AstNode type, AstNod
 AstNode ast_struct_declaration(struct ast_node_span span, AstNode name, AstNode members);
 
 AstNode ast_type_name_pair(struct ast_node_span span, AstNode type, AstNode name);
-
-AstNode ast_expression_statement(struct ast_node_span span, AstNode expression);
 
 AstNode ast_if_statement(struct ast_node_span span, AstNode condition, AstNode truthy, AstNode falsy);
 
@@ -86,3 +82,5 @@ AstNode ast_ternary_operator(struct ast_node_span span, AstNode condition, AstNo
 AstNode ast_invocation(struct ast_node_span span, AstNode function, AstNode parameterList);
 
 AstNode ast_literal(struct ast_node_span span, enum ast_literal_type type);
+
+void ast_free(AstNode node);
