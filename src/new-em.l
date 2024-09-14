@@ -73,3 +73,27 @@ IDENTIFIER	[a-zA-Z_][a-zA-Z0-9_]*
 {IDENTIFIER}			{ return T_IDENTIFIER; }
 
 .				{ return *yytext; }
+
+%%
+
+AstNode ast_parse(char *source) {
+  // this is not the nicest place to put this, but should
+  // be foolproof with the Makefile and ordering
+
+  yyscan_t scanner;
+  yylex_init(&scanner);
+
+#ifdef DEBUG
+  yyset_debug(1, scanner);
+  yydebug = 1;
+#endif
+
+  yy_switch_to_buffer(yy_scan_string(source, scanner), scanner);
+  yyset_lineno(0, scanner);
+
+  AstNode root = NULL;
+  yyparse(scanner, &root);
+
+  yylex_destroy(scanner);
+  return root;
+}
