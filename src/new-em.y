@@ -7,6 +7,28 @@
 %code requires {
   #include "strong_ast.h"
 
+  # define YYLLOC_DEFAULT(Cur, Rhs, N)                      \
+  do                                                        \
+    if (N)                                                  \
+      {                                                     \
+        (Cur).first_line   = YYRHSLOC(Rhs, 1).first_line;   \
+        (Cur).first_column = YYRHSLOC(Rhs, 1).first_column; \
+        (Cur).last_line    = YYRHSLOC(Rhs, N).last_line;    \
+        (Cur).last_column  = YYRHSLOC(Rhs, N).last_column;  \
+        (Cur).start_byte   = YYRHSLOC(Rhs, 1).start_byte;   \
+        (Cur).end_byte     = YYRHSLOC(Rhs, N).end_byte;     \
+      }                                                     \
+    else                                                    \
+      {                                                     \
+        (Cur).first_line   = (Cur).last_line   =            \
+          YYRHSLOC(Rhs, 0).last_line;                       \
+        (Cur).first_column = (Cur).last_column =            \
+          YYRHSLOC(Rhs, 0).last_column;                     \
+        (Cur).start_byte = (Cur).end_byte =                 \
+          YYRHSLOC(Rhs, 0).end_byte;                        \
+      }                                                     \
+  while (0)
+
   typedef void *yyscan_t;
 }
 
