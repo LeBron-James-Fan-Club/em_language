@@ -94,3 +94,16 @@ AstNode ast_type_name_pair(struct ast_node_span span, AstNode type, AstNode name
     node->as_type_name_pair.name = name;
     return node;
 }
+
+void ast_free(AstNode node) {}
+AstNode ast_expression_statement(struct ast_node_span span, AstNode expression) { return NULL; }
+AstNode ast_if_statement(struct ast_node_span span, AstNode condition, AstNode truthy, AstNode falsy) { return NULL; }
+AstNode ast_while_statement(struct ast_node_span span, AstNode condition, AstNode body) { return NULL; }
+AstNode ast_assignment(struct ast_node_span span, AstNode name, AstNode expression) { return NULL; }
+AstNode ast_literal_expression(struct ast_node_span span, AstNode literal, OptionalAstNode storage) { return NULL; }
+AstNode ast_identifier(struct ast_node_span span) { return NULL; }
+AstNode ast_unary_operator(struct ast_node_span span, char operator, AstNode inner) { return NULL; }
+AstNode ast_binary_operator(struct ast_node_span span, char operator, AstNode left, AstNode right) { return NULL; }
+AstNode ast_ternary_operator(struct ast_node_span span, AstNode condition, AstNode truthy, AstNode falsy) { return NULL; }
+AstNode ast_invocation(struct ast_node_span span, AstNode function, AstNode parameterList) { return NULL; }
+AstNode ast_literal(struct ast_node_span span, enum ast_literal_type type) { return NULL; }
