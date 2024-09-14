@@ -170,4 +170,82 @@ AstNode ast_literal(struct ast_node_span span, enum ast_literal_type type) {
     return node;
 }
 
-void ast_free(AstNode node) {}
+void ast_free(OptionalAstNode node) {
+    if (node == NULL) {
+        return;
+    }
+
+    switch (node->type) {
+        case AST_LIST:
+            for (int i = 0; i < node->as_list.num_children; i++) {
+                ast_free(node->as_list.children[i]);
+            }
+
+            free(node->as_list.children);
+            break;
+        case AST_VARIABLE_DECLARATION:
+            ast_free(node->as_variable_declaration.type);
+            ast_free(node->as_variable_declaration.name);
+            ast_free(node->as_variable_declaration.initializer);
+            break;
+        case AST_FUNCTION_DECLARATION:
+            ast_free(node->as_function_declaration.type);
+            ast_free(node->as_function_declaration.name);
+            ast_free(node->as_function_declaration.parameter_list);
+            ast_free(node->as_function_declaration.body);
+            break;
+        case AST_STRUCT_DECLARATION:
+            ast_free(node->as_struct_declaration.name);
+            ast_free(node->as_struct_declaration.members);
+            break;
+        case AST_TYPE_NAME_PAIR:
+            ast_free(node->as_type_name_pair.type);
+            ast_free(node->as_type_name_pair.name);
+            break;
+        case AST_BLOCK:
+            ast_free(node->as_block.statements);
+            break;
+        case AST_IF_STATEMENT:
+            ast_free(node->as_if_statement.condition);
+            ast_free(node->as_if_statement.truthy);
+            ast_free(node->as_if_statement.falsy);
+            break;
+        case AST_WHILE_STATEMENT:
+            ast_free(node->as_while_statement.condition);
+            ast_free(node->as_while_statement.body);
+            break;
+        case AST_ASSIGNMENT:
+            ast_free(node->as_assignment.target);
+            ast_free(node->as_assignment.expression);
+            break;
+        case AST_LITERAL_EXPRESSION:
+            ast_free(node->as_literal_expression.literal);
+            ast_free(node->as_literal_expression.storage);
+            break;
+        case AST_IDENTIFIER:
+            break;
+        case AST_UNARY_OPERATOR:
+            ast_free(node->as_unary_operator.inner);
+            break;
+        case AST_BINARY_OPERATOR:
+            ast_free(node->as_binary_operator.left);
+            ast_free(node->as_binary_operator.right);
+            break;
+        case AST_TERNARY_OPERATOR:
+            ast_free(node->as_ternary_operator.condition);
+            ast_free(node->as_ternary_operator.truthy);
+            ast_free(node->as_ternary_operator.falsy);
+            break;
+        case AST_INVOCATION:
+            ast_free(node->as_invocation.function);
+            ast_free(node->as_invocation.parameter_list);
+            break;
+        case AST_LITERAL:
+            break;
+        default:
+            fprintf(stderr, "ast_free: unknown node type %d belonging to %p\n", node->type, node);
+            assert(0);
+    }
+
+    free(node);
+}

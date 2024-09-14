@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    void *compiler = compiler_new();
+    NewCompiler compiler = compiler_new();
 
     for (int i = optind; i < argc; i++) {
         compiler_accept(compiler, read_file(argv[i]));

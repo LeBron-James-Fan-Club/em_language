@@ -85,4 +85,4 @@ AstNode ast_invocation(struct ast_node_span span, AstNode function, AstNode para
 
 AstNode ast_literal(struct ast_node_span span, enum ast_literal_type type);
 
-void ast_free(AstNode node);
+void ast_free(OptionalAstNode node);
