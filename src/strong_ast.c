@@ -52,6 +52,7 @@ AstNode ast_list_add(AstNode list, AstNode child) {
         exit(EXIT_FAILURE);
     }
 
+    new_list[num_children] = child;
     list->as_list.children = new_list;
     list->as_list.num_children = num_children + 1;
     return list;

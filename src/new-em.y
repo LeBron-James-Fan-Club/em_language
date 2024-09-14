@@ -22,9 +22,11 @@
 %token T_POKE T_EXIT T_IF T_ELSE T_LABEL T_GOTO T_WHILE T_FOR T_RETURN T_STRUCT T_UNION T_ENUM T_TYPEDEF T_EXTERN
 %token T_BREAK T_CONTINUE T_SWITCH T_CASE T_DEFAULT T_SIZEOF T_STATIC T_IDENTIFIER
 
+%initial-action             { yylloc = (struct ast_node_span) { 1, 1, 1, 1, 0, 0 }; }
+
 %%
 
-grammar: %empty				{ *root = ast_list_new(@$, AST_ALL); }
+grammar: %empty				{ *root = $$ = ast_list_new(@$, AST_ALL); }
        | grammar globalDeclaration	{ *root = ast_list_expand(@$, $1, $2); }
        ;
 

@@ -45,6 +45,10 @@ struct ast_node {
     };
 };
 
+void ast_free(AstNode node);
+
+AstNode ast_parse(char *source);
+
 AstNode ast_list_new(struct ast_node_span span, enum ast_node_t children_type);
 
 AstNode ast_expand(struct ast_node_span span, AstNode node);
