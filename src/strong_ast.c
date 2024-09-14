@@ -134,16 +134,16 @@ AstNode ast_identifier(struct ast_node_span span) {
     return ast_basic_node(AST_IDENTIFIER, span);
 }
 
-AstNode ast_unary_operator(struct ast_node_span span, char operator, AstNode inner) {
+AstNode ast_unary_operator(struct ast_node_span span, enum ast_unary_operation operation, AstNode inner) {
     AstNode node = ast_basic_node(AST_UNARY_OPERATOR, span);
-    node->as_unary_operator.operator = operator;
+    node->as_unary_operator.operation = operation;
     node->as_unary_operator.inner = inner;
     return node;
 }
 
-AstNode ast_binary_operator(struct ast_node_span span, char operator, AstNode left, AstNode right) {
+AstNode ast_binary_operator(struct ast_node_span span, enum ast_binary_operation operation, AstNode left, AstNode right) {
     AstNode node = ast_basic_node(AST_BINARY_OPERATOR, span);
-    node->as_binary_operator.operator = operator;
+    node->as_binary_operator.operation = operation;
     node->as_binary_operator.left = left;
     node->as_binary_operator.right = right;
     return node;

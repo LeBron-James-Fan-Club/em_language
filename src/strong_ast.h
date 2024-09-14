@@ -18,6 +18,25 @@ enum ast_literal_type {
     LITERAL_STRING,
 };
 
+enum ast_unary_operation {
+    PRE_INCREMENT,
+    PRE_DECREMENT,
+    POST_INCREMENT,
+    POST_DECREMENT,
+
+    DEREFERENCE,
+    REFERENCE,
+
+    NOT
+};
+
+enum ast_binary_operation {
+    PLUS,
+
+    MEMBER_ACCESS,
+    POINTER_MEMBER_ACCESS,
+};
+
 #define AST_NODE(type_name, struct_name, structure) type_name,
 #define AST_MARKER(x) x,
 enum ast_node_t {
@@ -75,9 +94,9 @@ AstNode ast_literal_expression(struct ast_node_span span, AstNode literal, Optio
 
 AstNode ast_identifier(struct ast_node_span span);
 
-AstNode ast_unary_operator(struct ast_node_span span, char operator, AstNode inner);
+AstNode ast_unary_operator(struct ast_node_span span, enum ast_unary_operation operator, AstNode inner);
 
-AstNode ast_binary_operator(struct ast_node_span span, char operator, AstNode left, AstNode right);
+AstNode ast_binary_operator(struct ast_node_span span, enum ast_binary_operation operator, AstNode left, AstNode right);
 
 AstNode ast_ternary_operator(struct ast_node_span span, AstNode condition, AstNode truthy, AstNode falsy);
 

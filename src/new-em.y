@@ -59,7 +59,9 @@
 %left T_NE T_EQ
 %left T_GEQ T_LEQ
 %left '<' '>'
-%nonassoc '(' ')'
+%right '*'
+%right '&'
+%nonassoc '(' ')' '['
 
 %initial-action             { yylloc = (struct ast_node_span) { 1, 1, 1, 1, 0, 0 }; }
 
@@ -118,17 +120,33 @@ statement: expression ';'					{ $$ = ast_expand(@$, $1); }
          | block						{ $$ = ast_expand(@$, $1); }
          | type T_IDENTIFIER ';'				{ $$ = ast_variable_declaration(@$, $1, $2, NULL); }
          | type T_IDENTIFIER '=' expression ';'			{ $$ = ast_variable_declaration(@$, $1, $2, $4); }
-         | expression '=' expression ';'			{ $$ = ast_assignment(@$, $1, $3); }
          ;
+
+postfix: T_IDENTIFIER				{ $$ = ast_identifier(@$); }
+       | postfix '[' expression ']'		{ $$ = ast_literal_expression(@$, ast_identifier(@$, $1), $3); }
+       | T_IDENTIFIER '(' parameterList ')'	{ $$ = ast_invocation(@$, ast_identifier(@$, $1), $3); }
+       | postfix '.' postfix			{ $$ = ast_binary_operator(@$, MEMBER_ACCESS, $1, $3); }
+       | postfix T_ARROW postfix		{ $$ = ast_binary_operator(@$, POINTER_MEMBER_ACCESS, $1, $3); }
+       | postfix T_INCREMENT			{ $$ = ast_unary_operator(@$, POST_INCREMENT, $1); }
+       | postfix T_DECREMENT			{ $$ = ast_unary_operator(@$, POST_DECREMENT, $1); }
+       ;
+
+prefix : T_INCREMENT prefix	{ $$ = ast_unary_operator(@$, PRE_INCREMENT, $1); }
+       | T_DECREMENT prefix	{ $$ = ast_unary_operator(@$, PRE_DECREMENT, $1); }
+       | '*' prefix		{ $$ = ast_unary_operator(@$, DEREFERENCE, $1); }
+       | '&' prefix		{ $$ = ast_unary_operator(@$, REFERENCE, $1); }
+       | postfix		{ $$ = ast_expand(@$, $1); }
+       ;
 
 expression: '(' expression ')'					{ $$ = ast_expand(@$, $1); }
           | literal						{ $$ = ast_literal_expression(@$, $1, NULL); }
           | literal '[' expression ']'				{ $$ = ast_literal_expression(@$, $1, $3); }
-          | T_IDENTIFIER					{ $$ = ast_identifier(@$); }
-          | expression '+' expression				{ $$ = ast_binary_operator(@$, '+', $1, $3); }
-          | '!' expression					{ $$ = ast_unary_operator(@$, '!', $2); }
+          | prefix						{ $$ = ast_expand(@$, $1); }
+          | expression '+' expression				{ $$ = ast_binary_operator(@$, PLUS, $1, $3); }
+          | '!' expression					{ $$ = ast_unary_operator(@$, NOT, $2); }
           | expression '?' expression ':' expression		{ $$ = ast_ternary_operator(@$, $1, $3, $5); }
           | expression '(' parameterList ')'			{ $$ = ast_invocation(@$, $1, $3); }
+          | expression '=' expression				{ $$ = ast_assignment(@$, $1, $3); }
           ;
 
 parameterList: %empty						{ $$ = ast_list_new(@$, AST_ALL); }

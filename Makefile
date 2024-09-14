@@ -32,7 +32,7 @@ $(SRC_DIR)/new-em.lex.c: src/new-em.l
 	flex -o $@ --header-file=$(patsubst %.c,%.h,$@) --debug $<
 
 $(SRC_DIR)/new-em.tab.c: src/new-em.y
-	bison -o $@ --defines=$(patsubst %.c,%.h,$@) --debug $<
+	bison -o $@ --defines=$(patsubst %.c,%.h,$@) -Wcounterexamples --debug $<
 
 # Include the dependency files
 -include $(OBJ_FILES:.o=.d)

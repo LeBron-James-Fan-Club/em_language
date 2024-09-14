@@ -59,12 +59,12 @@ AST_NODE(AST_LITERAL_EXPRESSION, literal_expression, {
 AST_NODE(AST_IDENTIFIER, identifier, {})
 
 AST_NODE(AST_UNARY_OPERATOR, unary_operator, {
-    char operator;
+    enum ast_unary_operation operation;
     AstNode inner;
 })
 
 AST_NODE(AST_BINARY_OPERATOR, binary_operator, {
-    char operator;
+    enum ast_binary_operation operation;
     AstNode left;
     AstNode right;
 })
