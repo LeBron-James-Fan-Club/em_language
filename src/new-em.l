@@ -101,7 +101,7 @@ AstNode ast_parse(char *source) {
 #endif
 
   yy_switch_to_buffer(yy_scan_string(source, scanner), scanner);
-  yyset_lineno(0, scanner);
+  yyset_lineno(1, scanner);
 
   AstNode root = NULL;
   yyparse(scanner, &root);
