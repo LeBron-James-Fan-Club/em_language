@@ -18,6 +18,14 @@ enum ast_literal_type {
     LITERAL_STRING,
 };
 
+// structs, unions and enums are also primitive types
+// but we use them somewhere else later on ;)
+enum ast_primitive_type {
+    PRIMITIVE_VOID,
+    PRIMITIVE_I8,
+    PRIMITIVE_I32,
+};
+
 enum ast_unary_operation {
     PRE_INCREMENT,
     PRE_DECREMENT,
@@ -31,8 +39,22 @@ enum ast_unary_operation {
 };
 
 enum ast_binary_operation {
-    PLUS,
+    /*ADD,
+    SUB,
+    MUL,
+    DIV,
+    MOD,*/
+    PEEK,
+    /*ASSIGN,*/
+    ASSIGN_ADD,
+    ASSIGN_SUB,
+    ASSIGN_MUL,
+    ASSIGN_DIV,
+    ASSIGN_MOD,
+    LOGICAL_OR,
+    LOGICAL_AND,
 
+    ARRAY_ACCESS,
     MEMBER_ACCESS,
     POINTER_MEMBER_ACCESS,
 };
@@ -66,6 +88,10 @@ struct ast_node {
 
 AstNode ast_parse(char *source);
 
+AstNode ast_custom_label(struct ast_node_span span, AstNode child);
+
+AstNode ast_case(struct ast_node_span span, AstNode value, AstNode body);
+
 AstNode ast_list_new(struct ast_node_span span, enum ast_node_t children_type);
 
 AstNode ast_expand(struct ast_node_span span, AstNode node);
@@ -74,7 +100,9 @@ AstNode ast_list_add(AstNode list, AstNode child);
 
 AstNode ast_list_expand(struct ast_node_span span, AstNode list, AstNode child);
 
-AstNode ast_variable_declaration(struct ast_node_span span, AstNode type, AstNode name, OptionalAstNode initializer);
+AstNode ast_variable_declaration_list(struct ast_node_span span, AstNode type, AstNode declaration_list);
+
+AstNode ast_variable_declaration(struct ast_node_span span, OptionalAstNode pointer,  OptionalAstNode array, OptionalAstNode initializer);
 
 AstNode ast_function_declaration(struct ast_node_span span, AstNode type, AstNode name, AstNode parameter_list, OptionalAstNode body);
 
@@ -82,7 +110,7 @@ AstNode ast_struct_declaration(struct ast_node_span span, AstNode name, AstNode 
 
 AstNode ast_block(struct ast_node_span span, AstNode statements);
 
-AstNode ast_type_name_pair(struct ast_node_span span, AstNode type, AstNode name);
+AstNode ast_type_name_pair(struct ast_node_span span, AstNode type, AstNode name, OptionalAstNode initializer);
 
 AstNode ast_if_statement(struct ast_node_span span, AstNode condition, AstNode truthy, AstNode falsy);
 
@@ -103,5 +131,6 @@ AstNode ast_ternary_operator(struct ast_node_span span, AstNode condition, AstNo
 AstNode ast_invocation(struct ast_node_span span, AstNode function, AstNode parameterList);
 
 AstNode ast_literal(struct ast_node_span span, enum ast_literal_type type);
+
 
 void ast_free(OptionalAstNode node);

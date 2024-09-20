@@ -485,6 +485,8 @@ static ASTnode ASTnode_Postfix(Compiler c, Scanner s, SymTable st, Token tok,
 
     // Converts enum to a specific int
 
+    // ! this is for the brackets
+
     while (1) {
         switch (tok->token) {
             case T_LBRACKET:

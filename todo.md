@@ -44,6 +44,7 @@
 - get structs to work in a struct
 - add static for local variables
 - implement two value return ($v0 and $v1)
+- add constants (stuff like a = 9 works in mipsy)
 
 # BUGS:
 - implement the register keyword

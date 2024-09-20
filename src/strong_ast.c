@@ -1,6 +1,7 @@
 #include <malloc.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "strong_ast.h"
 
 static AstNode ast_basic_node(enum ast_node_t type, struct ast_node_span span) {
@@ -24,6 +25,20 @@ static void ensure(AstNode node, enum ast_node_t type) {
     } else {
         assert(node->type == type);
     }
+}
+
+AstNode ast_custom_label(struct ast_node_span span, AstNode label, AstNode child) {
+    AstNode node = ast_basic_node(AST_CUSTOM_LABEL, span);
+    node->as_custom_label.label = label;
+    node->as_custom_label.child = child;
+    return node;
+}
+
+AstNode ast_case(struct ast_node_span span, AstNode value, AstNode body) {
+    AstNode node = ast_basic_node(AST_CASE, span);
+    node->as_case.value = value;
+    node->as_case.body = body;
+    return node;
 }
 
 AstNode ast_list_new(struct ast_node_span span, enum ast_node_t children_type) {
@@ -64,10 +79,18 @@ AstNode ast_list_expand(struct ast_node_span span, AstNode list, AstNode child) 
     return list;
 }
 
-AstNode ast_variable_declaration(struct ast_node_span span, AstNode type, AstNode name, OptionalAstNode initializer) {
+// TODO: rename to init_declaration
+AstNode ast_variable_declaration_list(struct ast_node_span span, AstNode type, AstNode declaration_list) {
+    AstNode node = ast_basic_node(AST_VARIABLE_DECLARATION_LIST, span);
+    node->as_variable_declaration_list.type = type;
+    node->as_variable_declaration_list.declaration_list = declaration_list;
+    return node;
+}
+
+AstNode ast_variable_declaration(struct ast_node_span span, OptionalAstNode pointer,  OptionalAstNode array, OptionalAstNode initializer) {
     AstNode node = ast_basic_node(AST_VARIABLE_DECLARATION, span);
-    node->as_variable_declaration.type = type;
-    node->as_variable_declaration.name = name;
+    node->as_variable_declaration.pointer = pointer;
+    node->as_variable_declaration.array = array;
     node->as_variable_declaration.initializer = initializer;
     return node;
 }
@@ -94,10 +117,11 @@ AstNode ast_struct_declaration(struct ast_node_span span, AstNode name, AstNode 
     return node;
 }
 
-AstNode ast_type_name_pair(struct ast_node_span span, AstNode type, AstNode name) {
+AstNode ast_type_name_pair(struct ast_node_span span, AstNode type, AstNode name, OptionalAstNode initializer) {
     AstNode node = ast_basic_node(AST_TYPE_NAME_PAIR, span);
     node->as_type_name_pair.type = type;
     node->as_type_name_pair.name = name;
+    node->as_type_name_pair.initializer = initializer;
     return node;
 }
 
@@ -170,6 +194,13 @@ AstNode ast_literal(struct ast_node_span span, enum ast_literal_type type) {
     return node;
 }
 
+AstNode ast_goto_statement(struct ast_node_span span, AstNode label) {
+    AstNode node = ast_basic_node(AST_GOTO_STATEMENT, span);
+    node->as_goto_statement.label = label;
+    return node;
+}
+
+// TODO: Add more to free
 void ast_free(OptionalAstNode node) {
     if (node == NULL) {
         return;
@@ -184,8 +215,7 @@ void ast_free(OptionalAstNode node) {
             free(node->as_list.children);
             break;
         case AST_VARIABLE_DECLARATION:
-            ast_free(node->as_variable_declaration.type);
-            ast_free(node->as_variable_declaration.name);
+            //ast_free(node->as_variable_declaration.name);
             ast_free(node->as_variable_declaration.initializer);
             break;
         case AST_FUNCTION_DECLARATION:

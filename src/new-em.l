@@ -82,6 +82,7 @@ IDENTIFIER	[a-zA-Z_][a-zA-Z0-9_]*
 "default"			{ return T_DEFAULT; }
 "sizeof"			{ return T_SIZEOF; }
 "static"			{ return T_STATIC; }
+"const"				{ return T_CONST; }
 {IDENTIFIER}			{ return T_IDENTIFIER; }
 
 .				{ return *yytext; }
