@@ -114,7 +114,7 @@ static void parse_array(Compiler c, Scanner s, SymTable st, Token tok,
         if (tok->token == T_LBRACE) {
             if (dims->next == NULL) {
                 lfatal(s, "TypeError: Dimension mismatch");
-            }   
+            }
             parse_array(c, s, st, tok, ctx, type, dims->next, initList, curr);
         } else {
             debug("is number %s curr %d", tok->tokstr, *curr);
@@ -173,21 +173,21 @@ static SymTableEntry scalar_declare(Compiler c, Scanner s, SymTable st,
         case C_EXTERN:
         case C_GLOBAL:
             debug("adding global %s", varName);
-            sym =
-                SymTable_AddGlob(st, varName, type, cType, S_VAR, class, 1, 0);
+            sym = SymTable_AddGlob(st, varName, type, cType, S_VAR, class, NULL,
+                                   1, 0);
             debug("nelems %d", sym->nElems);
             break;
         case C_LOCAL:
             debug("a");
-            sym = SymTable_AddLocl(st, varName, type, cType, S_VAR, 1);
+            sym = SymTable_AddLocl(st, varName, type, cType, S_VAR, NULL, 1);
             break;
         case C_PARAM:
             debug("b");
-            sym = SymTable_AddParam(st, varName, type, cType, S_VAR);
+            sym = SymTable_AddParam(st, varName, type, cType, S_VAR, NULL);
             break;
         case C_MEMBER:
             debug("c");
-            sym = SymTable_AddMemb(st, varName, type, cType, S_VAR, 1);
+            sym = SymTable_AddMemb(st, varName, type, cType, S_VAR, NULL, 1);
             break;
         default:
             lfatal(s, "UnsupportedError: unsupported class");
@@ -277,11 +277,11 @@ static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
         case C_EXTERN:
         case C_GLOBAL:
             sym = SymTable_AddGlob(st, varName, pointer_to(type), cType,
-                                   S_ARRAY, class, 0, 0);
+                                   S_ARRAY, class, dimsList, 0, 0);
             break;
         case C_LOCAL:
             sym = SymTable_AddLocl(st, varName, pointer_to(type), cType,
-                                   S_ARRAY, 0);
+                                   S_ARRAY, dimsList, 0);
             break;
         default:
             lfatal(s,
@@ -300,7 +300,7 @@ static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
         initList = calloc(maxElems, sizeof(int));
         parse_array(c, s, st, tok, ctx, type, dimsList, initList, &i);
 
-        for (int j = i; j < sym->nElems; j++) initList[j] = 0;        
+        for (int j = i; j < sym->nElems; j++) initList[j] = 0;
         sym->initList = initList;
         sym->nElems = maxElems;
     }
@@ -309,7 +309,6 @@ static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
     //     lfatal(s, "TypeError: Array must have non-zero elements");
     // }
 
-    // sym->nElems = nelems;
     sym->dims = dimsList;
     sym->size = sym->nElems * type_size(type, cType);
 
@@ -451,7 +450,8 @@ SymTableEntry function_declare(Compiler c, Scanner s, SymTable st, Token tok,
     }
 
     if (oldFuncSym == NULL) {
-        newFuncSym = SymTable_AddGlob(st, s->text, type, NULL, S_FUNC, C_GLOBAL,
+        // why tf do I have false for posn
+        newFuncSym = SymTable_AddGlob(st, s->text, type, NULL, S_FUNC, C_GLOBAL, NULL,
                                       1, false);
     }
 

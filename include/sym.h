@@ -15,7 +15,6 @@ typedef struct context *Context;
 bool ptrtype(enum ASTPRIM type);
 bool inttype(enum ASTPRIM type);
 
-
 #define MAX_SYMBOLS 1024
 
 enum STRUCTTYPE { S_VAR, S_FUNC, S_LABEL, S_ARRAY };
@@ -23,7 +22,7 @@ enum STRUCTTYPE { S_VAR, S_FUNC, S_LABEL, S_ARRAY };
 struct arrayDim {
     int nElems;
     struct arrayDim *next;
-}; 
+};
 
 typedef struct arrayDim *ArrayDim;
 
@@ -46,8 +45,8 @@ struct symTableEntry {
         bool isStr;
     };
 
-    int nElems; //! ONLY USED FOR TOTAL NUMBER OF ELEMENTS FROM ALL DIMENSIONS
-    int size;  // Number of elements in the symbol
+    int nElems;  //! ONLY USED FOR TOTAL NUMBER OF ELEMENTS FROM ALL DIMENSIONS
+    int size;    // Number of elements in the symbol
 
     // for annoymous strings, for now
     char *strValue;
@@ -89,15 +88,16 @@ void SymTable_Free(SymTable);
 
 SymTableEntry SymTable_AddGlob(SymTable this, char *name, enum ASTPRIM type,
                                SymTableEntry ctype, enum STRUCTTYPE stype,
-                               enum STORECLASS class, int nelems, int posn);
+                               enum STORECLASS class, ArrayDim dims, int nelems,
+                               int posn);
 SymTableEntry SymTable_AddLocl(SymTable this, char *name, enum ASTPRIM type,
                                SymTableEntry ctype, enum STRUCTTYPE stype,
-                               int nelems);
+                               ArrayDim dims, int nelems);
 SymTableEntry SymTable_AddParam(SymTable this, char *name, enum ASTPRIM type,
-                                SymTableEntry ctype, enum STRUCTTYPE stype);
+                                SymTableEntry ctype, enum STRUCTTYPE stype, ArrayDim dims);
 SymTableEntry SymTable_AddMemb(SymTable this, char *name, enum ASTPRIM type,
                                SymTableEntry ctype, enum STRUCTTYPE stype,
-                               int nelems);
+                               ArrayDim dims, int nelems);
 SymTableEntry SymTable_AddStruct(SymTable this, char *name);
 SymTableEntry SymTable_AddUnion(SymTable this, char *name);
 SymTableEntry SymTable_AddEnum(SymTable this, char *name, enum STORECLASS class,

@@ -213,7 +213,9 @@ static ASTnode print_statement(Compiler c, Scanner s, SymTable st, Token tok,
             firstGone = true;
         }
     } while (tok->token == T_COMMA);
+    debug("test??? 1 %s", tok->tokstr);
     rparen(s, tok);
+    debug("test??? 2 %s", tok->tokstr);
 
     semi(s, tok);
 
@@ -438,7 +440,7 @@ static ASTnode label_statement(Scanner s, SymTable st, Token tok) {
     ident(s, tok);
 
     SymTableEntry var = SymTable_AddGlob(st, s->text, P_NONE, NULL, S_LABEL,
-                                         C_GLOBAL, 0, false);
+                                         C_GLOBAL, NULL, 0, false);
 
     ASTnode t = ASTnode_NewLeaf(A_LABEL, P_NONE, NULL, var, 0);
     semi(s, tok);

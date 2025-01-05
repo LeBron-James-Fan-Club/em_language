@@ -655,7 +655,7 @@ void MIPS_GlobSym(Compiler this, SymTableEntry sym) {
 
     fprintf(this->outfile, "%s:\n", sym->name);
 
-    if (sym->stype == S_ARRAY && sym->initList == NULL) {
+    if (sym->stype == S_ARRAY && sym->initList == NULL && !sym->nElems) {
         int totaldims = 1;
         for (ArrayDim head = sym->dims; head != NULL; head = head->next) {
             totaldims *= head->nElems;

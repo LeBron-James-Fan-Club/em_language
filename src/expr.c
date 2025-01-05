@@ -141,7 +141,7 @@ static ASTnode primary(Compiler c, Scanner s, SymTable st, Token t,
                 }
 
                 var = SymTable_AddGlob(st, name, pointer_to(P_CHAR), NULL,
-                                       S_VAR, C_GLOBAL, 1, 0);
+                                       S_VAR, C_GLOBAL, NULL, 1, 0);
 
                 if (!customName) free(name);
                 SymTable_SetText(st, text, var);
@@ -263,6 +263,7 @@ ASTnode ASTnode_Order(Compiler c, Scanner s, SymTable st, Token t, Context ctx,
 
     left = ASTnode_Prefix(c, s, st, t, ctx);
     tokenType = t->token;
+    debug("tokenType %s", t->tokstr);
     if (tokenType == T_SEMI || tokenType == T_RPAREN ||
         tokenType == T_RBRACKET || tokenType == T_COMMA ||
         tokenType == T_COLON || tokenType == T_RBRACE) {
@@ -391,6 +392,7 @@ static ASTnode ASTnode_ArrayRef(Compiler c, Scanner s, SymTable st, Token tok,
 
     ArrayDim dims = left->sym->dims;
     do {
+        // Possible problem? - no I dont think so
         if (right && dims == NULL)
             lfatal(s, "TypeError: Dimension mismatch for variable.");
         // eat [ - Yummy
@@ -402,7 +404,10 @@ static ASTnode ASTnode_ArrayRef(Compiler c, Scanner s, SymTable st, Token tok,
 
         left->rvalue = 1;
 
-        // Scales by sizeof(type)
+        // Scales by sizeof(type) - this can be factorised out
+        // e.g. (i * size y * sizeof(int)) + ( y * sizeof(int))
+        // -> ((i * size y) + y) * sizeof(int)
+        // TODO: optimise this later
         right = modify_type(right, left->type, left->ctype, A_ADD);
 
         // Multiplcation of dimensions needs to happen here I think
@@ -410,11 +415,13 @@ static ASTnode ASTnode_ArrayRef(Compiler c, Scanner s, SymTable st, Token tok,
         if (dims) {
             // We skip the first size cause only other
             // other sizes are multiplied
+            int scale = 1;
             for (ArrayDim currentDim = dims->next; currentDim != NULL;
                  currentDim = currentDim->next) {
-                left = ASTnode_NewUnary(A_SCALE, left->type, left, left->ctype,
-                                        NULL, dims->nElems);
+                scale *= dims->nElems;
             }
+            left = ASTnode_NewUnary(A_SCALE, left->type, left, left->ctype,
+                                    NULL, scale);
             dims = dims->next;
         }
 
@@ -422,13 +429,14 @@ static ASTnode ASTnode_ArrayRef(Compiler c, Scanner s, SymTable st, Token tok,
                            NULL, 0);
 
         // Peek to see if we can continue
-        Scanner_Scan(s, tok);
+        debug("token arrayref: %s", tok->tokstr);
     } while (tok->token == T_LBRACKET);
-    Scanner_RejectToken(s, tok);
+    //Scanner_RejectToken(s, tok);
+    debug("WE OUT OF DA ARRAY REF >:)");
 
-    if (!inttype(right->type)) {
+    /*if (!inttype(right->type)) {
         fatal("TypeError: Array index must be an integer");
-    }
+    }*/
 
     return ASTnode_NewUnary(A_DEREF, value_at(left->type), left, left->ctype,
                             NULL, 0);
