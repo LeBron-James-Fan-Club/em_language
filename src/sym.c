@@ -241,6 +241,13 @@ static void freeList(SymTableEntry head) {
         if (head->initList) {
             free(head->initList);
         }
+        if (head->dims) {
+            for (ArrayDim dims = head->dims; dims != NULL;) {
+                ArrayDim next = dims->next;
+                free(dims);
+                dims = next;
+            }
+        }
         head = head->next;
         free(tmp);
     }
