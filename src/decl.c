@@ -237,8 +237,6 @@ static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
     int *initList;
     int i = 0;
 
-    int dims = 1;
-
     ArrayDim dimsList = NULL;
     ArrayDim dimsTail = NULL;
 
@@ -258,6 +256,7 @@ static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
             lfatal(s, "TypeError: 0 size arrays are not supported");
         }
 
+        // TODO: put this in its own function
         if (dimsList == NULL) {
             dimsList = dimsTail = calloc(1, sizeof(struct arrayDim));
         } else {
@@ -270,7 +269,6 @@ static SymTableEntry array_declare(Compiler c, Scanner s, SymTable st,
         nelems = -1;
 
         // eat ]
-        dims++;
 
         match(s, tok, T_RBRACKET, "]");
     }
@@ -347,6 +345,7 @@ static int param_declare_list(Compiler c, Scanner s, SymTable st, Token tok,
             }
         }
 
+        // int a, a, a but it only accepts one lol
         type = declare_list(c, s, st, tok, ctx, &cType, C_PARAM, T_COMMA,
                             T_RPAREN, &unused);
 

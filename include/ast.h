@@ -17,7 +17,7 @@ struct astnode {
     struct astnode *left;
     struct astnode *mid;
     struct astnode *right;
-    // Points to id in symtable
+    // Points to variable id in symtable
     SymTableEntry sym;
     SymTableEntry ctype;
     // Boolean but will be used as a bitfield later on

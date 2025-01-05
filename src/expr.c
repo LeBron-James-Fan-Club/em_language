@@ -130,7 +130,10 @@ static ASTnode primary(Compiler c, Scanner s, SymTable st, Token t,
                 if (t->token == T_LBRACKET) {
                     Scanner_Scan(s, t);
                     customName = true;
-                    if (t->token != T_IDENT) lfatal(s, "SyntaxError: Expected identifier in custom label");
+                    if (t->token != T_IDENT)
+                        lfatal(
+                            s,
+                            "SyntaxError: Expected identifier in custom label");
                     free(name);
                     name = s->text;
                     Scanner_Scan(s, t);
@@ -139,11 +142,11 @@ static ASTnode primary(Compiler c, Scanner s, SymTable st, Token t,
 
                 var = SymTable_AddGlob(st, name, pointer_to(P_CHAR), NULL,
                                        S_VAR, C_GLOBAL, 1, 0);
-                
+
                 if (!customName) free(name);
                 SymTable_SetText(st, text, var);
                 free(text);
-                
+
                 if (madeNew) free(text);
                 Scanner_RejectToken(s, t);
                 debug("finished making annoymous string");
@@ -379,30 +382,53 @@ ASTnode expression_list(Compiler c, Scanner s, SymTable st, Token tok,
 
 static ASTnode ASTnode_ArrayRef(Compiler c, Scanner s, SymTable st, Token tok,
                                 Context ctx, ASTnode left) {
-    ASTnode right;
+    ASTnode right = NULL;
 
     if (!ptrtype(left->type)) {
         lfatala(s, "TypeError: Array index must be a pointer or array, %s",
                 s->text);
     }
 
-    // eat [
-    Scanner_Scan(s, tok);
+    ArrayDim dims = left->sym->dims;
+    do {
+        if (right && dims == NULL)
+            lfatal(s, "TypeError: Dimension mismatch for variable.");
+        // eat [ - Yummy
+        Scanner_Scan(s, tok);
 
-    right = ASTnode_Order(c, s, st, tok, ctx, 0);
+        right = ASTnode_Order(c, s, st, tok, ctx, 0);
 
-    match(s, tok, T_RBRACKET, "]");
+        match(s, tok, T_RBRACKET, "]");
+
+        left->rvalue = 1;
+
+        // Scales by sizeof(type)
+        right = modify_type(right, left->type, left->ctype, A_ADD);
+
+        // Multiplcation of dimensions needs to happen here I think
+
+        if (dims) {
+            // We skip the first size cause only other
+            // other sizes are multiplied
+            for (ArrayDim currentDim = dims->next; currentDim != NULL;
+                 currentDim = currentDim->next) {
+                left = ASTnode_NewUnary(A_SCALE, left->type, left, left->ctype,
+                                        NULL, dims->nElems);
+            }
+            dims = dims->next;
+        }
+
+        left = ASTnode_New(A_ADD, left->type, left, NULL, right, left->ctype,
+                           NULL, 0);
+
+        // Peek to see if we can continue
+        Scanner_Scan(s, tok);
+    } while (tok->token == T_LBRACKET);
+    Scanner_RejectToken(s, tok);
 
     if (!inttype(right->type)) {
         fatal("TypeError: Array index must be an integer");
     }
-
-    left->rvalue = 1;
-
-    right = modify_type(right, left->type, left->ctype, A_ADD);
-
-    left =
-        ASTnode_New(A_ADD, left->type, left, NULL, right, left->ctype, NULL, 0);
 
     return ASTnode_NewUnary(A_DEREF, value_at(left->type), left, left->ctype,
                             NULL, 0);

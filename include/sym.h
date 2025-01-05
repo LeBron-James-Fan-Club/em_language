@@ -46,7 +46,7 @@ struct symTableEntry {
         bool isStr;
     };
 
-    int nElems;
+    int nElems; //! ONLY USED FOR TOTAL NUMBER OF ELEMENTS FROM ALL DIMENSIONS
     int size;  // Number of elements in the symbol
 
     // for annoymous strings, for now
@@ -56,9 +56,10 @@ struct symTableEntry {
 
     struct symTableEntry *next;
 
+    // How many dimensions does this hold?
     struct arrayDim *dims;
 
-    // holds parameter list
+    // holds parameter list/struct members
     struct symTableEntry *member;
 };
 
